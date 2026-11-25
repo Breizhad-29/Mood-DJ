@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.24.0';
+  const VERSION = '2.25.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -5635,16 +5635,6 @@
     colB.push(list);
 
     if (s.status === 'playing' || s.status === 'suspended') {
-      R.radioPlan = h('div', { class: 'muted' }, nextRadioPlan(s));
-      R.radioLog = h('div', { class: 'radiolog' }, radioLogItems(s));
-      colC.push(h('div', { class: 'section' },
-        h('h2', { class: 'label' }, 'Animateur radio'),
-        R.radioPlan,
-        R.radioLog,
-        h('div', { class: 'btns' }, h('button', { class: 'btn small', type: 'button', id: 'mdj-mark', onclick: () => markProblem() }, 'Signaler un souci maintenant'))));
-    }
-
-    if (s.status === 'playing' || s.status === 'suspended') {
       const notes = {
         off: 'La musique continue jusqu’à la fin de la sélection.',
         end: 'La lecture s’arrête à la fin du titre en cours.'
@@ -5655,7 +5645,7 @@
         chips(C.TIMERS, s.timer.kind, setTimer),
         h('div', { class: 'muted' }, notes[s.timer.kind] || 'Le volume baisse doucement sur la dernière minute, puis la lecture s’arrête.')));
     }
-    if (full) append(body, cols([colTitle('En ce moment')].concat(colA), [colTitle('À suivre')].concat(colB), colC.length ? [colTitle("À l'antenne")].concat(colC) : null));
+    if (full) append(body, cols([colTitle('En ce moment')].concat(colA), [colTitle('À suivre')].concat(colB), colC.length ? [colTitle('Dédicaces')].concat(colC) : null));
     else append(body, [colA, colB, colC]);
 
     const foot = h('div', { class: 'foot' });
@@ -6458,8 +6448,10 @@
         h('button', { class: 'btn small', type: 'button', id: 'mdj-dl-log', onclick: () => downloadDebug() }, 'Télécharger'),
         h('button', { class: 'btn small', type: 'button', onclick: () => copyDebug() }, 'Copier'),
         h('button', { class: 'btn small', type: 'button', onclick: () => markProblem() }, 'Signaler un souci'),
+        h('a', { class: 'btn small', href: 'mailto:biduletrash@yahoo.com?subject=' + encodeURIComponent('Mood DJ ' + VERSION + ' : un souci'), target: '_blank', rel: 'noopener' }, 'Écrire un mail'),
         h('button', { class: 'btn small', type: 'button', onclick: () => { dbgBuf = []; store({ debugLog: [] }); toast('Journal effacé.'); render(); } }, 'Effacer')),
-      h('div', { class: 'muted' }, "Note tout ce que fait Mood DJ (titres, annonces, voix, fondus, réactions de YouTube Music, erreurs) pour comprendre un souci. Dès qu'un problème arrive, clique sur « Signaler un souci » (ici, dans En cours" + (IN_APP ? '' : ' ou dans la télécommande') + "), puis télécharge le journal et joins-le dans la conversation avec Claude. Il reste " + WHERE + ", ne contient aucune clé API, mais inclut tes réglages (prénoms, ville de la météo).")));
+      h('div', { class: 'muted' }, "Note tout ce que fait Mood DJ (titres, annonces, voix, fondus, réactions de YouTube Music, erreurs) pour comprendre un souci. Il reste " + WHERE + ", ne contient aucune clé API, mais inclut tes réglages (prénoms, ville de la météo)."),
+      h('div', { class: 'muted' }, 'Un bug ? Clique sur « Signaler un souci » juste après, télécharge le journal, puis envoie-le par mail à biduletrash@yahoo.com en racontant ce qui s’est passé. Merci !')));
     const versionLine = h('div', { class: 'muted' }, 'Mood DJ · version ' + VERSION);
 
     // ------------------------------------------------ À propos, mentions légales

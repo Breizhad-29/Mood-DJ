@@ -1,6 +1,18 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.24.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.25.0
 ============================================
 
+2.25.0 : NOUVEAU LOOK ET INTERFACE ALLÉGÉE
+- Nouveau thème « gloss » : panneau en verre dépoli, dégradé rouge →
+  rose sur tout ce qui est actif (onglet, puces, interrupteurs, curseurs,
+  barres d'énergie), boutons et pastilles brillants avec un reflet,
+  halos discrets, bouton rond Mood DJ façon perle. Même style pour la
+  télécommande et la page des clés.
+- En cours : la partie « À l'antenne » (le fil de l'animateur, utile au
+  développement) est retirée ; la colonne s'appelle « Dédicaces ». Le
+  bouton « Signaler un souci » quitte En cours et la télécommande.
+- « Signaler un souci » reste dans Réglages › Journal et sauvegarde, avec
+  un bouton « Écrire un mail » : en cas de bug, télécharger le journal
+  et l'envoyer à biduletrash@yahoo.com en racontant ce qui s'est passé.
 NOUVEAU DANS LA 2.24.0 : INTERFACE EN ANGLAIS, RADIO DANS TA LANGUE
 - Réglages › Animateurs, voix, langues › « Langues » :
   · Langue de l'interface : Automatique (langue de Chrome), Français ou

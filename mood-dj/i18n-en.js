@@ -1,4 +1,4 @@
-// Mood DJ — dictionnaire français → anglais de l'interface (généré, 1349 entrées).
+// Mood DJ — dictionnaire français → anglais de l'interface (généré, 1353 entrées).
 /* exported MDJ_I18N_EN */
 var MDJ_I18N_EN = {"sur cet ordinateur":"on this computer",
 "dans ce navigateur":"in this browser",
@@ -1348,4 +1348,8 @@ var MDJ_I18N_EN = {"sur cet ordinateur":"on this computer",
 " annoncé bientôt":" announced soon",
 " est repartie":" has left",
 " oubliée.":" forgotten.",
-" oublié.":" forgotten."};
+" oublié.":" forgotten.",
+"Écrire un mail":"Send an email",
+"Un bug ? Clique sur « Signaler un souci » juste après, télécharge le journal, puis envoie-le par mail à biduletrash@yahoo.com en racontant ce qui s’est passé. Merci !":"Found a bug? Click “Report a problem” right after it happens, download the log, then email it to biduletrash@yahoo.com with a short description of what happened. Thanks!",
+"Dédicaces":"Dedications",
+"Note tout ce que fait Mood DJ (titres, annonces, voix, fondus, réactions de YouTube Music, erreurs) pour comprendre un souci. Il reste ":"Records everything Mood DJ does (tracks, announcements, voices, fades, YouTube Music reactions, errors) to help understand a problem. It stays "};

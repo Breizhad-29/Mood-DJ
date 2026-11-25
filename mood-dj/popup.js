@@ -93,11 +93,6 @@ $('prev').addEventListener('click', () => act('prev'));
 $('nextbtn').addEventListener('click', () => act('next'));
 $('like').addEventListener('click', () => act('like'));
 $('stop').addEventListener('click', () => act('stop'));
-$('mark').addEventListener('click', async () => {
-  await act('mark');
-  $('mark').textContent = 'Moment noté dans le journal';
-  setTimeout(() => { $('mark').textContent = 'Signaler un souci'; }, 2500);
-});
 $('panel').addEventListener('click', async () => {
   if (!tab) return;
   await chrome.tabs.update(tab.id, { active: true });
