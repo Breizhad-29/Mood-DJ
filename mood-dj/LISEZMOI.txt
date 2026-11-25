@@ -1,5 +1,9 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.25.1
+MOOD DJ POUR YOUTUBE MUSIC — version 2.25.2
 ============================================
+
+2.25.2 : En cours en pleine page, la durée du cycle passe à droite de la
+courbe d'énergie, avec la minuterie juste en dessous : tout tient à
+l'écran. (Sur un écran moyen, ils reviennent l'un sous l'autre.)
 
 2.25.1 : le dégradé rose du thème gloss devient un rouge façon YouTube
 (#ff3d3d → #cc0000), dans le panneau, la télécommande et la page des clés.

@@ -215,6 +215,14 @@ input[type=range].cyclebar.auto { accent-color: #8a8a8a; }
   .picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .card > .subhead:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+/* En cours, pleine page : la courbe à gauche, la durée du cycle et la minuterie à droite. */
+.curvepair { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(190px, 1fr); gap: 18px; align-items: start; }
+.cpl, .cpr { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cpr .chips { gap: 6px; }
+.cpr .chip { min-height: 34px; padding: 0 11px; }
+@container (min-width: 1081px) and (max-width: 1300px) {
+  .curvepair { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Réglages en pleine page : un menu de rubriques à gauche. */
 .regwrap { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 36px; align-items: start; }
