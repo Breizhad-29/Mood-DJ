@@ -1,0 +1,18 @@
+# Système
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Journaux et sauvegardes exportés depuis l'extension
+mood-dj-journal-*.txt
+mood-dj-sauvegarde-*.json
+
+# Archives et paquets
+*.zip
+*.crx
+*.pem
+
+# Outils
+.claude/
+.vscode/
+node_modules/

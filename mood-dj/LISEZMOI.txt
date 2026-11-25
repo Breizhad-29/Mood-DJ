@@ -1,0 +1,1149 @@
+MOOD DJ POUR YOUTUBE MUSIC — version 2.23.0
+============================================
+
+NOUVEAU DANS LA 2.23.0 : ÉMOTIONS AUTO ET REGISTRE INTIME
+- Réglages › L'émission › « Émotions des animateurs » : Auto (par
+  défaut pour une nouvelle installation), Sobre, Intime, Expressif,
+  Déchaîné. Si tu avais déjà choisi un niveau, il est gardé : choisis
+  « Auto » pour l'essayer.
+- Intime : voix tout près du micro, douce et tendre, phrases courtes,
+  silences et respirations, aucun éclat ni bruitage (fredonner tout
+  doucement reste possible avec « Chanter »).
+- Auto : le niveau est choisi à chaque intervention.
+  · Intime : coucher, méditation, la nuit sur un titre doux, humeur
+    romantique, dédicace émue sur un titre calme.
+  · Sobre : travail, matinée, humeurs mélancolique, nostalgique,
+    sombre, planante ou réconfortante.
+  · Déchaîné : fête, sport, titre à 5, grosse montée d'énergie.
+  · Un cran de plus pour un vrai ou faux gagné, l'arrivée d'un invité
+    ou un changement d'ambiance.
+  · Le style de l'animateur compte : Zen et Voix de nuit ne
+    s'emballent jamais ; Matinale, Sport, Rock et Télé ne descendent
+    jamais en sobre.
+  · Une annonce sur le fondu reste mesurée si le titre n'est pas
+    énergique.
+- Le niveau choisi apparaît dans le journal de l'émission (« émotions
+  expressif (auto) ») et sous le réglage (« Dernière intervention »).
+2.22.1 : EXTENSION PLUS NEUTRE
+- Le style d'animateur « Animateur breton » est retiré (avec sa voix et
+  ses mots bretons). S'il était choisi, l'animateur devient
+  « Chaleureux », le coanimateur « Décalé ».
+- Les clins d'œil locaux ne cherchent plus des noms de villes et de
+  festivals bretons : seulement la ville que tu as indiquée pour la
+  météo.
+- Prénoms des invités plus variés (les invités déjà venus gardent le
+  leur). Exemples des champs neutres (« ex. Lyon »).
+NOUVEAU DANS LA 2.22.0 : STYLES À LA CARTE ET HABILLAGE SONORE PAR AMBIANCE
+Styles
+- « Variété française » et « Celtique » sont retirés de l'extension,
+  avec leurs 639 titres du catalogue (5 158 titres restent).
+- Onglet Ambiance › Style › « Gérer les styles » :
+  · Styles de base : chacun peut être retiré (il disparaît des choix,
+    et ses titres ne passent plus, même avec « Tous les styles ») ou
+    remis.
+  · « + Ajouter un style » : tu donnes un nom (et des précisions si tu
+    veux), l'IA (Claude ou Gemini, selon « Qui écrit les textes ? »)
+    propose 3 à 6 sous-styles, l'habillage sonore le plus proche et 60 à
+    120 vrais titres classés (sous-style, énergie, année, humeurs). Tu
+    vois un aperçu, puis « Ajouter ce style », « Recommencer » ou
+    « Annuler ». Au plus 4 titres par artiste.
+  · Un style ajouté se choisit comme les autres (avec ses sous-styles),
+    se complète (« + 60 titres », sans doublon) ou se supprime. Il reste
+    dans ce navigateur et passe dans la sauvegarde.
+  · Les titres que l'IA aurait inventés ne sont simplement pas trouvés
+    sur YouTube Music : ils sont sautés.
+- L'IA qui classe tes J'aime connaît aussi les styles ajoutés.
+
+Habillage sonore
+- Réglages › L'émission › « Habillage sonore » : « Selon l'ambiance »
+  (par défaut) ou « Classique Mood DJ » (comme avant).
+- Douze familles, chacune avec son jingle (la même signature de 4 notes,
+  arrangée dans le style) et son fond d'interlude :
+  pop, rock (guitares saturées, batterie), électro (kick, nappe pompée),
+  hip-hop (scratch, boom-bap), chill / nuit (piano électrique, vinyle),
+  jazz (contrebasse qui marche, ride, accords enrichis), funk / disco
+  (clavinet, basse syncopée), reggae (one drop, skank), latino /
+  tropical (clave, congas, marimba), celtique (bourdon, bodhrán,
+  flûte), orchestre (cordes, cuivres, timbales), acoustique (guitare en
+  arpèges).
+- La famille suit le style et le sous-style en cours. La nuit, au
+  coucher et en méditation, tout passe en version feutrée. Les humeurs
+  sombres, mélancoliques ou épiques passent en mineur. L'énergie
+  accélère le tempo et ajoute des percussions.
+- Bouton « Écouter l'habillage » : le jingle puis 9 s de fond.
+2.21.0 : « DÉCHAÎNÉ » VRAIMENT DÉCHAÎNÉ, ET TEST DU CHANT
+- « Déchaîné » sonnait plus sage qu'« Expressif ». Raison probable :
+  une indication de jeu sur chaque réplique, toujours dans le même
+  registre, était lissée par le style de base de la voix, alors qu'en
+  Expressif les rares indications ressortent. Désormais, en Déchaîné :
+  · la voix elle-même est poussée (énergie très haute, grands écarts de
+    ton, de rythme et de volume, rires faciles et sonores) ;
+  · chaque indication est demandée « jouée en grand, bien plus fort
+    qu'un animateur normal » ;
+  · l'IA doit écrire au moins un vrai fou rire, des exclamations
+    criées, des interruptions, des indications extrêmes et toutes
+    différentes ({laughing uncontrollably}, {screaming with
+    excitement}…), avec des contrastes (un pic, une retombée chuchotée,
+    puis ça repart). Six à huit balises de rire ou de souffle.
+- Réglages › L'émission › « Chanter, à l'essai » : nouveau bouton
+  « Tester le chant ». Il fait un interlude où un animateur chante à
+  coup sûr (réplique chantée, faux exprès, jingle fredonné), même si
+  l'option est coupée. Il faut une IA pour les textes, les voix Gemini
+  et les émotions Expressif ou Déchaîné. Jamais les paroles d'une vraie
+  chanson.
+NOUVEAU DANS LA 2.20.0 : « METTRE À JOUR L'AMBIANCE » ET « ANNULER »
+- Pendant une émission, toucher l'onglet Ambiance ne change plus rien
+  tout de suite. Un bandeau apparaît en bas de l'onglet :
+  « Ambiance modifiée : « avant » → « après » », avec trois boutons :
+  · « Mettre à jour l'ambiance » : après les titres déjà annoncés ;
+  · « Dès le titre suivant » : sans attendre ;
+  · « Annuler les modifications » : l'onglet revient à l'ambiance de
+    l'émission, rien n'a bougé.
+  L'onglet En cours signale aussi les changements en attente.
+- Une fois appliquée, la nouvelle ambiance peut encore être annulée
+  (bouton « Annuler » du message, et dans En cours) tant qu'elle n'a
+  pas commencé : la file d'avant revient à l'identique, titres retirés
+  compris. Une courbe d'énergie seule s'annule pendant 10 minutes.
+- Les titres demandés ou dédicacés restent dans tous les cas.
+- Nouvelle description, nouvelle source ou sélection fixe : le bandeau
+  propose « Relancer la sélection ».
+- Au lancement d'une émission (grille, « Mix de ce titre »…), l'onglet
+  Ambiance affiche l'ambiance de l'émission.
+NOUVEAU DANS LA 2.19.0 : RYTHME NATUREL ET VERROUILLAGE AUTOMATIQUE
+- Réglages › L'émission › « Rythme des interventions » : Naturel (par
+  défaut) ou Régulier (comme avant).
+- Naturel : les interventions ne tombent plus pile tous les N titres.
+  La prochaine est tirée au sort autour du réglage, avec la même
+  moyenne :
+  · annonce « un titre sur trois » : tous les 2 à 4 titres ;
+  · interludes « Parfois » : tous les 3 à 5 titres ; « Souvent » : tous
+    les 2 ou 3 ;
+  · programme : il présente 2 à 4 titres (en « À chaque titre », 3 ou
+    parfois 4, avec un deuxième moment de culture).
+- Jamais deux interventions collées : avec le programme, l'interlude
+  attend le programme suivant et le présente lui-même (avant, une
+  annonce et un interlude tombaient souvent sur deux titres de suite).
+  Jamais plus de 4 titres sans intervention.
+- Verrouillage automatique : au lieu de toujours 3 titres, sont
+  verrouillés les titres annoncés au programme, plus celui qui ouvre le
+  programme suivant (son annonce est en préparation). Le tirage est fait
+  d'avance : En cours affiche toujours quand tombe la prochaine
+  intervention et quels titres sont verrouillés. Courbe d'énergie,
+  « Regénérer la suite » et changement d'ambiance reprennent juste après
+  les titres réellement verrouillés.
+- Restent garantis : l'intro, les dédicaces lues, les changements
+  d'ambiance annoncés, les invités à leur rythme.
+NOUVEAU DANS LA 2.18.0 : GEMINI PEUT ÉCRIRE LES TEXTES
+- Réglages › Clés API › « Qui écrit les textes ? » : Claude ou Gemini.
+  Les textes, ce sont les annonces, interludes, invités, bilans, les
+  sélections décrites en toutes lettres et le classement de tes titres.
+- Gemini utilise tes clés Gemini : la gratuite d'abord, puis la payante
+  en relais, comme pour les voix. Modèle au choix : Gemini 3.8 Flash
+  (conseillé) ou Gemini 4 Argon. Si Google renomme un modèle, Mood DJ
+  prend tout seul le Flash le plus récent disponible pour ta clé.
+- Relais automatique : si le moteur choisi n'a pas de clé, ou s'il tombe
+  (panne, limite atteinte, crédit épuisé), l'autre prend le relais quand
+  sa clé est enregistrée.
+- Avec seulement une clé Gemini, tout marche maintenant : voix ET textes.
+- Garde-fou de dépenses : 150 appels par heure pour les textes (Claude
+  ou Gemini), 150 pour les voix Gemini.
+2.17.1 : LE LECTEUR DU FONDU ENCHAÎNÉ DEVIENT VISIBLE
+- Le second lecteur du fondu enchaîné n'est plus caché : une petite
+  fenêtre (344 × 200 px, avec les commandes et le logo YouTube) apparaît
+  en bas à gauche pendant les 30 dernières secondes du titre, puis
+  disparaît quand sa fin s'est éteinte. C'est ce que demandent les règles
+  de YouTube pour les lecteurs intégrés (au moins 200 × 200 px, visible,
+  non recouvert).
+- « Fermer » sur cette fenêtre : fondu habituel pour ce titre-là.
+NOUVEAU DANS LA 2.17.0 : SÉCURITÉ ET MENTIONS LÉGALES
+- Les clés API se saisissent maintenant dans une page de l'extension
+  (Réglages › Clés API › « Saisir la clé… », ou la télécommande ›
+  « Clés API »), et plus dans la page YouTube Music : ses scripts ne
+  peuvent plus lire ni capter ce que tu tapes ou colles.
+- Le panneau Mood DJ est fermé aux scripts de la page YouTube Music
+  (« shadow root » fermé).
+- Le service de l'extension ne répond qu'à la page YouTube Music et à
+  ses propres pages. Les commandes de la télécommande sont vérifiées.
+- Garde-fou de dépenses : au plus 150 appels par heure à Claude et 150 à
+  Gemini. Au-delà, les appels sont refusés avec un message qui dit dans
+  combien de minutes réessayer.
+- Pages de l'extension protégées par une politique de sécurité stricte
+  (aucun script extérieur).
+- Nouveau : Réglages › À propos, avec les mentions légales, la politique
+  de confidentialité (ce qui part vers quel service), la transparence sur
+  les contenus créés par IA, et les sources et crédits (Wikipédia,
+  Open-Meteo, Last.fm, Discogs…). Éditeur : Breizhad. Usage privé, tous
+  droits réservés.
+
+NOUVEAU DANS LA 2.16.0 : VRAI FONDU ENCHAÎNÉ
+- Réglages › Son › « Fondu enchaîné réel » (activé par défaut) : les
+  deux titres se chevauchent, comme un DJ. La fin du titre qui s'en va
+  descend pendant que le suivant monte.
+- Comment ça marche : YouTube Music ne lit qu'un titre à la fois. 30 s
+  avant la fin, Mood DJ ouvre un lecteur YouTube caché sur le même
+  titre, muet, calé à la même seconde. Au début du fondu, le son passe
+  au lecteur caché, le titre suivant démarre dans YouTube Music et monte,
+  et la fin du titre caché s'efface.
+- Il faut un fondu de 3 s ou plus (Réglages › Son). Pas de chevauchement
+  avant un interlude, en fin de sélection ou de minuterie, ni pendant une
+  pub. Quand une voix parle sur le passage, la fin du titre s'efface plus
+  vite pour lui laisser la place.
+- Si un titre ne s'y prête pas (titre non intégrable hors de YouTube
+  Music, lecteur caché pas calé à temps, lecture avec le son refusée par
+  Chrome tant qu'on n'a pas cliqué sur la page), Mood DJ fait le fondu
+  habituel. Le journal dit pourquoi (« fondu enchaîné impossible »).
+- Le lecteur caché ne passe pas par l'égaliseur ni le renfort de basses
+  de Mood DJ : pendant les quelques secondes de la fin, le son peut être
+  un peu différent.
+
+CATALOGUE
+- 56 titres de plus pour les sous-styles qui en avaient peu : chants de
+  marins, zouk, manouche, reggae français, breton, épique, flamenco.
+2.15.2 : CHANGER D'AMBIANCE EN COURS DE LECTURE
+- Pour changer d'ambiance sans relancer, modifie l'onglet Ambiance (style,
+  moment, énergie, humeur, époque, cycle, ou une de Mes ambiances) sans
+  appuyer sur « Lancer ». Par défaut, le changement arrive après les 3
+  titres déjà prévus. Nouveau : le message et l'onglet En cours proposent
+  « Changer maintenant », et la nouvelle ambiance commence dès le titre
+  suivant (l'animateur annonce le virage). Les titres demandés ou
+  dédicacés sont gardés.
+- La courbe d'énergie modifiée pendant une émission s'applique aux titres
+  à venir, sans relancer (en continu comme en sélection fixe).
+- Changer « Décris ton ambiance » en cours de lecture affiche maintenant
+  un message avec « Lancer » (avant, rien ne se passait).
+
+CORRECTIF 2.15.1 : LE DÉBUT D'ÉMISSION
+- Lancer une sélection pendant qu'un titre joue ne coupe plus la musique
+  pendant la préparation de l'intro (souvent 15 à 25 s avec les voix
+  Gemini en duo) : elle continue tout doucement, puis s'efface quand
+  l'intro est prête, juste avant le jingle.
+- « Lecture » pendant la préparation de l'intro (lecteur Mood DJ, bouton
+  d'En cours, télécommande) ne se fait plus remettre en pause : l'intro
+  est sautée et le premier titre démarre tout de suite.
+
+NOUVEAU DANS LA 2.15.0 : GRILLE D'ÉMISSIONS, RÉVEIL ET BILAN
+- Réglages › Grille des émissions : crée des émissions à heure fixe
+  (nom, jours, heure de début, durée ou « en continu », ambiance : une de
+  Mes ambiances ou les réglages actuels). À l'heure dite, Mood DJ lance
+  l'émission tout seul et les animateurs l'annoncent par son nom, comme
+  un générique (« Rock du jeudi soir »). Chaque émission peut être mise en
+  pause, modifiée, supprimée ou lancée tout de suite.
+- Réveil en douceur (option d'une émission) : si aucun onglet YouTube
+  Music n'est ouvert, Mood DJ en ouvre un ; le volume part bas et remonte
+  sur trois minutes ; les animateurs prennent un ton du matin et donnent
+  l'heure. Sans ambiance choisie, c'est le moment « Réveil ».
+- Bilan de fin d'émission (Réglages › L'émission, activé par défaut) :
+  quand une sélection se termine (durée atteinte ou minuterie), les
+  animateurs font le bilan sur un fond sonore : un ou deux souvenirs, les
+  invités, le score des jeux, et la prochaine émission de la grille.
+À savoir : Chrome doit être ouvert et l'ordinateur allumé (pas en veille)
+à l'heure prévue. Selon les réglages de Chrome, un onglet ouvert tout
+seul peut attendre un clic avant de jouer le son. Après la mise à jour,
+recharge l'extension (nouvelle autorisation : les alarmes de Chrome).
+
+CORRECTIF 2.14.1 : la barre d'espace tapée dans un champ du panneau
+(dédicace, ambiance, liste noire…) mettait la musique en pause, car
+YouTube Music la prenait pour son raccourci Lecture/Pause. Les touches
+tapées dans le panneau ne vont plus du tout à YouTube Music (ni Maj+N /
+Maj+P, qui pouvaient passer au titre suivant en tapant un N majuscule).
+
+NOUVEAU DANS LA 2.14.0 : DÉDICACES ET DEMANDES EN DIRECT
+Dans l'onglet En cours, pendant une sélection, la carte « Dédicace ou
+demande » : pour qui, un message, un titre demandé (facultatif) et de la
+part de qui. « Envoyer à l'antenne » :
+- Sans titre demandé : les animateurs lisent la dédicace juste avant le
+  prochain titre (ou celui d'après si l'annonce du prochain est déjà en
+  route), même si aucune annonce n'était prévue.
+- Avec un titre demandé (« Tri Martolod d'Alan Stivell ») : Mood DJ le
+  cherche sur YouTube Music et le fait passer juste après le titre en
+  cours, présenté comme « une demande de… ».
+Pour un anniversaire ou une fête, les animateurs le souhaitent (avec des
+applaudissements si les bruitages sont activés). Le message est lu tel
+quel, jamais comme une consigne ; un mot blessant n'est pas lu. Dans À
+suivre, les titres concernés portent « · dédicace » ou « · demande », et
+l'Historique compte les dédicaces de chaque émission. Sans Claude, la
+dédicace est lue en une phrase simple.
+
+NOUVEAU DANS LA 2.13.0 : HISTORIQUE DES ÉMISSIONS ET LISTE NOIRE
+- Nouvel onglet « Historique » : chaque émission y est notée au fil de
+  l'eau (rien n'est perdu si l'onglet se ferme) avec sa date, sa durée,
+  son ambiance, ses titres (et ceux que tu as passés), ses invités et le
+  score des jeux. Pour chacune : voir les titres (et en réécouter un),
+  « Reprendre cette ambiance », « Enregistrer en playlist », « Supprimer ».
+  Les 60 dernières émissions sont gardées, et comprises dans la
+  sauvegarde.
+- Liste noire d'artistes : un artiste de la liste ne passe plus jamais,
+  quelle que soit la source (catalogue, J'aime, similaires, nouveautés,
+  Claude), même en featuring. On l'ajoute depuis En cours (« Ne plus
+  passer… » sous les boutons), depuis l'Historique (le petit sens
+  interdit à côté d'un titre), ou à la main dans Réglages › Lecture et
+  bibliothèque › Liste noire. Un artiste ajouté pendant qu'il passe est
+  sauté tout de suite.
+- La même carte liste aussi tes titres « Je n'aime pas », que tu peux
+  retirer un par un.
+
+2.12.1 : quand Google refuse une clé Gemini, le message dit laquelle
+(gratuite ou payante) et pourquoi (expirée, inconnue, bloquée…), avec
+l'explication exacte de Google. Si la clé gratuite est refusée et qu'une
+clé payante est enregistrée, la payante prend le relais, et la gratuite
+n'est plus réessayée tant que tu n'en as pas collé une nouvelle.
+
+NOUVEAU DANS LA 2.12.0 : DES ANIMATEURS PLUS EXPRESSIFS
+Réglages › L'émission › Habillage et écoute (avec les voix Gemini) :
+- « Émotions des animateurs » : Sobre (comme avant), Expressif (par
+  défaut : vrais rires, surprise, émotion) ou Déchaîné (grands éclats de
+  rire, fous rires à deux, exclamations). Chaque réplique peut avoir son
+  propre ton : excité, chuchoté, faussement outré, ému… La voix de
+  synthèse l'interprète, le rendu peut varier d'une fois à l'autre.
+- « Bruitages de plateau » : applaudissements, acclamations, ba-dum-tss
+  après une blague, roulement de tambour avant la réponse d'un vrai ou
+  faux, buzzer pour un pari perdu, petite victoire pour un pari gagné.
+  Ils sont fabriqués par l'extension (aucun fichier) et joués au bon
+  moment dans l'intervention. Bouton « Écouter les bruitages ».
+- « Chanter, à l'essai » (désactivé au départ) : un animateur peut
+  fredonner, chanter le nom de la station sur un air de jingle ou
+  entonner faux pour rire. Jamais les paroles d'une vraie chanson.
+- Bouton « Tester » à côté de « Émotions des animateurs ».
+
+2.11.1 : boutons « Tester » dans Réglages › L'émission, à côté de
+« Interludes », « Anecdotes » et « Spécialiste invité ». Ils font entendre
+un exemple : un interlude (avec jingle et fond sonore), une vraie anecdote
+tirée des fiches, ou l'arrivée d'un invité. L'anecdote et l'invité portent
+sur le titre en cours s'il y en a un, sinon sur un classique (Born to Run).
+Il faut la clé Claude pour l'anecdote, et les voix Gemini pour l'invité.
+
+NOUVEAU DANS LA 2.11.0 : LE SPÉCIALISTE INVITÉ
+De temps en temps, un invité passe dans l'émission : un spécialiste du
+style qui joue (spécialiste rock, critique de jazz, sonneur de bagad, DJ,
+musicologue, critique de cinéma pour les musiques de films…).
+- L'animateur l'annonce (« dans quelques minutes, on reçoit Gwen… »),
+  puis l'accueille avec un petit jingle. L'invité prend la place du
+  coanimateur, qui « s'est éclipsé quelques minutes ».
+- Pendant deux ou trois interventions, il parle en connaisseur : un
+  détail que seul un spécialiste remarque, une anecdote tirée des fiches,
+  un avis tranché. Puis il repart en lançant lui-même un titre.
+- Il a son prénom, sa voix, son style et une petite manie. Chaque
+  spécialité garde son invité d'une émission à l'autre : si Gwen revient,
+  c'est la même Gwen, et l'animateur s'en souvient.
+- Réglages › L'émission › « Spécialiste invité » : Jamais, Rarement
+  (environ une fois par heure, réglage par défaut) ou Souvent (environ
+  toutes les 30 minutes). La liste « Invités déjà venus » permet d'en
+  oublier un : quelqu'un d'autre viendra pour cette spécialité.
+- L'onglet En cours indique quand un invité est annoncé, en studio ou sur
+  le départ.
+Il faut les voix Gemini et la clé Claude (l'invité a besoin des deux
+voix). Il n'invente rien : il s'appuie sur les mêmes fiches que les
+animateurs, et ne prétend jamais avoir rencontré un artiste.
+
+NOUVEAU DANS LA 2.10.0 : LES CONCERTS (SOURCES, ÉTAPE 3)
+Deux sources de plus, facultatives, dans Réglages › Clés API › Concerts :
+- Setlist.fm : le dernier concert de l'artiste qui passe, et la place du
+  morceau sur scène : joué à presque tous ses concerts, souvent en
+  ouverture ou en rappel… ou jamais joué. De belles anecdotes de scène.
+  Clé : compte sur setlist.fm, puis setlist.fm/settings/api.
+- Ticketmaster : quand l'artiste a des dates prévues dans les 9 prochains
+  mois, les animateurs glissent un court flash concert (date, ville,
+  salle ou festival), au plus une fois tous les 3 jours par artiste.
+  Si la date est dans ta ville de la météo, ils disent « près de chez
+  toi ». Le menu « Concerts annoncés » choisit le pays (France par
+  défaut, Belgique, Suisse, Canada, Luxembourg ou partout).
+  Clé : compte sur developer.ticketmaster.com, « My Apps », copie la
+  « Consumer Key ».
+Jamais de prix ni de lien de billetterie à l'antenne. Après la mise à
+jour, recharge l'extension : Chrome peut demander d'autoriser les deux
+nouveaux sites.
+
+NOUVEAU DANS LA 2.9.0 : LAST.FM ET DISCOGS (SOURCES, ÉTAPE 2)
+Deux sources d'anecdotes en plus, facultatives, chacune avec une clé
+gratuite à coller dans Réglages › Clés API › Sources d'anecdotes (bouton
+« Tester » pour vérifier) :
+- Last.fm : l'audience d'un titre et de l'artiste, les tags donnés par
+  les auditeurs, l'album, la bio de l'artiste. Avec « Mix de ce titre »,
+  les artistes proches selon les auditeurs Last.fm s'ajoutent à ceux de
+  YouTube Music. Clé : connecte-toi sur last.fm, puis
+  last.fm/api/account/create ; colle la « API key » (pas le secret).
+- Discogs : l'édition d'origine (label, pays, format), les styles précis
+  et les crédits détaillés du morceau (producteur, musiciens, ingénieurs).
+  Jeton : sur discogs.com, Paramètres › Développeurs › « Générer un
+  nouveau jeton ».
+Sans clé, rien ne change : MusicBrainz, Wikidata, Deezer et Wikipédia
+restent utilisés. Après la mise à jour, recharge l'extension : Chrome
+peut demander d'autoriser les deux nouveaux sites.
+
+2.8.1 : catalogue complété, 5 741 titres (267 de plus). 74 sous-styles
+sur 81 ont maintenant 60 titres ou plus. Les 7 autres ont entre 31 et 57
+titres : chants de marins (31), zouk (33), manouche (36), reggae français
+(39), breton (47), musique épique (56), flamenco (57).
+
+NOUVEAU DANS LA 2.8.0
+- Bouton « Mix de ce titre » (les ondes, à gauche du pouce dans le
+  lecteur de Mood DJ) : tu aimes le titre qui passe ? Mood DJ lance une
+  nouvelle sélection en continu à partir de cet artiste et de ses
+  artistes proches, avec le même style, le même sous-style et la même
+  énergie. Ton moment est gardé. Si le titre n'est pas encore classé,
+  Claude trouve d'abord son style. Le message propose « Enregistrer »
+  pour le garder dans Mes ambiances (« Dans l'esprit de… »). Dans
+  l'onglet Ambiance, la ligne « Dans l'esprit de… » rappelle le titre de
+  départ ; la croix revient aux artistes de départ habituels.
+- Catalogue intégré presque doublé : 5 474 titres (2 462 de plus). La
+  plupart des sous-styles ont maintenant 60 titres ou plus, de quoi
+  enchaîner plusieurs heures sans répétition. Restent plus courts, faute
+  de titres assez sûrs : chants de marins, zouk, manouche, reggae
+  français, breton, flamenco, lo-fi. Pour eux, Mood DJ complète avec tes
+  J'aime, les artistes similaires et Claude.
+
+NOUVEAU DANS LA 2.7.0 : PLUS DE CHOIX POUR COMPOSER
+- Sous-styles : Rock › Punk, Grunge / alternatif, Prog / psyché ;
+  Électro › Drum & bass, Trance, Ambient ; Pop › Synth-pop, Indie pop ;
+  Jazz › Manouche ; Celtique › Chants de marins ; Musiques du monde ›
+  Zouk / Antilles ; Variété française › Yé-yé 60-70.
+- Moments : Ménage (entraînant et régulier), Apéro (convivial, monte
+  doucement), Balade / marche (rythme de pas tranquille), Méditation
+  (très calme, sans paroles).
+- Humeurs : Ensoleillé / estival, Réconfortant, Sombre / mystérieux,
+  Décalé.
+- Époques : Avant 1950 et Années 50.
+- Le catalogue intégré gagne 84 titres pour ces nouveautés, et 38 titres
+  déjà présents passent dans le sous-style plus précis (Nirvana en
+  Grunge, Depeche Mode en Synth-pop…). Il compte maintenant 3 012 titres.
+- Claude connaît les nouveaux sous-styles pour classer tes J'aime. Ceux
+  qui sont déjà classés gardent leur ancien classement.
+
+NOUVEAU DANS LA 2.6.6
+- Repères de temps sous la courbe d'énergie : petit trait au quart
+  d'heure, moyen à la demi-heure, grand à l'heure, avec les durées écrites
+  dessous. Ils suivent la durée du cycle ou de la sélection.
+- Durée du cycle par quarts d'heure : de 15 min à 4 h.
+- La durée est une cible, pas un compte à la seconde : une sélection fixe
+  finit quelques minutes avant ou après la durée choisie, toujours à la
+  fin d'un titre. Avec « Jusqu'à une heure », le titre en cours à cette
+  heure-là est joué jusqu'au bout. (Seul un titre qui dépasserait de plus
+  de 6 min est terminé en fondu.) La durée du cycle aussi est indicative :
+  elle suit les titres choisis.
+
+NOUVEAU DANS LA 2.6.5 : LA COURBE SE DESSINE LIBREMENT
+Plus de points imposés : dans l'onglet Ambiance, attrape la courbe
+d'énergie où tu veux et tire-la vers le haut ou le bas. Les alentours
+suivent en douceur. En glissant de côté sans lâcher, tu la redessines.
+Le « Pinceau » (Fin, Moyen, Large) règle la largeur de la zone qui bouge :
+Fin pour un détail, Large pour une grande vague. « Courbe du moment »
+rétablit la courbe d'origine.
+
+NOUVEAU DANS LA 2.6.3
+- Courbe d'énergie personnalisée (voir 2.6.5 pour la version actuelle,
+  sans points imposés). La barre Énergie décale
+  toute la courbe. « Courbe du moment » rétablit la courbe d'origine ;
+  choisir un autre moment la rétablit aussi. La courbe est gardée dans
+  Mes ambiances.
+- La barre « Durée du cycle » est juste sous la courbe d'énergie.
+- Plus de lecture automatique au chargement : quand la page YouTube Music
+  se recharge, elle relance d'habitude le dernier titre toute seule. Mood
+  DJ le met en pause tant que tu n'as rien lancé (sélection, Lecture, clic
+  dans YouTube Music), pendant les 45 premières secondes. Pour revenir à
+  l'ancien comportement : Réglages › Lecture et bibliothèque › « Pas de
+  lecture automatique au chargement ».
+
+Mes ambiances : elles se choisissent dans un menu déroulant, classé par
+nom (avec le style et le moment). Choisir une ambiance la charge aussitôt ;
+la croix à côté supprime celle qui est chargée.
+
+NOUVEAU DANS LA 2.6.2 : SÉLECTEUR EN COLONNES (PLEINE PAGE)
+En pleine page, l'onglet Ambiance place au centre cinq colonnes côte à
+côte, qu'on remplit de gauche à droite : Style → Sous-style → Moment →
+Humeur → Époque. Les sous-styles des styles choisis apparaissent dans la
+deuxième colonne. À gauche : ta description, Mes ambiances et la source ;
+à droite : l'énergie, la courbe et la durée. Sur un écran plus étroit, le
+sélecteur passe en haut sur toute la largeur.
+
+NOUVEAU DANS LA 2.6.1 : DURÉE DU CYCLE À LA CARTE
+La durée du cycle (mode En continu, onglets Ambiance et En cours) se règle
+avec une barre, de 10 min à 4 h : par pas de 5 min jusqu'à 1 h, puis de
+10 à 30 min. Le bouton « Auto » reprend la durée prévue pour le moment
+choisi (la barre passe alors en gris).
+
+NOUVEAU DANS LA 2.6.0
+- Plusieurs styles et sous-styles à la fois : dans Ambiance › Style, touche
+  plusieurs styles (par exemple Rock et Pop) pour les mélanger ; touche-le
+  de nouveau pour le retirer. Chaque style choisi a sa ligne de
+  sous-styles, où l'on peut aussi en allumer plusieurs. Un style sans
+  sous-style choisi est pris en entier. Exemple : « Rock (soft, hard) et
+  pop ». L'égaliseur automatique fait la moyenne des styles choisis, et
+  avec l'époque « Actuel », Mood DJ cherche les nouveautés de chaque style.
+- Mes ambiances : en haut de l'onglet Ambiance, donne un nom à tes
+  réglages (styles, moment, énergie, humeur, époques, source, description,
+  mode et durée) et enregistre-les. Un clic sur son nom recharge
+  l'ambiance (le message propose « Lancer »), la petite croix la supprime
+  (avec « Annuler »). Enregistrer sous un nom déjà pris met l'ambiance à
+  jour. Jusqu'à 40 ambiances, comprises dans la sauvegarde.
+
+NOUVEAU DANS LA 2.5.5
+- Plusieurs époques à la fois : dans Ambiance › Époque, touche plusieurs
+  décennies (par exemple Années 80 et Années 90) pour les mélanger. Touche-
+  la de nouveau pour la retirer. « Toutes » efface le choix ; « Actuel »
+  reste seul, car il va chercher les nouveautés de YouTube Music.
+- Nouveau moment « Travail » : une énergie moyenne, régulière et
+  entraînante, sans à-coups ni titre qui explose, et pas trop mélancolique.
+  À la différence de « Concentration », les titres chantés sont bienvenus.
+- Bouton « Je n'aime pas » (pouce vers le bas) dans le lecteur de Mood DJ,
+  à côté du cœur : le titre est noté « Je n'aime pas » dans YouTube Music,
+  passé tout de suite, et il ne reviendra plus dans les sélections Mood DJ.
+  Un second clic annule. Réglages › Catalogue › « Oublier mes Je n'aime
+  pas » les efface tous.
+
+NOUVEAU DANS LA 2.5.4 : PLEINE PAGE SANS LA BARRE DE YOUTUBE MUSIC
+- En pleine page, la barre de lecture de YouTube Music est masquée et Mood
+  DJ descend jusqu'en bas de la fenêtre. Son mini-lecteur prend la forme
+  d'une barre : titre et J'aime, boutons et volume, position dans le titre.
+- La barre de YouTube Music revient dès qu'on repasse en panneau latéral ou
+  qu'on ferme Mood DJ.
+- Pour la garder : Réglages › Lecture et bibliothèque › « Masquer le
+  lecteur de YouTube Music en pleine page ».
+
+NOUVEAU DANS LA 2.5.3 : LES ONGLETS RANGÉS POUR LA PLEINE PAGE
+En pleine page, chaque onglet profite de la largeur (le panneau latéral,
+lui, ne change pas) :
+- Ambiance : trois colonnes, dans l'ordre où l'on compose. Point de départ
+  (décrire l'ambiance, source des titres), Compose ton ambiance (style,
+  sous-style, moment, humeur, époque), Énergie et durée (énergie, courbe,
+  mode de lecture, durée, mode radio). Le résumé et le bouton de lancement
+  tiennent sur une ligne en bas.
+- En cours : En ce moment (pochette en grand, boutons, courbe, minuterie),
+  À suivre (16 titres au lieu de 8), À l'antenne (journal de l'animateur,
+  plus long).
+- Son : Enchaînements (fondu, silences, tempo) à gauche, égaliseur à droite.
+- Réglages : un menu de rubriques à gauche, et seulement la rubrique
+  choisie à droite : L'émission, Animateurs et voix (l'animateur et son
+  coanimateur côte à côte), Clés API, Lecture et bibliothèque, Journal et
+  sauvegarde.
+Si la fenêtre est étroite, les colonnes se replient en deux, puis en une.
+
+NOUVEAU DANS LA 2.5.2 : MODE PLEINE PAGE
+- Le bouton à quatre coins, en haut du panneau à côté de la croix, étale
+  Mood DJ sur toute la zone de contenu de YouTube Music. Le bandeau du
+  haut, le menu de gauche et le lecteur du bas restent visibles.
+- Le panneau suit le menu de gauche : si tu le réduis ou l'agrandis (bouton
+  ☰ de YouTube Music), Mood DJ se recale tout seul.
+- Les rubriques se rangent en colonnes selon la largeur de la fenêtre.
+- Le même bouton ramène au panneau latéral. Le choix est retenu.
+
+CORRECTIF 2.5.1 : L'INTRO NE SAUTE PLUS
+- L'intro est d'abord préparée en entier (texte et voix), musique en
+  pause, avec le message « Les animateurs préparent l'émission… ». Puis le
+  jingle, le fond sonore et la voix s'enchaînent sans blanc. Mood DJ attend
+  jusqu'à 60 s (au lieu de 20 s) avant de lancer la musique sans intro.
+  « Suivant » pendant la préparation lance tout de suite le premier titre.
+- Les fiches des 3 premiers titres sont cherchées dès qu'ils sont trouvés,
+  et les nouvelles sources (MusicBrainz, Wikidata, Deezer) attendent moins
+  longtemps : une réponse arrivée en retard est gardée pour la fois suivante.
+
+NOUVEAU DANS LA 2.5.0 : DE NOUVELLES SOURCES POUR LES ANECDOTES
+En plus de Wikipédia et de la page YouTube Music de l'artiste, Mood DJ
+donne aux animateurs des faits courts et sûrs, sans aucune clé à créer :
+- MusicBrainz : année et lieu de formation du groupe, membres principaux
+  et leurs instruments, groupes d'un artiste solo, première sortie du
+  morceau, auteurs, producteur, studio, samples, et combien de fois le
+  morceau a été repris.
+- Wikidata : récompenses (avec l'année), genres, labels, influences,
+  pays d'origine, et pour le morceau sa date de sortie et ses disques d'or.
+- Wikipédia dans d'autres langues : quand l'article n'est pas trouvé en
+  français ni en anglais, Mood DJ le retrouve par Wikidata (le bon article
+  à coup sûr), au besoin en breton, irlandais, coréen, japonais, espagnol,
+  allemand… selon le style. Les animateurs le traduisent.
+- Deezer : la popularité du titre, et sa date de sortie quand MusicBrainz
+  ne l'a pas. Le tempo (BPM) est gardé pour plus tard, mais pas dit à
+  l'antenne : Deezer le donne parfois doublé ou divisé par deux.
+Ces faits servent surtout aux détails précis et au vrai ou faux. Ils sont
+gardés 60 jours. Le journal technique indique les sources utilisées
+(mb-artiste, mb-morceau, wikidata, deezer, article-br…).
+Toujours rien sur la vie privée, la santé, les décès ni les affaires
+judiciaires.
+
+NOUVEAU DANS LA 2.4.5 : L'OUVERTURE EN FONDU ENCHAÎNÉ
+- Au lancement, l'intro des animateurs passe d'abord (jingle, fond sonore,
+  voix), musique en pause. Avec les voix Gemini, le premier titre démarre
+  doucement sous les 4 dernières secondes de la voix, puis monte à plein
+  volume quand l'animateur a fini. Avant, le titre jouait déjà en fond
+  pendant toute l'intro.
+- Avec la voix de l'ordinateur (durée inconnue), le titre monte juste après
+  la voix, pendant que le fond sonore s'efface.
+- « Suivant » pendant l'intro la coupe et lance tout de suite le premier
+  titre.
+
+NOUVEAU DANS LA 2.4.4 : DIX NOUVEAUX STYLES D'ANIMATEUR
+- Réglages › Animateurs › Style, pour l'animateur comme pour le
+  coanimateur : Radio généraliste (passe d'un style de musique à l'autre),
+  Animateur breton (un mot breton courant de temps en temps), Commentateur
+  sportif, Présentateur télé, Rock'n'roll, Mélomane érudit, Matinale
+  survoltée, Conteur nostalgique, Pince-sans-rire et Zen.
+- Chaque style change la façon d'écrire de Claude et, avec Gemini, le ton
+  de la voix et la voix proposée d'office (si tu n'en as pas choisi une).
+  Avec la voix de l'ordinateur, seul le texte change.
+
+NOUVEAU DANS LA 2.4.3 : DEUX CLÉS GEMINI
+- Réglages › Clés API : une clé Gemini gratuite, utilisée en premier, et une
+  clé payante facultative qui prend le relais quand la gratuite atteint sa
+  limite (par minute ou du jour). Le journal indique la clé utilisée.
+
+NOUVEAU DANS LA 2.4.2 : LA SAUVEGARDE
+- Réglages › Sauvegarde › Exporter : un fichier avec tes réglages, tes
+  J'aime classés, tes découvertes et la mémoire des animateurs (anecdotes
+  déjà racontées, pages artistes, fiches). Ni les clés API, ni le journal.
+- Importer : remet ce fichier dans Mood DJ, ici ou dans l'application
+  Mood DJ (c'est comme ça qu'on passe de l'extension à l'application).
+
+CORRECTIF 2.4.1 (d'après le journal du 24 novembre)
+- Vrai ou faux : une réplique comme « Réponse : c'était faux ! » est bien
+  lue à l'antenne. Seules les lignes cachées en majuscules (QUESTION :,
+  RÉPONSE :) sont retirées.
+- Fin de titre : quand YouTube Music gonfle la durée du titre en fin de
+  morceau (229 s devenues 246 s, 179 s devenues 233 s), Mood DJ se fie
+  aussi à la durée trouvée lors de la recherche du titre. Le fondu, la
+  voix sur le fondu et l'interlude ne sont plus sautés. Le journal note
+  chaque changement de durée.
+- Après une longue pause, le titre suivant ne joue plus volume coupé
+  pendant une demi-minute : Mood DJ suit aussi le lecteur lui-même, que
+  Chrome ne ralentit pas quand l'onglet est caché.
+- Interventions plus courtes : culture courte sur le fondu (40 mots, 45 en
+  duo), anecdotes (50 et 90 mots), chronique (110 mots, 135 en duo), et le
+  vrai ou faux ajoute moins de mots.
+- Les animateurs n'ajoutent plus de détail absent de la fiche (nationalité,
+  origine, date, chiffre), même pour une blague.
+- Journal technique : l'état est noté quand il change, sinon toutes les
+  30 s (10 min en pause), pour garder plus d'historique utile.
+
+NOUVEAU DANS LA 2.4 : DES ANECDOTES PLUS VIVANTES
+Le jeu du vrai ou faux (avec le programme, en « À chaque titre ») :
+- Le pari en deux temps : souvent, le programme se termine par un vrai ou
+  faux sur le 2e titre annoncé. Le coanimateur parie, toi aussi dans ta
+  tête, et la réponse tombe juste avant ce titre, au début de la chronique.
+  Parfois, c'est une question en suspens (« tu sais pourquoi ce morceau a
+  failli ne jamais sortir ? ») dont l'histoire est racontée au même moment.
+- Le vrai ou faux express, de temps en temps en culture courte : la
+  question, le pari et la réponse dans la même annonce.
+- C'est Mood DJ qui tire au sort si l'affirmation est vraie ou fausse, et
+  si le coanimateur a raison. Le score de la soirée est tenu (« Dav mène 3
+  à 2 »), et le perdant a parfois un petit gage.
+- Le faux ne porte que sur un détail sans conséquence (une année, un lieu,
+  un instrument, un chiffre, une personne), jamais sur un décès, une
+  maladie, un accident, une affaire judiciaire ou la vie privée, et aucune
+  fausse citation. La vraie version est toujours rétablie, et c'est elle
+  qui est retenue dans la mémoire des anecdotes. Si tu passes le titre
+  concerné, la réponse est donnée à l'intervention suivante.
+Les rubriques, chacune avec son petit jingle :
+- « L'histoire derrière le tube » (chronique), « La minute culture » et
+  « Retour en 1978 » (culture courte), « Ça s'est passé un 25 novembre »
+  (l'éphéméride, au plus 2 fois par émission), « Le feuilleton de la
+  soirée » (la culture du style racontée en épisodes, épisode après
+  épisode), et « Vrai ou faux ».
+Nouvelles sortes d'anecdotes : les samples et les reprises célèbres, les
+coulisses du studio, les instruments de légende, l'origine du nom ou de la
+pochette, les échecs devenus succès, l'année de sortie (ce qui se passait
+cette année-là), les vrais liens entre deux artistes qui s'enchaînent.
+Nouvelles sources :
+- L'article Wikipédia de l'artiste (formation, membres, nom, concerts,
+  instruments, coulisses ; jamais la vie privée, la santé ni les affaires
+  judiciaires), en plus de sa page YouTube Music et de l'article du morceau.
+- La page Wikipédia du jour, pour l'éphéméride (événements musicaux et
+  naissances de musiciens).
+Les clins d'œil :
+- Local : quand une fiche parle de ta ville ou de la Bretagne
+  (Transmusicales, Vieilles Charrues, Festival interceltique…), les
+  animateurs peuvent le glisser. Il faut avoir indiqué ta ville pour la météo.
+- Tes écoutes : « ce titre, c'est la quatrième fois ce mois-ci », au plus
+  une fois toutes les 30 minutes.
+
+FIN DES INTERLUDES EN FONDU ENCHAÎNÉ
+- Avec les voix Gemini, le titre suivant démarre doucement sous les trois
+  dernières secondes de la voix, le fond sonore s'efface en même temps,
+  puis la musique monte à plein volume quand l'animateur a fini. Plus de
+  coupure sèche ni de blanc avant le morceau.
+- Avec la voix de l'ordinateur (durée inconnue), le fond sonore s'efface
+  pendant que le titre monte, plus doucement qu'avant.
+
+CORRECTIF 2.3.1
+- Artistes similaires (source Similaires, et mélange J'aime + similaires) :
+  un artiste découvert par les similaires ne passe pas plus de 2 fois par
+  heure. Quand il reste moins de 6 artistes différents en réserve, Mood DJ
+  explore de nouveaux artistes pendant l'écoute (au lieu de tourner en
+  boucle sur les 5 ou 6 trouvés au départ).
+- Vannes et débats : chaque vanne, chambrage, débat ou réaction reçoit un
+  sujet précis tiré au sort (un plaisir coupable, ce qu'il boit, le solo,
+  la pochette, les tenues de scène…), qui ne revient pas dans l'émission.
+  Fini la même vanne sur la façon d'annoncer trois fois dans la soirée.
+- Les mots et images déjà entendus (oreilles, tympans, ampli…) sont
+  repérés sur toute l'émission, plus seulement sur les 6 dernières annonces.
+- Anecdotes : les animateurs doivent garder exactement qui a fait quoi,
+  quand et où, comme dans la fiche (plus d'idée d'Eddie Van Halen prêtée à
+  David Lee Roth).
+
+NOUVEAU DANS LA 2.3 : LE PROGRAMME DES 3 TITRES
+Réglages › Animation radio › « Programme des 3 titres » (activé d'office).
+- En « À chaque titre » : un cycle de 3 titres.
+  1. Le programme, sur le fondu : les animateurs présentent le titre qui
+     démarre et les 2 suivants.
+  2. La chronique, en interlude : une vraie pause avec jingle et fond
+     sonore, et une anecdote développée (l'histoire du morceau, du groupe,
+     un film ou une série, la culture du style…). L'heure et la météo y
+     passent de temps en temps. Sur Interludes « Jamais », la chronique est
+     dite sur le fondu, sans pause.
+  3. La culture courte, sur le fondu : un fait de culture musicale rapide.
+  Puis un nouveau programme. Les 2 annonces d'anecdote rappellent juste le
+  titre en quelques mots, sans refaire le programme.
+- En « Un titre sur trois » : l'annonce devient le programme des 3 titres
+  qui arrivent, les 2 suivants passent sans voix.
+- Les 3 prochains titres sont maintenant verrouillés (au lieu de 2) : ils
+  ne changent plus, même si tu modifies l'ambiance. Une nouvelle ambiance
+  prend donc effet après le titre en cours et ces 3 titres.
+- Si tu passes un titre du programme, les animateurs le sautent aussi et
+  continuent avec la suite. Un titre qui n'était pas au programme (titre de
+  remplacement, nouvelle ambiance) ouvre un nouveau programme.
+- L'onglet En cours dit quelle intervention arrive : programme, chronique
+  ou culture.
+
+AUSSI DANS LA 2.3
+- Les animateurs se souviennent des anecdotes déjà racontées, par artiste,
+  par titre et par style, pendant 3 mois : ils en choisissent une autre la
+  fois suivante. Pour la culture du style, Mood DJ leur donne à chaque fois
+  deux parties différentes de l'article Wikipédia (histoire, pionniers,
+  lieux, cinéma…), au lieu de toujours la même.
+- Les artistes sont plus espacés : un même artiste ne revient pas dans les
+  3 titres suivants, et rarement avant 6 titres.
+- ElevenLabs est retiré de Mood DJ. Sa clé est effacée de ce navigateur
+  à la mise à jour, et si ElevenLabs était choisi, la voix passe sur Gemini.
+  Réglages › Clés API ne garde que Claude et Gemini. Si Gemini ne répond pas
+  ou si tes crédits du mois sont épuisés, la voix de l'ordinateur prend le
+  relais : la radio ne devient jamais muette.
+- Une annonce préparée pendant le titre précédent n'est plus refaite au
+  démarrage du titre quand elle n'a pas été dite sur le fondu (une voix et
+  un texte de moins à payer).
+
+CORRECTIF 2.2.2
+- Les animateurs ne disent plus qu'ils n'ont pas d'anecdote ni d'infos sur
+  un titre ou un groupe. Quand rien n'est trouvé, ils racontent à la place
+  une anecdote de culture musicale : sur le style joué (ses origines, un
+  pionnier, un lieu mythique, un film ou une série), ou sur le thème du
+  morceau en cours ou du suivant.
+- Plus de « nouveau pour toi », « une découverte », « proche de… » ou
+  « un cousin de… » dans les annonces du mélange J'aime + similaires.
+  Le repère « découverte » reste visible dans « À suivre », pour toi seul.
+- Les titres sont dits sans leurs mentions techniques : « (Remastered) »,
+  « (album ver.) », « - Live », « [Official Video] »…
+- Fin de titre : quand la musique est déjà fondue au silence, Mood DJ
+  retient la fin un peu plus tôt (1,7 s au lieu de 0,7 s). YouTube Music
+  enchaînait parfois son propre titre 1 à 1,5 s avant la fin ; c'est
+  désormais rattrapé avant.
+
+CORRECTIF 2.2.1
+- Tes J'aime classés « rap » avant la séparation Rap / Hip-hop sont revus
+  automatiquement, une seule fois : Claude les reclasse en arrière-plan
+  quelques secondes après l'ouverture de YouTube Music (sans clé Claude :
+  avant 2004, ils passent en hip-hop). Les découvertes « rap » d'avant 2004
+  passent en hip-hop. Rien à refaire pour les nouvelles humeurs et le
+  moment Fête : ils se calculent avec ce qui est déjà classé.
+
+NOUVEAU DANS LA 2.2
+- Styles : « Rap » et « Hip-hop » sont séparés, chacun avec Français et US.
+  Hip-hop : old school, boom bap, âge d'or des années 80-90 et début 2000,
+  rap conscient ou jazzy (44 titres classiques ajoutés). Rap : le rap
+  moderne, du milieu des années 2000 à aujourd'hui.
+- Moment « Fête » : démarre vite, reste haute, favorise les titres dansants
+  et joyeux, fondus courts et basses un peu plus présentes.
+- Six nouvelles humeurs : Dansant, Motivant, Rageur, Planant, Sensuel et
+  Épique (en plus de Joyeux, Romantique, Mélancolique, Nostalgique).
+- Source « Mes J'aime » : mélange possible avec des titres d'artistes
+  proches de ceux que tu aimes (« Vous aimerez peut-être aussi »), au choix
+  1 pour 1, 1 pour 2 ou 1 pour 3. Repère « découverte » dans À suivre, et
+  l'animateur sait quand un titre est une découverte.
+- Changement d'ambiance pendant l'écoute (mode En continu) : le titre en
+  cours et les 2 titres verrouillés gardent l'ancienne ambiance, puis la
+  nouvelle commence. Le premier titre de la nouvelle ambiance porte le
+  repère « nouvelle ambiance » dans À suivre, et l'animateur annonce le
+  virage (même si les annonces sont réglées sur « un titre sur trois »).
+  En Sélection fixe, un message rappelle qu'il faut relancer.
+- Nouvelles anecdotes : le passage d'un morceau dans un film, une série, un
+  animé, un jeu vidéo ou lors d'un événement marquant (d'après la fiche
+  Wikipédia du morceau), et des moments de culture musicale sur le style
+  joué (d'après l'article Wikipédia du style).
+
+NOUVEAU DANS LA 2.1.1
+- Source « Similaires » : les artistes de départ viennent d'abord de tes
+  J'aime qui collent à l'ambiance (style, sous-style, époque, énergie), en
+  favorisant ceux que tu as aimés plusieurs fois. Le catalogue intégré ne
+  sert qu'à compléter. Mood DJ explore ensuite leurs « Vous aimerez
+  peut-être aussi » : tu découvres des groupes proches de ceux que tu aimes.
+- Tes J'aime sont lus au lancement si besoin. Ceux qui ne sont pas encore
+  classés par style le sont par Claude en arrière-plan, pour les prochaines
+  sélections (ou tout de suite avec Réglages › Mes J'aime › Tout classer).
+- Le journal technique indique combien d'artistes de départ viennent de
+  tes J'aime.
+
+NOUVEAU DANS LA 2.1 : DES ANECDOTES VRAIES SUR LES GROUPES ET LES MORCEAUX
+- Les animateurs racontent l'histoire des morceaux : pourquoi ou pour qui
+  ils ont été écrits, à quelle occasion, ce qu'ils racontent vraiment, ou
+  une anecdote sur le groupe. Sur le titre qui arrive, ou sur celui qu'on
+  vient d'écouter.
+- Pour qu'ils n'inventent rien, Mood DJ leur donne deux fiches : la page de
+  l'artiste sur YouTube Music et l'article Wikipédia du morceau (en
+  français, sinon en anglais), dont il garde l'introduction et les parties
+  qui racontent son histoire (genèse, écriture, contexte, anecdotes…). Les
+  fiches sont gardées 60 jours. Sans fiche, ils ne racontent qu'un fait très
+  connu, ou changent de sujet.
+- Une anecdote a le droit de prendre plus de place : annonces jusqu'à
+  60 mots, interludes jusqu'à 110 mots, ou 4 à 6 répliques en duo.
+- Réglages › Animation radio › Anecdotes : Rarement, Souvent (environ une
+  intervention sur trois) ou Très souvent (environ une sur deux).
+- Le journal technique indique les fiches utilisées (artiste, morceau).
+- Mood DJ peut maintenant interroger fr.wikipedia.org et en.wikipedia.org,
+  et garder plus de données (fiches, découvertes) dans le navigateur.
+
+CORRECTIFS 2.0.5
+- Fin de titre : la durée annoncée par YouTube Music peut dépasser le vrai
+  fichier d'une seconde ou plus, et YouTube Music lançait alors son propre
+  titre en plein fondu. Le fondu se termine maintenant 1,5 s avant la fin
+  annoncée : si YouTube Music enchaîne en avance, c'est dans le silence, et
+  Mood DJ reprend la main comme d'habitude. Le journal le dit clairement.
+- Quand tu avances dans un titre avec le curseur, l'annonce préparée n'est
+  refaite que si elle donne l'heure ou la météo (elle aurait été fausse).
+
+NOUVEAU DANS LA 2.0.4 : RÉGLAGES RÉORGANISÉS
+L'onglet Réglages suit maintenant cet ordre :
+- Clés API : les trois clés au même endroit (Claude, Gemini, ElevenLabs),
+  chacune avec son état, à quoi elle sert et où la créer.
+- Voix : qui fait parler les animateurs (Ordinateur, Gemini, ElevenLabs),
+  et les options du moteur choisi.
+- Animateurs : pour chacun, Prénom, « X est une femme / un homme », Style
+  et Voix (avec Tester). L'ancien choix « Automatique / Homme / Femme » de la
+  carte Voix et l'ancien « Genre : Auto / Coanimateur / Coanimatrice » sont
+  remplacés par cette question claire, posée pour chaque animateur.
+- Animation radio : annonces, interludes, jingles, ton prénom, météo.
+- Lecture, Mes J'aime, Catalogue, puis le Journal technique en bas.
+Correctif : les champs de texte (prénoms, ville) n'étaient plus écrasés.
+
+NOUVEAU DANS LA 2.0.3 : DES ANNONCES QUI NE SE RÉPÈTENT PLUS
+- Chaque prise de parole reçoit un « angle » tiré au sort, sans reprendre
+  les trois derniers. En duo : chambrage, petit désaccord sur le titre,
+  devinette sur le titre suivant, anecdote, lien entre deux morceaux, vanne
+  sur le style, réaction à chaud, clin d'œil à l'auditeur, running gag. En
+  solo : annonce sobre, réaction, teaser, lien, anecdote, trait d'humour.
+- Le duo est un vrai duo : ils se répondent, se chambrent, ne sont pas
+  toujours d'accord. Nombre de répliques variable (2 à 5), et parfois c'est
+  le coanimateur qui ouvre. Les annonces par-dessus l'intro d'un titre
+  passent aussi en duo de temps en temps (2 répliques courtes).
+- L'heure revient au plus tous les quarts d'heure, la météo toutes les
+  35 minutes environ, le nom de la station tous les 12 minutes, le moment
+  (repas…) et l'année des titres seulement de temps en temps.
+- Les mots déjà entendus dans les dernières annonces (« fourchette »…) et
+  leurs débuts de phrase sont signalés à Claude pour qu'il les évite.
+- Anecdotes vraies : pour certains angles, Mood DJ lit la présentation de
+  l'artiste sur sa page YouTube Music et la donne à Claude (gardée 30 jours).
+- Le journal technique note l'angle choisi et ce qui a été dit ou évité.
+- Correctif : pendant un long interlude, la fin du titre précédent reste
+  retenue ; YouTube Music ne relance plus son propre titre au bout de 8 s.
+
+CORRECTIFS 2.0.2
+- Si deux Mood DJ tournent en même temps dans Chrome (une ancienne version
+  restée active à côté de la nouvelle), un message le signale : les deux
+  copies se disputeraient la lecture et les annonces.
+- L'heure est dite sur 24 heures (« dix-neuf heures cinquante-quatre »,
+  plus « sept heures » le soir).
+
+CORRECTIFS 2.0.1 (après une longue écoute)
+- Pauses expliquées : le journal technique dit maintenant qui a mis la
+  musique en pause — Mood DJ, toi sur la page, la fenêtre « Toujours là ? »
+  de YouTube Music, ou l'extérieur de la page (touche multimédia, casque
+  Bluetooth, système) — et combien de temps elle est restée en pause.
+- « Toujours là ? » : Mood DJ reconnaît aussi les autres formes de cette
+  fenêtre (« Vidéo mise en pause. Continuer à écouter ? ») et clique bien
+  sur le bouton Oui lui-même, pas seulement autour.
+- Fin de titre : la durée vue en début de morceau sert de garde-fou, même
+  quand YouTube Music bascule déjà sur son titre préchargé.
+- Après une longue pause, l'annonce préparée d'avance est refaite, pour ne
+  pas donner une heure fausse.
+
+NOUVEAU DANS LA 2.0
+- Source « Similaires » (onglet Ambiance › Source des titres) : Mood DJ part
+  de quelques artistes du catalogue qui collent à ton style, ouvre leur page
+  YouTube Music, explore leurs « Vous aimerez peut-être aussi » et pioche
+  dans leurs titres les plus écoutés (sans les versions live ni les
+  remixes). La réserve s'agrandit toute seule pendant l'écoute.
+  Exploration « Artistes proches » (similaires directs) ou « Plus loin »
+  (similaires des similaires, pour vraiment découvrir).
+  Avec une clé Claude, Haiku classe chaque titre découvert (style, énergie,
+  époque, humeur) pour respecter la courbe d'énergie.
+- Catalogue personnel : chaque titre découvert et classé rejoint « Mes
+  découvertes » (jusqu'à 20 000 titres), utilisées aussi par les sélections
+  du catalogue. Réglages › Catalogue pour les désactiver ou les effacer.
+  Les pages artistes sont gardées 30 jours pour aller plus vite.
+- Catalogue intégré agrandi : 2 884 titres (contre 914) et 1 505 artistes,
+  dont 345 titres country (121 en country moderne), beaucoup plus de
+  titres récents (264 depuis 2020), et tous les styles renforcés (variété
+  française, rap, electro, musique bretonne et irlandaise, K-pop…).
+
+CORRECTIFS 1.9.1 (trouvés grâce au journal technique)
+- Annonces vides ou coupées (« Toute en », 1 seconde de voix) : Claude
+  Sonnet 5.5 réfléchit avant de répondre, et cette réflexion comptait dans
+  la petite limite de longueur des annonces. Mood DJ lui demande maintenant
+  de répondre directement, et refuse un texte coupé (phrase de secours à la
+  place). Même réglage pour Haiku 5.5.
+- Sélections décrites librement : Sonnet 5.5 refuse qu'on l'oblige à
+  répondre par un outil ; Mood DJ le lui demande désormais sans l'imposer.
+- Fin de titre : vers la fin d'un morceau, YouTube Music précharge son
+  propre titre suivant et annonce une durée plus longue d'une quinzaine de
+  secondes. Mood DJ utilise maintenant la durée officielle du titre : le
+  fondu, l'annonce sur le fondu et la fin retenue tombent au bon moment, et
+  YouTube Music n'enchaîne plus son titre d'un coup.
+- Les 2 prochains titres sont verrouillés (repère « verrouillé » dans À
+  suivre) : changer l'ambiance ou regénérer la suite ne touche qu'aux
+  titres d'après, et leurs annonces déjà prêtes restent valables.
+- La phrase de secours de l'intro ne dit plus « ce soir » en pleine journée.
+
+NOUVEAU DANS LA 1.9
+- Journal technique (Réglages › Journal technique) : note tout ce que fait
+  Mood DJ (titres, enchaînements, annonces, voix, fondus, réactions de
+  YouTube Music, erreurs). Quand un souci arrive, clique sur « Signaler un
+  souci » (Réglages, onglet En cours ou télécommande), puis « Télécharger »
+  et joins le fichier dans la conversation avec Claude. Il garde les 4 000
+  derniers évènements dans ce navigateur, sans aucune clé API.
+- Voix, jingles et fond sonore suivent maintenant le volume de YouTube
+  Music (et sa coupure du son). Avant, ils sortaient toujours à pleine
+  puissance : avec YouTube Music réglé bas, le jingle claquait bien plus
+  fort que la musique.
+- Fin de titre retenue : Mood DJ met en pause une fraction de seconde
+  avant la fin, pour que YouTube Music n'enchaîne pas son propre titre (un
+  bout de musique à plein volume puis une coupure sèche).
+- Si un titre démarre quand même hors de Mood DJ, son son est coupé tout
+  de suite, le temps que Mood DJ reprenne la main.
+- Plus de saut de volume instantané (le « clac ») : même les coupures
+  rapides passent par une rampe de quelques millisecondes.
+
+NOUVEAU DANS LA 1.8
+- L'annonce du titre suivant est préparée dès le début du titre en cours
+  (texte et voix), avec l'heure du moment où elle sera dite. Si la
+  préparation rate sur un incident passager, un nouvel essai a lieu dans la
+  dernière minute.
+- Annonce sur le fondu (Réglages › Animateur radio › Moment de l'annonce,
+  par défaut) : l'animateur commence à parler sur la fin du titre, la
+  musique baisse, et sa voix fait le pont avec le titre suivant, qui monte
+  quand il a fini. Option « Sur l'intro du suivant » : comportement d'avant.
+- Correctif important : l'annonce préparée à l'avance est maintenant
+  vérifiée contre le titre qui passe vraiment. Avant, si la file changeait
+  (réglage modifié, retour en arrière, file régénérée), l'animateur pouvait
+  annoncer le mauvais morceau.
+
+NOUVEAU DANS LA 1.7 : MOOD DJ PRIORITAIRE (Réglages › Lecture, activé par défaut)
+- Fini le message « Tu as lancé un autre titre : Mood DJ est en pause » quand
+  YouTube Music change de titre de lui-même : Mood DJ reprend la main et
+  lance son titre suivant.
+- Les boutons Suivant / Précédent de YouTube Music ne sont plus traités en
+  double : avant, YouTube Music lançait aussi son propre titre, ce qui
+  provoquait la mise en pause de Mood DJ. Maj+N, Maj+P et les touches
+  multimédia pilotent aussi Mood DJ.
+- Si tu choisis toi-même un morceau dans YouTube Music (clic sur un titre),
+  il passe dans le mix, puis la sélection reprend juste après, avec les
+  annonces et interludes.
+- La fenêtre « Vous êtes toujours là ? » de YouTube Music est confirmée
+  automatiquement pendant une sélection.
+- Interrupteur désactivé : comportement d'avant (pause et bouton Reprendre).
+
+CORRECTIFS 1.6.2
+- Passer un titre au moment où un interlude (ou une annonce) était prévu ne
+  le supprime plus : il est reporté au prochain enchaînement normal.
+- « Suivant » pendant un interlude coupe l'animateur et lance tout de suite
+  le titre annoncé (avant, le bouton ne faisait rien).
+- « Suivant » pendant une annonce fait taire la voix (avant, elle continuait
+  à parler par-dessus le titre suivant).
+- Curseur amené tout au bout d'un titre : l'annonce suivante se prépare
+  quand même à l'avance.
+
+CORRECTIFS 1.6.1
+- Interludes : la musique est coupée et reste en pause pendant tout
+  l'interlude, même si YouTube Music essaie de lancer son propre titre
+  suivant (avant, sa musique pouvait repartir sous la voix).
+- Après un interlude, si le nouveau titre reste en pause, Mood DJ relance
+  la lecture tout seul.
+- Un interlude n'attend jamais plus de 20 s sa voix : passé ce délai, la
+  musique reprend (avant, le blanc pouvait durer près d'une minute).
+- Après une mise en pause de Mood DJ (« Tu as lancé un autre titre »), le
+  bouton « Reprendre » relance le cycle avec les annonces et interludes, et
+  le journal de l'animateur note la pause et la reprise.
+
+NOUVEAU DANS LA 1.6
+- Coanimateur (Réglages › Animateur radio, interrupteur « Duo
+  d'animateurs ») : prénom, style (chaleureux, décalé, voix de nuit,
+  pro FM) et genre (auto, coanimateur, coanimatrice). Claude lui donne sa
+  propre personnalité dans les dialogues, et la voix Gemini prend son ton.
+- Réglages › Voix › Gemini : un bouton « Tester » à côté de chaque voix
+  (animateur et coanimateur), et « Tester le duo » pour entendre les deux
+  ensemble. La voix automatique du coanimateur suit son style et son genre.
+- Le journal de l'animateur se met à jour sans redessiner le panneau.
+
+CORRECTIFS 1.5.2
+- Journal de l'animateur (onglet En cours) : prochaine intervention prévue,
+  et pour chaque titre ce qui s'est passé : annonce faite (qui a écrit le
+  texte, quelle voix, en combien de temps) ou raison du silence (titre
+  passé, réglage « un titre sur trois », mode radio coupé, jingle muet…).
+- Jingles et fond sonore : ils ne dépendent plus de l'égaliseur. Avant, si
+  aucun titre n'avait encore joué sur la page au lancement, ils restaient
+  muets pendant toute la session.
+- Les annonces sont préparées une minute avant la fin du titre, et la voix
+  Gemini a plus de temps pour les dialogues en duo.
+
+CORRECTIFS 1.5.1
+- Bouton « Tester la voix » à côté de la clé Gemini : lit une phrase courte
+  et affiche la vraie raison si ça ne marche pas.
+- Erreurs Gemini expliquées en clair. Code 402 : le projet Google de ta clé
+  est en facturation prépayée sans crédit. Solution gratuite : sur
+  aistudio.google.com, « Create API key » dans un NOUVEAU projet sans
+  facturation, puis colle cette nouvelle clé. Solution payante : ajouter des
+  crédits sur aistudio.google.com/billing (5 $ minimum).
+- La voix Gemini ou ElevenLabs marche maintenant même si aucun titre n'a
+  encore été lancé sur la page (avant, la voix de l'ordinateur prenait le
+  relais sans prévenir). Chaque repli sur la voix de l'ordinateur est signalé.
+
+NOUVEAU DANS LA 1.5
+- Voix Gemini (Réglages › Voix › Gemini) : 30 voix Google, classées homme ou
+  femme. Le ton suit le style de l'animateur, et Claude peut glisser de
+  petits rires, des souffles ou des pauses dans les annonces.
+- Duo d'animateurs (avec Gemini) : l'intro et les interludes deviennent un
+  petit dialogue à deux voix, comme une matinale. Choisis le prénom et la
+  voix du coanimateur. Les annonces par-dessus les intros restent à une voix.
+- Clé Gemini : gratuite sur aistudio.google.com (bouton « Get API key »).
+  Ton abonnement Google AI Pro ne fournit pas de clé, mais la clé gratuite
+  suffit. Dans l'offre gratuite, Google peut utiliser le texte envoyé pour
+  améliorer ses produits ; les quotas gratuits sont limités, et la voix de
+  l'ordinateur prend le relais si Gemini ne répond pas.
+
+NOUVEAU DANS LA 1.4
+- Animateur radio (onglet Réglages) : prénom, style (chaleureux, décalé,
+  voix de nuit, pro FM), ton prénom et ta ville pour la météo (facultatifs).
+  Avec ta clé Claude, il écrit chaque annonce : retour sur le titre écouté,
+  heure, énergie qui monte ou redescend, anecdote seulement si elle est sûre.
+- Annonces par-dessus l'intro du titre suivant, comme à la radio.
+- Interludes (Jamais / Parfois / Souvent) : jingle, fond sonore, quelques
+  phrases (heure, météo, le titre précédent), puis le titre suivant.
+- Voix ElevenLabs en option : colle ta clé ElevenLabs dans Réglages › Voix,
+  « Charger mes voix », choisis-en une. Sans clé, la voix de l'ordinateur
+  reste utilisée.
+- Les contenus « conçus pour les enfants » ne coupent plus la musique :
+  YouTube interdit le lecteur réduit pour ces titres, Mood DJ laisse donc la
+  grande page du lecteur ouverte pendant ces morceaux.
+- Amener le curseur au bout d'un titre enchaîne normalement sur le suivant
+  (avant, Mood DJ se mettait en pause).
+
+NOUVEAU DANS LA 1.3
+- Durée du cycle (mode continu) : Auto, 15 min, 30 min, 1 h, 2 h ou 3 h.
+  Cycle court : l'énergie varie vite. Cycle long : changements progressifs.
+  Réglable avant de lancer (onglet Ambiance) ou en cours de route (onglet
+  En cours), sans que la courbe fasse un saut.
+
+NOUVEAU DANS LA 1.2
+- Mood DJ suit la barre de temps de YouTube Music : si tu reviens en arrière
+  pendant un fondu, le son revient ; les silences ne sont plus sautés juste
+  après un déplacement.
+- Le bouton « précédent » de YouTube Music (et la touche multimédia) revient
+  au titre précédent de la sélection, ou au début du titre après 4 secondes.
+- Mini-lecteur en bas du panneau : titre, barre de temps, précédent,
+  lecture/pause, suivant, volume et J'aime.
+- Télécommande : un clic sur l'icône Mood DJ dans la barre de Chrome ouvre
+  les mêmes commandes, depuis n'importe quel onglet. « Afficher le panneau »
+  ramène à YouTube Music avec le panneau ouvert.
+
+NOUVEAU DANS LA 1.1
+- Source des titres : Toutes, Mes J'aime (tes titres likés, rangés selon
+  l'ambiance) ou Découverte (aucun de tes J'aime ni de ton historique ;
+  avec Claude, des artistes et morceaux moins évidents).
+- Époques : années 2010 et 2020, et « Actuel » qui puise dans les playlists
+  de nouveautés de YouTube Music.
+- Nouveaux styles : Pop rock, Pop asiatique (K-pop, J-pop, anime, city pop),
+  Musiques du monde (afro, raï/oriental, Brésil, Inde) et « Tous les styles ».
+- Des sous-styles pour tous les styles (914 titres au catalogue).
+- Voix homme ou femme pour le mode radio (onglet Réglages).
+- Pour mettre à jour : remplace le contenu du dossier « mood-dj », puis
+  clique sur la flèche de rechargement de Mood DJ dans chrome://extensions.
+
+METTRE À JOUR SANS RIEN PERDRE (clés, réglages, découvertes)
+1. Dans chrome://extensions, ouvre « Détails » de Mood DJ et repère la ligne
+   « Source » : c'est le dossier que Chrome utilise.
+2. Décompresse le nouveau zip ailleurs, puis copie le CONTENU du nouveau
+   dossier « mood-dj » (manifest.json, content.js…) dans ce dossier-là, en
+   remplaçant les fichiers. Attention à ne pas créer un dossier
+   « mood-dj » dans « mood-dj » : Chrome garderait l'ancienne version.
+3. Clique sur la flèche de rechargement de Mood DJ dans chrome://extensions,
+   puis recharge l'onglet YouTube Music (F5).
+4. Vérifie : la carte Mood DJ affiche le nouveau numéro de version, et
+   l'en-tête du journal technique aussi.
+Ne charge pas le nouveau dossier en plus de l'ancien : tu aurais deux Mood DJ
+qui se battent. Et si tu supprimes l'extension pour la recharger depuis un
+autre dossier, il faudra recoller tes clés API.
+
+INSTALLATION (Chrome)
+1. Décompresse le fichier zip. Tu obtiens un dossier « mood-dj ».
+   Range-le à un endroit où il restera : Chrome l'utilise directement.
+2. Dans Chrome, ouvre la page chrome://extensions
+3. Active « Mode développeur » (interrupteur en haut à droite).
+4. Clique sur « Charger l'extension non empaquetée » et choisis le dossier « mood-dj ».
+5. Épingle l'extension (icône puzzle, puis punaise) pour avoir le vinyle rouge à portée de main.
+6. Ouvre ou actualise music.youtube.com.
+
+UTILISATION
+- Un bouton rond rouge (vinyle) apparaît en bas à droite de YouTube Music :
+  il ouvre le panneau. L'icône de l'extension ouvre la télécommande.
+- Onglet Ambiance : choisis un style, un sous-style, un moment, l'énergie,
+  et si tu veux une humeur et une époque. Ou décris l'ambiance en toutes
+  lettres (il faut alors une clé API Claude).
+- Mode de lecture :
+  * En continu : Mood DJ garde quelques titres d'avance et suit tes
+    changements d'ambiance en direct.
+  * Sélection fixe : choisis une durée (ou une heure d'arrivée) ; la
+    courbe d'énergie s'étale sur toute la durée. « Enregistrer en
+    playlist » crée une playlist privée dans ta bibliothèque.
+- Onglet En cours : le titre en cours, la suite, la courbe d'énergie,
+  la minuterie (le volume baisse sur la dernière minute) et les boutons
+  Passer, Pause, Arrêter. Tu peux retirer un titre de la suite avec la croix.
+- Onglet Son : fondu entre les titres, égaliseur, boost voiture, réglage
+  automatique selon l'ambiance, tempo, saut des silences.
+- Onglet Réglages : clé API, modèle Claude, tes J'aime (actualiser, tout
+  classer avec Claude), mode radio (voix homme ou femme, fréquence).
+
+CLÉ API CLAUDE (facultatif)
+1. Sur claude.ai (dans un navigateur) : Settings > Billing, section
+   « API credits », puis « Link organization » pour activer les crédits
+   API inclus dans l'abonnement Max.
+2. Sur platform.claude.com : crée une clé API réservée à Mood DJ.
+   Tu peux y fixer un plafond de dépenses.
+3. Dans Mood DJ, onglet Réglages : colle la clé, « Enregistrer », puis « Tester ».
+La clé reste dans ce navigateur et n'est envoyée qu'à api.anthropic.com.
+
+BON À SAVOIR
+- L'égaliseur, le boost et les fondus doux s'activent au lancement d'une
+  sélection (Chrome exige un clic avant de traiter le son).
+- Le bouton « suivant » de YouTube Music (et la touche multimédia) passe
+  au titre suivant de Mood DJ, et Mood DJ en tient compte : un artiste
+  souvent passé reviendra moins.
+- Si tu lances toi-même un autre morceau, Mood DJ se met en pause.
+  Le bouton « Reprendre » relance la sélection.
+- Avec un compte YouTube Music gratuit, les publicités passent normalement :
+  Mood DJ attend qu'elles se terminent.
+- Mes J'aime et Découverte demandent d'être connecté à YouTube Music. Avec la
+  clé API, Claude classe tes J'aime par style et énergie (une seule fois,
+  le résultat est gardé dans le navigateur).
+- La voix de Claude n'est pas disponible pour les extensions : le mode radio
+  utilise les voix installées sur ton ordinateur. Pour en ajouter : Windows,
+  Paramètres > Heure et langue > Voix ; Mac, Réglages > Accessibilité >
+  Contenu énoncé > Voix du système.
+- Le catalogue intégré (914 titres) est dans le fichier catalog.js :
+  une ligne par titre, facile à compléter.
+
+LIMITES DE CETTE PREMIÈRE VERSION
+- Pas de vrai crossfade avec deux morceaux superposés : la transition est
+  un fondu de sortie puis un fondu d'entrée.
+- Le niveau d'énergie des titres est une estimation, pas une mesure du son.
+- « Actuel » dépend des playlists de nouveautés que YouTube Music propose
+  pour le style : pour certains styles rares, Mood DJ élargit aux années 2020.
+- Mood DJ utilise le fonctionnement interne de YouTube Music. Si YouTube
+  modifie son site, certaines fonctions peuvent cesser de marcher jusqu'à
+  une mise à jour de l'extension.
+
+EN CAS DE SOUCI
+- Actualise la page YouTube Music après avoir installé ou mis à jour l'extension.
+- Sur chrome://extensions, le bouton « Erreurs » de Mood DJ indique ce qui a coincé.

@@ -1,0 +1,76 @@
+{
+  "manifest_version": 3,
+  "name": "Mood DJ pour YouTube Music",
+  "short_name": "Mood DJ",
+  "version": "2.23.0",
+  "description": "Un DJ pour YouTube Music : ambiances, courbe d'énergie, fondus, égaliseur, mode radio et sélections proposées par Claude.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Mood DJ",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://music.youtube.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://*.wikipedia.org/*",
+    "https://www.wikidata.org/*",
+    "https://query.wikidata.org/*",
+    "https://musicbrainz.org/*",
+    "https://api.deezer.com/*",
+    "https://ws.audioscrobbler.com/*",
+    "https://api.discogs.com/*",
+    "https://api.setlist.fm/*",
+    "https://app.ticketmaster.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://music.youtube.com/*"
+      ],
+      "js": [
+        "yt-bridge.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://music.youtube.com/*"
+      ],
+      "js": [
+        "core.js",
+        "catalog.js",
+        "ui-style.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "minimum_chrome_version": "111",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+  }
+}

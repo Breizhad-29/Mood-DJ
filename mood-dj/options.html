@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Mood DJ · Clés API</title>
+<link rel="stylesheet" href="pages.css">
+</head>
+<body>
+<main class="page">
+  <header class="head">
+    <div class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="2.5"></circle></svg></div>
+    <h1>Mood DJ · Clés API</h1>
+  </header>
+
+  <section class="card note">
+    <p><strong>Page sécurisée de l'extension.</strong> Ce que tu tapes ou colles ici reste hors de la page YouTube Music : ses scripts ne peuvent ni le lire ni le capter.</p>
+    <p>Chaque clé est gardée dans ce navigateur, dans le stockage de l'extension. Elle n'est envoyée qu'à son service, en HTTPS. Elle n'apparaît jamais dans le journal technique ni dans la sauvegarde.</p>
+    <p class="muted">Toutes les clés sont facultatives. Une fois enregistrée, une clé n'est plus jamais affichée : pour la changer, colle la nouvelle.</p>
+  </section>
+
+  <div id="keys"></div>
+
+  <section class="card note">
+    <h2>Bonnes pratiques</h2>
+    <ul>
+      <li>Crée des clés réservées à Mood DJ, que tu pourras supprimer sur le site du service sans toucher au reste.</li>
+      <li>Pour Claude et pour la clé Gemini payante, fixe une limite de dépenses dans la console du service (Anthropic : « Limits » ; Google Cloud : « Budgets et alertes »).</li>
+      <li>En plus, Mood DJ refuse plus de 150 appels par heure pour les textes (Claude ou Gemini) et 150 pour les voix Gemini : une boucle ou un bug ne peut pas vider tes crédits.</li>
+      <li>Si une clé a pu fuiter, supprime-la ici, puis révoque-la sur le site du service.</li>
+    </ul>
+  </section>
+
+  <p class="foot"><a href="legal.html">Mentions légales et confidentialité</a></p>
+</main>
+<script src="options.js"></script>
+</body>
+</html>
