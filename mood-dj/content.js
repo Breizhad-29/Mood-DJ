@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.25.2';
+  const VERSION = '2.25.3';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -5613,9 +5613,10 @@
     // En pleine page : la courbe à gauche, la durée du cycle à sa droite et la minuterie dessous (tout
     // tient à l'écran). La minuterie est ajoutée plus bas, dans le même bloc.
     const curveSide = full ? h('div', { class: 'cpr' }, cycleEl) : null;
-    if (full) colA.push(h('div', { class: 'curvepair' }, h('div', { class: 'cpl' }, curveEl), curveSide));
+    // Pleine page : ce bloc s'étend sous « En ce moment » et « À suivre », jusqu'aux dédicaces.
+    const curveBlock = full ? h('div', { class: 'curvepair' }, h('div', { class: 'cpl' }, curveEl), curveSide) : null;
 
-    const shown = full ? 16 : 8;
+    const shown = full ? 10 : 8;
     const upcoming = s.queue.slice(0, shown);
     const list = h('div', { class: 'section' }, h('h2', { class: 'label' }, 'À suivre' + (s.queue.length > shown ? ' (' + s.queue.length + ' titres)' : '')));
     if (!upcoming.length) {
@@ -5649,7 +5650,11 @@
         h('div', { class: 'muted' }, notes[s.timer.kind] || 'Le volume baisse doucement sur la dernière minute, puis la lecture s’arrête.'));
       if (full) curveSide.appendChild(timerEl); else colC.push(timerEl);
     }
-    if (full) append(body, cols([colTitle('En ce moment')].concat(colA), [colTitle('À suivre')].concat(colB), colC.length ? [colTitle('Dédicaces')].concat(colC) : null));
+    if (full) {
+      const grid = cols([colTitle('En ce moment')].concat(colA), [colTitle('À suivre')].concat(colB), colC.length ? [colTitle('Dédicaces')].concat(colC) : null);
+      if (curveBlock) { grid.classList.add('withcurve'); grid.appendChild(h('div', { class: 'curverow' }, curveBlock)); }
+      append(body, grid);
+    }
     else append(body, [colA, colB, colC]);
 
     const foot = h('div', { class: 'foot' });

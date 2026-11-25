@@ -1,5 +1,10 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.25.2
+MOOD DJ POUR YOUTUBE MUSIC — version 2.25.3
 ============================================
+
+2.25.3 : En cours en pleine page, la courbe d'énergie, la durée du cycle et
+la minuterie forment une rangée qui s'étend sous « En ce moment » et
+« À suivre », du bord gauche jusqu'à la colonne des dédicaces. « À suivre »
+montre 10 titres pour que tout tienne à l'écran.
 
 2.25.2 : En cours en pleine page, la durée du cycle passe à droite de la
 courbe d'énergie, avec la minuterie juste en dessous : tout tient à

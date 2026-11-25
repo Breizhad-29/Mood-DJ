@@ -220,8 +220,21 @@ input[type=range].cyclebar.auto { accent-color: #8a8a8a; }
 .cpl, .cpr { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .cpr .chips { gap: 6px; }
 .cpr .chip { min-height: 34px; padding: 0 11px; }
-@container (min-width: 1081px) and (max-width: 1300px) {
-  .curvepair { grid-template-columns: minmax(0, 1fr); }
+/* La rangée courbe + cycle s'étend sous les deux premières colonnes, jusqu'aux dédicaces. */
+.cols.withcurve { grid-template-areas: "a b c" "k k c"; }
+.cols.n2.withcurve { grid-template-areas: "a b" "k k"; }
+.cols.withcurve > .col:nth-child(1) { grid-area: a; }
+.cols.withcurve > .col:nth-child(2) { grid-area: b; }
+.cols.withcurve > .col:nth-child(3) { grid-area: c; }
+.cols.withcurve > .curverow { grid-area: k; min-width: 0; }
+.curverow .curvepair { grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr); gap: 28px; }
+@container (max-width: 1080px) {
+  .cols.n3.withcurve { grid-template-areas: "a b" "k k" "c c"; }
+  .cols.n3.withcurve > .col:last-child { grid-column: auto; }
+}
+@container (max-width: 700px) {
+  .cols.withcurve, .cols.n3.withcurve, .cols.n2.withcurve { grid-template-areas: "a" "k" "b" "c"; }
+  .curverow .curvepair { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Réglages en pleine page : un menu de rubriques à gauche. */
