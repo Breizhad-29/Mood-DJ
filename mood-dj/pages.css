@@ -35,11 +35,11 @@ th { color: var(--muted); font-weight: 500; }
 button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Thème « gloss », comme le panneau. */
-body { background: radial-gradient(900px 360px at 10% -10%, rgba(224,40,122,.16), transparent 60%), linear-gradient(180deg, #17171c, #0f0f12); min-height: 100vh; }
-.logo { background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,.06) 48%, rgba(255,255,255,0) 52%), linear-gradient(135deg, #ff4d4d, #e0287a); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 4px 14px rgba(224,40,122,.45); }
+body { background: radial-gradient(900px 360px at 10% -10%, rgba(204,0,0,.16), transparent 60%), linear-gradient(180deg, #17171c, #0f0f12); min-height: 100vh; }
+.logo { background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,.06) 48%, rgba(255,255,255,0) 52%), linear-gradient(135deg, #ff3d3d, #cc0000); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 4px 14px rgba(204,0,0,.45); }
 .card { background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025)); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 24px rgba(0,0,0,.22); }
 .btn { background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 48%, rgba(255,255,255,0) 52%), rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 2px 8px rgba(0,0,0,.25); }
-.btn.primary { background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,.06) 48%, rgba(255,255,255,0) 52%), linear-gradient(135deg, #ff4d4d, #e0287a); border: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 18px rgba(224,40,122,.4); }
+.btn.primary { background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,.06) 48%, rgba(255,255,255,0) 52%), linear-gradient(135deg, #ff3d3d, #cc0000); border: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 18px rgba(204,0,0,.4); }
 input[type=password] { background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,.35); }
-input[type=password]:focus { outline: none; border-color: rgba(255,77,77,.7); box-shadow: 0 0 0 3px rgba(255,77,77,.22); }
-.pill.on { background: linear-gradient(135deg, rgba(255,77,77,.3), rgba(224,40,122,.25)); color: #fff; }
+input[type=password]:focus { outline: none; border-color: rgba(255,61,61,.7); box-shadow: 0 0 0 3px rgba(255,61,61,.22); }
+.pill.on { background: linear-gradient(135deg, rgba(255,61,61,.3), rgba(204,0,0,.25)); color: #fff; }
