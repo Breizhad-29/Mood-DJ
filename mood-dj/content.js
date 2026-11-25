@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.23.0';
+  const VERSION = '2.24.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -36,7 +36,7 @@
   // ============================================================ état
   const DEFAULT_SETTINGS = {
     fade: 6, eq: { bass: 0, mid: 0, treble: 0 }, boost: false, autoSound: true, tempo: 100, skipSilence: true,
-    radio: true, radioFreq: 'third', announceAt: 'fondu', voiceURI: '', voiceGender: 'auto', claudeAnnounce: true, model: 'claude-sonnet-5-5', panelOpen: false, panelFull: false, hideYtBar: true, blockAutoplay: true, curveBrush: 'moyen', concertCountry: 'FR', guestFreq: 'rare', sfx: true, sing: false, schedule: [], showRecap: true, crossfade: true, soundKit: 'auto', emotion: 'auto', textEngine: 'claude', geminiTextModel: 'gemini-3.8-flash', rhythm: 'naturel',
+    radio: true, radioFreq: 'third', announceAt: 'fondu', voiceURI: '', voiceGender: 'auto', claudeAnnounce: true, model: 'claude-sonnet-5-5', panelOpen: false, panelFull: false, hideYtBar: true, blockAutoplay: true, curveBrush: 'moyen', concertCountry: 'FR', guestFreq: 'rare', sfx: true, sing: false, schedule: [], showRecap: true, crossfade: true, soundKit: 'auto', emotion: 'auto', radioLang: 'fr', uiLang: 'auto', textEngine: 'claude', geminiTextModel: 'gemini-3.8-flash', rhythm: 'naturel',
     hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
     voiceEngine: 'systeme',
     geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
@@ -1590,6 +1590,12 @@
   };
   const genderOfGemini = (name) => (GEMINI_VOICES.find((v) => v[0] === name) || [])[1] || '';
   const validStyle = (x, d) => (GEMINI_DEFAULTS[x] ? x : d);
+  // Langue parlée par la radio (les voix Gemini sont multilingues ; la voix de l'ordinateur doit exister dans la langue).
+  const RADIO_LANG_LIST = [['fr', 'Français', 'fr-FR'], ['en', 'English', 'en-US'], ['de', 'Deutsch', 'de-DE'], ['es', 'Español', 'es-ES'], ['it', 'Italiano', 'it-IT'],
+    ['pt', 'Português', 'pt-BR'], ['nl', 'Nederlands', 'nl-NL'], ['pl', 'Polski', 'pl-PL'], ['sv', 'Svenska', 'sv-SE'], ['da', 'Dansk', 'da-DK'], ['no', 'Norsk', 'nb-NO'],
+    ['fi', 'Suomi', 'fi-FI'], ['cs', 'Čeština', 'cs-CZ'], ['tr', 'Türkçe', 'tr-TR'], ['ja', '日本語', 'ja-JP'], ['ko', '한국어', 'ko-KR'], ['ar', 'العربية', 'ar-SA'], ['hi', 'हिन्दी', 'hi-IN']];
+  const RADIO_LANG_ADJ = { fr: 'French', en: 'English-speaking', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', nl: 'Dutch', pl: 'Polish', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', cs: 'Czech', tr: 'Turkish', ja: 'Japanese', ko: 'Korean', ar: 'Arabic', hi: 'Hindi' };
+  const radioLang = () => (RADIO_LANG_LIST.some((x) => x[0] === settings.radioLang) ? settings.radioLang : 'fr');
   // Genre du coanimateur : choisi, ou l'inverse de l'animateur.
   function cohostGenderOf(hostGender) {
     if (settings.cohostGender === 'homme' || settings.cohostGender === 'femme') return settings.cohostGender;
@@ -1604,7 +1610,8 @@
     const wantB = cohostGenderOf(gA);
     let b = settings.geminiVoiceB || GEMINI_DEFAULTS[cs][wantB];
     if (b === a && !settings.geminiVoiceB) b = (GEMINI_VOICES.find((v) => v[1] === wantB && v[0] !== a) || [b])[0];
-    return { a, b, gA, gB: genderOfGemini(b) || wantB, style: GEMINI_STYLES[hs], styleA: GEMINI_STYLES[hs], styleB: GEMINI_STYLES[cs] };
+    const lg = (st) => st.replace(/French/g, RADIO_LANG_ADJ[radioLang()] || 'French');
+    return { a, b, gA, gB: genderOfGemini(b) || wantB, style: lg(GEMINI_STYLES[hs]), styleA: lg(GEMINI_STYLES[hs]), styleB: lg(GEMINI_STYLES[cs]) };
   }
   // Genres utilisés pour les accords dans les annonces écrites par Claude.
   function hostGenders() {
@@ -1685,7 +1692,7 @@
   function updateRadioCard(s) {
     if (!R.radioLog || !R.radioLog.isConnected) return;
     R.radioLog.replaceChildren(...radioLogItems(s));
-    if (R.radioPlan) R.radioPlan.textContent = nextRadioPlan(s);
+    if (R.radioPlan) R.radioPlan.textContent = tr(nextRadioPlan(s));
   }
   const secs = (ms) => (ms / 1000).toFixed(1).replace('.', ',') + ' s';
 
@@ -1716,7 +1723,7 @@
     const base = nextRadioPlanBase(s);
     const g = s && s.guest;
     if (!g || !settings.radio) return base;
-    const what = g.phase === 'annonce' ? ' annoncé' + (g.gender === 'femme' ? 'e' : '') + ' bientôt' : g.phase === 'arrivee' ? ' arrive à la prochaine intervention'
+    const what = g.phase === 'annonce' ? (g.gender === 'femme' ? ' annoncée bientôt' : ' annoncé bientôt') : g.phase === 'arrivee' ? ' arrive à la prochaine intervention'
       : g.phase === 'depart' ? ' repart à la prochaine intervention' : ' en studio';
     return base + ' Invité : ' + g.name + ' (' + g.role + ')' + what + '.';
   }
@@ -2512,7 +2519,7 @@
     let text = '';
     try {
       text = await withTimeout(claude('announce', {
-        kind: 'outro', host, style: settings.hostStyle, listener: (settings.listenerName || '').trim(), time: tp.time, partOfDay: tp.part,
+        kind: 'outro', host, style: settings.hostStyle, listener: (settings.listenerName || '').trim(), time: tp.time, partOfDay: tp.part, lang: radioLang(),
         sayTime: false, duo, turns: duo ? 4 : 0, cohost, cohostStyle: settings.cohostStyle, hostGender: g.host, cohostGender: g.cohost,
         tags: useGemini(), emotion: emotionFor(s, 'outro', null, null, {}), sfx: false, sing: false, recent: (s.lastLines || []).slice(-4),
         show: s.show ? { name: s.show.name } : null,
@@ -2691,7 +2698,7 @@
       s.guestsSeen = (s.guestsSeen || 0) + 1;
       s.guest = null;
       s.guestNextAt = Date.now() + (GUEST_EVERY[settings.guestFreq] || 60) * 60e3;
-      radioLog(s, 'Invité : ' + g.name + ' est reparti' + (g.gender === 'femme' ? 'e' : '') + ', ' + ((settings.cohostName || 'Sam').trim() || 'Sam') + ' revient.');
+      radioLog(s, 'Invité : ' + g.name + (g.gender === 'femme' ? ' est repartie' : ' est reparti') + ', ' + ((settings.cohostName || 'Sam').trim() || 'Sam') + ' revient.');
       return;
     }
     radioLog(s, 'Invité : ' + g.name + ' (' + g.role + ')' + (g.phase === 'arrivee' ? ' arrive à la prochaine intervention.' : g.phase === 'depart' ? ' repart à la prochaine intervention.' : ' est en studio.'));
@@ -2706,7 +2713,7 @@
         h('span', { class: 'muted' }, g.name + ', ' + g.role + ' · ' + g.visits + ' passage' + (g.visits > 1 ? 's' : '')),
         h('button', {
           class: 'x', type: 'button', 'aria-label': 'Oublier ' + g.name, title: 'Oublier ' + g.name + ' : un autre invité viendra pour cette spécialité',
-          onclick: () => { delete learn.guests[key]; saveLearn(); toast(g.name + ' oublié' + (g.gender === 'femme' ? 'e' : '') + '.', null, 3000); render(); }
+          onclick: () => { delete learn.guests[key]; saveLearn(); toast(g.name + (g.gender === 'femme' ? ' oubliée.' : ' oublié.'), null, 3000); render(); }
         }, icon('x', 14)))));
   }
   const GUEST_ANGLES = {
@@ -2869,7 +2876,7 @@
     if (live) {
       try {
         text = await withTimeout(claude('announce', {
-          kind, host: c.host, style: settings.hostStyle, listener: c.listener, time: tp.time, partOfDay: tp.part,
+          kind, host: c.host, style: settings.hostStyle, listener: c.listener, time: tp.time, partOfDay: tp.part, lang: radioLang(),
           ambiance: oldAmb || (plan.momentOk || (s.sel && s.sel.prompt && s.sel.prompt.trim()) ? c.ambiance : styleText(s.sel)),
           change: ch ? { from: ch.from, to: ch.to } : null,
           previous: prev ? desc(prev) : '', next: desc(next), trend: c.trend,
@@ -3349,9 +3356,13 @@
     return '';
   }
 
+  // Voix de l'ordinateur dans la langue de la radio (le nom est resté « frenchVoices »).
   function frenchVoices() {
-    const vs = voices().filter((x) => /^fr/i.test(x.lang));
-    return vs.filter((x) => /fr[-_]FR/i.test(x.lang)).concat(vs.filter((x) => !/fr[-_]FR/i.test(x.lang)));
+    const lang = radioLang();
+    const main = (RADIO_LANG_LIST.find((x) => x[0] === lang) || RADIO_LANG_LIST[0])[2];
+    const vs = voices().filter((x) => String(x.lang).toLowerCase().startsWith(lang));
+    const m = new RegExp(main.replace('-', '[-_]'), 'i');
+    return vs.filter((x) => m.test(x.lang)).concat(vs.filter((x) => !m.test(x.lang)));
   }
 
   function pickVoice() {
@@ -3372,7 +3383,7 @@
     return new Promise((resolve) => {
       try {
         const u = new SpeechSynthesisUtterance(text);
-        u.lang = 'fr-FR';
+        u.lang = (RADIO_LANG_LIST.find((x) => x[0] === radioLang()) || RADIO_LANG_LIST[0])[2];
         const v = pickVoice();
         if (v) { u.voice = v; u.lang = v.lang; }
         let done = false;
@@ -4156,7 +4167,7 @@
     const tracks = s.played.concat(s.current ? [s.current] : [], s.queue).filter((t) => t && t.videoId);
     if (!tracks.length) { toast('Aucun titre à enregistrer.'); return; }
     if (!ps.loggedIn) { toast('Connecte-toi à YouTube Music pour enregistrer une playlist.'); return; }
-    const date = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    const date = new Date().toLocaleDateString(uiLocale(), { day: '2-digit', month: '2-digit' });
     const title = ('Mood DJ · ' + plainLabel(s.sel) + ' · ' + date).slice(0, 150);
     try {
       const r = await call('createPlaylist', title, 'Créée par Mood DJ', tracks.map((t) => t.videoId));
@@ -4192,7 +4203,7 @@
         else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
         else if (k === 'value') el.value = v;
         else if (k === 'hidden') el.hidden = !!v;
-        else el.setAttribute(k, v === true ? '' : String(v));
+        else el.setAttribute(k, v === true ? '' : TR_ATTRS.has(k) ? tr(String(v)) : String(v));
       }
     }
     for (let i = 2; i < arguments.length; i++) append(el, arguments[i]);
@@ -4201,7 +4212,57 @@
   function append(el, c) {
     if (c === null || c === undefined || c === false) return;
     if (Array.isArray(c)) { for (const x of c) append(el, x); return; }
-    el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+    el.appendChild(typeof c === 'string' ? document.createTextNode(tr(c)) : typeof c === 'number' ? document.createTextNode(String(c)) : c);
+  }
+
+  // ------------------------------------------------ langue de l'interface
+  // Le code est écrit en français ; en anglais, chaque texte affiché passe par tr() au moment où il
+  // est mis dans la page : correspondance exacte dans le dictionnaire (i18n-en.js), sinon les morceaux
+  // connus d'une phrase composée (« Prochaine intervention : » + « dans » + …) sont traduits un à un.
+  const I18N_EN = typeof MDJ_I18N_EN === 'object' && MDJ_I18N_EN ? MDJ_I18N_EN : {};
+  const TR_ATTRS = new Set(['title', 'placeholder', 'aria-label', 'alt', 'aria-valuetext']);
+  const I18N_GLUE = [
+    [/Nouvel essai possible dans/g, 'Try again in'], [/\bdans (\d)/g, 'in $1'], [/\bles (\d+) /g, 'the $1 '], [/\b(\d+) titres\b/g, '$1 tracks'], [/\b(\d+) titre\b/g, '$1 track'],
+    [/\btitres\b/g, 'tracks'], [/\ble titre\b/g, 'the track'], [/\bappels\b/g, 'calls'], [/\ben une heure\b/g, 'in one hour'],
+    [/\ble maximum\b/g, 'the maximum'], [/\brevient\b/g, 'is back'],
+    [/ et /g, ' and '], [/ ou /g, ' or '], [/ avec /g, ' with '], [/ pour /g, ' for '], [/ sur /g, ' on '], [/ puis /g, ' then '],
+    [/\bjours?\b/g, (m) => (m === 'jour' ? 'day' : 'days')], [/\bminutes\b/g, 'minutes'], [/ à (\d)/g, ' at $1'], [/\baujourd’hui\b|\baujourd'hui\b/g, 'today'],
+    [/\bdemain\b/g, 'tomorrow'], [/^Environ /g, 'About '], [/^Fin · /g, 'End · '], [/^Sur /g, 'Over '], [/^Cycle de /g, 'Cycle of '], [/ : /g, ': ']
+  ];
+  const i18nCache = new Map();
+  let i18nFrags = null;
+  const uiLocale = () => (uiIsEnglish() ? 'en-GB' : 'fr-FR');
+  function uiIsEnglish() {
+    const s = settings && settings.uiLang;
+    if (s === 'en') return true;
+    if (s === 'fr') return false;
+    let l = '';
+    try { l = chrome.i18n.getUILanguage(); } catch (e) { l = navigator.language || 'fr'; }
+    return !/^fr/i.test(l || 'fr');
+  }
+  function tr(s) {
+    if (typeof s !== 'string' || !s || !uiIsEnglish()) return s;
+    const hit = i18nCache.get(s);
+    if (hit !== undefined) return hit;
+    let out = I18N_EN[s];
+    if (out === undefined) {
+      const t = s.trim();
+      if (t && t !== s && I18N_EN[t] !== undefined) out = s.replace(t, I18N_EN[t]);
+    }
+    if (out === undefined) {
+      if (!i18nFrags) i18nFrags = Object.keys(I18N_EN).filter((k) => k.trim().length >= 4 && /[\s:·,.!?’']/.test(k.trim())).sort((a, b) => b.length - a.length);
+      // Décennies : « années 80, 90 et 2000 » → « the 80s, 90s and 2000s ».
+      out = s.replace(/([Aa])nnées ((?:\d{2,4})(?:(?:, | et )\d{2,4})*)/g,
+        (m, a, l) => (a === 'A' ? 'The ' : 'the ') + l.replace(/\d{2,4}/g, '$&s').replace(/ et /g, ' and '));
+      let hits = 0;
+      for (const k of i18nFrags) if (out.includes(k)) { out = out.split(k).join(I18N_EN[k]); hits++; }
+      // Petits mots de liaison restés entre les morceaux : seulement dans une phrase de l'interface déjà
+      // reconnue (jamais dans un titre de chanson ou un nom d'artiste affiché seul).
+      if (hits || out !== s) for (const [re, en] of I18N_GLUE) out = out.replace(re, en);
+    }
+    if (i18nCache.size > 6000) i18nCache.clear();
+    i18nCache.set(s, out);
+    return out;
   }
   const SVGNS = 'http://www.w3.org/2000/svg';
   function sv(tag, attrs) {
@@ -4434,7 +4495,7 @@
     if (!panelEl) return;
     launchEl.classList.toggle('on', !!(session && session.status === 'playing'));
     launchEl.hidden = !panelEl.hidden;
-    launchEl.setAttribute('aria-label', panelEl.hidden ? 'Ouvrir Mood DJ' : 'Fermer Mood DJ');
+    launchEl.setAttribute('aria-label', tr(panelEl.hidden ? 'Ouvrir Mood DJ' : 'Fermer Mood DJ'));
     toastEl.classList.toggle('shift', !panelEl.hidden);
     placePanel();
     if (panelEl.hidden) { R = {}; return; }
@@ -4741,7 +4802,7 @@
 
   function updateCurve() {
     if (R.curvePath) R.curvePath.setAttribute('d', C.curvePath(sel, 340, 80));
-    if (R.curveLabel) R.curveLabel.textContent = curveLabelText(sel);
+    if (R.curveLabel) R.curveLabel.textContent = tr(curveLabelText(sel));
     if (R.curveHandles) R.curveHandles();
   }
 
@@ -4760,7 +4821,7 @@
     return 'En continu · titres ' + source;
   }
   function updateSummary() {
-    if (R.summary) R.summary.textContent = summaryText();
+    if (R.summary) R.summary.textContent = tr(summaryText());
   }
   function energyText() {
     return sel.energy + ' · ' + C.ENERGY_LABELS[sel.energy - 1];
@@ -5065,7 +5126,7 @@
     if (M.play.dataset.state !== String(wantPlay)) {
       M.play.dataset.state = String(wantPlay);
       M.play.replaceChildren(icon(wantPlay ? 'play' : 'pause', 24));
-      M.play.setAttribute('aria-label', wantPlay ? 'Lecture' : 'Pause');
+      M.play.setAttribute('aria-label', tr(wantPlay ? 'Lecture' : 'Pause'));
     }
     const liked = likedIds.has(np.videoId);
     if (M.like.getAttribute('aria-pressed') !== String(liked)) {
@@ -5353,7 +5414,7 @@
     R.energyVal = h('span', { class: 'label white' }, energyText());
     const range = h('input', {
       type: 'range', id: 'mdj-energy', min: '1', max: '5', step: '1', value: String(sel.energy),
-      oninput: (e) => { sel.energy = Number(e.target.value); R.energyVal.textContent = energyText(); updateCurve(); },
+      oninput: (e) => { sel.energy = Number(e.target.value); R.energyVal.textContent = tr(energyText()); updateCurve(); },
       onchange: () => { saveSel(); liveUpdate(); }
     });
     const energySec = (h('div', { class: 'section' },
@@ -5394,7 +5455,7 @@
           h('label', { class: 'label', for: 'mdj-until' }, 'Fin à'),
           h('input', {
             class: 'input', id: 'mdj-until', type: 'time', value: sel.until, style: { flex: '0 0 130px' },
-            onchange: (e) => { sel.until = e.target.value || '18:30'; saveSel(); updateSummary(); if (R.curveEnd) R.curveEnd.textContent = curveEndText(null); }
+            onchange: (e) => { sel.until = e.target.value || '18:30'; saveSel(); updateSummary(); if (R.curveEnd) R.curveEnd.textContent = tr(curveEndText(null)); }
           })));
       }
     }
@@ -5458,7 +5519,7 @@
     }
     if (s.timer.endAt) parts.push('Arrêt dans ' + C.fmtDuration(Math.ceil((s.timer.endAt - Date.now()) / 60000)));
     else if (s.timer.kind === 'end') parts.push('Arrêt à la fin du titre');
-    if (s.mode === 'fixe' && s.endAt) parts.push('Fin prévue à ' + new Date(s.endAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+    if (s.mode === 'fixe' && s.endAt) parts.push('Fin prévue à ' + new Date(s.endAt).toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' }));
     return parts.join(' · ');
   }
 
@@ -5624,8 +5685,8 @@
     const s = session;
     if (!s || !R.note) return;
     const span = R.note.lastChild;
-    if (span) span.textContent = liveNote();
-    if (R.statusLine) R.statusLine.textContent = statusLabel(s);
+    if (span) span.textContent = tr(liveNote());
+    if (R.statusLine) R.statusLine.textContent = tr(statusLabel(s));
     const cur = s.current;
     if (cur && ps.videoId === cur.videoId && R.nowBar) {
       const d = ps.duration || cur.duration || 0;
@@ -5749,8 +5810,8 @@
   const histOpen = new Set();
   function fmtShowDate(at, end) {
     const d = new Date(at);
-    const day = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-    const hm = (x) => new Date(x).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const day = d.toLocaleDateString(uiLocale(), { weekday: 'short', day: 'numeric', month: 'short' });
+    const hm = (x) => new Date(x).toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' });
     const min = Math.max(1, Math.round((end - at) / 60000));
     return day + ' · ' + hm(at) + ' → ' + hm(end) + ' (' + C.fmtDuration(min) + ')';
   }
@@ -5788,7 +5849,7 @@
           class: 'btn small', type: 'button', title: 'Recharger les réglages de cette émission dans l\'onglet Ambiance',
           onclick: () => { sel = Object.assign(clone(sel), clone(e.sel)); saveSel(); setTab('ambiance'); toast('Ambiance de cette émission chargée.', { label: 'Lancer', fn: () => startFromUi(false) }, 6000); }
         }, 'Reprendre cette ambiance') : null,
-        h('button', { class: 'btn small', type: 'button', onclick: () => playlistFromTracks('Mood DJ · ' + (e.label || 'émission') + ' · ' + new Date(e.at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }), kept.map((x) => x.v)) }, 'Enregistrer en playlist'),
+        h('button', { class: 'btn small', type: 'button', onclick: () => playlistFromTracks('Mood DJ · ' + (e.label || 'émission') + ' · ' + new Date(e.at).toLocaleDateString(uiLocale(), { day: '2-digit', month: '2-digit' }), kept.map((x) => x.v)) }, 'Enregistrer en playlist'),
         live ? null : h('button', {
           class: 'btn small', type: 'button',
           onclick: () => {
@@ -5836,7 +5897,7 @@
       h('div', { class: 'row' }, h('label', { class: 'label white', for: 'mdj-fade' }, 'Fondu entre les titres'), fadeVal),
       h('input', {
         type: 'range', id: 'mdj-fade', min: '0', max: '12', step: '1', value: String(settings.fade),
-        oninput: (e) => { settings.fade = Number(e.target.value); fadeVal.textContent = settings.fade ? settings.fade + ' s' : 'Aucun'; fadeNote.textContent = fadeNoteText(); },
+        oninput: (e) => { settings.fade = Number(e.target.value); fadeVal.textContent = settings.fade ? settings.fade + ' s' : tr('Aucun'); fadeNote.textContent = tr(fadeNoteText()); },
         onchange: saveSettings
       }),
       h('div', { class: 'scale' }, h('span', null, 'Coupure sèche'), h('span', null, '12 s')),
@@ -5867,7 +5928,7 @@
               settings.eq = clone(C.autoEq(soundSel()));
               settings.autoSound = false;
               autoRow._switch.setAttribute('aria-pressed', 'false');
-              if (autoRow._desc) autoRow._desc.textContent = 'Réglage manuel';
+              if (autoRow._desc) autoRow._desc.textContent = tr('Réglage manuel');
             }
             settings.eq[k] = Number(e.target.value);
             val.textContent = db(settings.eq[k]);
@@ -6102,6 +6163,19 @@
         h('h3', { class: 'label white' }, 'Concerts'), cols(card(srcBlocks[2]), card(srcBlocks[3])), keyParts[5]]
       : [card(keyParts), textCard, card(h('h2', { class: 'label white' }, "Sources d'anecdotes"), srcIntro, srcBlocks)];
 
+    // ------------------------------------------------------------- Langues
+    const langCard = h('div', { class: 'card' },
+      h('h2', { class: 'label white' }, 'Langues'),
+      h('label', { class: 'label', for: 'mdj-uilang' }, 'Langue de l’interface'),
+      h('select', { class: 'select', id: 'mdj-uilang', onchange: (e) => { settings.uiLang = e.target.value; saveSettings(); i18nCache.clear(); render(); } },
+        [['auto', 'Automatique (langue de Chrome)'], ['fr', 'Français'], ['en', 'English']].map((o) => h('option', { value: o[0], selected: (settings.uiLang || 'auto') === o[0] }, o[1]))),
+      h('label', { class: 'label', for: 'mdj-radiolang' }, 'Langue de la radio'),
+      h('select', { class: 'select', id: 'mdj-radiolang', onchange: (e) => { settings.radioLang = e.target.value; saveSettings(); render(); } },
+        RADIO_LANG_LIST.map((o) => h('option', { value: o[0], selected: radioLang() === o[0] }, o[1]))),
+      h('div', { class: 'muted' }, radioLang() === 'fr'
+        ? 'Les animateurs parlent français.'
+        : 'Les animateurs parlent la langue choisie : l’IA écrit directement dans cette langue, et les voix Gemini la parlent. Il faut une IA pour les textes (clé Claude ou Gemini) : sans elle, les phrases toutes faites restent en français. Avec la voix de l’ordinateur, il faut une voix de cette langue installée sur l’ordinateur.'));
+
     // --------------------------------------------------------------- Voix
     const missing = engine === 'gemini' && !hasGemini ? 'Gemini' : '';
     const voiceCard = h('div', { class: 'card' },
@@ -6306,7 +6380,7 @@
 
     // ----------------------------------------------------------- Mes J'aime
     const likesInfo = likes.items.length
-      ? likes.items.length + ' titres, lus le ' + new Date(likes.at).toLocaleDateString('fr-FR') + ' à ' + new Date(likes.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '.'
+      ? likes.items.length + ' titres, lus le ' + new Date(likes.at).toLocaleDateString(uiLocale()) + ' à ' + new Date(likes.at).toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit' }) + '.'
       : 'Pas encore lus.';
     const tagged = likes.items.filter((it) => { const k = C.keyOf(it.a, it.t); return CAT_BY_KEY.has(k) || meta[k]; }).length;
     const likesCard = (h('div', { class: 'card' },
@@ -6398,7 +6472,7 @@
       versionLine);
 
     if (!isFull()) {
-      append(body, [keysView, voiceCard, hostCard, radioCards, gridCard(), lectureCard, banCard, likesCard, catCard, logCard, backupCard(), aboutCard]);
+      append(body, [langCard, keysView, voiceCard, hostCard, radioCards, gridCard(), lectureCard, banCard, likesCard, catCard, logCard, backupCard(), aboutCard]);
       return [body];
     }
     // Pleine page : un menu à gauche, et seulement les réglages de la rubrique choisie à droite.
@@ -6407,8 +6481,8 @@
         () => cols(radioCards[0], radioCards[1])],
       ['grille', 'Grille des émissions', 'Émissions programmées, réveil',
         () => cols(gridCard())],
-      ['animateurs', 'Animateurs et voix', 'Prénoms, styles, voix, duo',
-        () => cols(hostCard, coCard, voiceCard)],
+      ['animateurs', 'Animateurs, voix, langues', 'Prénoms, styles, voix, duo, langues',
+        () => cols(hostCard, coCard, [langCard, voiceCard])],
       ['cles', 'Clés API', 'Claude, Gemini, sources et concerts', () => keysView],
       ['lecture', 'Lecture et bibliothèque', "Priorité, liste noire, J'aime, catalogue",
         () => cols([lectureCard, banCard], [likesCard, catCard])],

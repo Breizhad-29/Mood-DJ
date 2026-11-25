@@ -1,6 +1,25 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.23.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.24.0
 ============================================
 
+NOUVEAU DANS LA 2.24.0 : INTERFACE EN ANGLAIS, RADIO DANS TA LANGUE
+- Réglages › Animateurs, voix, langues › « Langues » :
+  · Langue de l'interface : Automatique (langue de Chrome), Français ou
+    English. En automatique, l'interface est en anglais dès que Chrome
+    n'est pas en français. Le panneau, les messages, la télécommande et
+    la page des clés passent en anglais (environ 1 350 textes).
+  · Langue de la radio : français, anglais, allemand, espagnol,
+    italien, portugais, néerlandais, polonais, suédois, danois,
+    norvégien, finnois, tchèque, turc, japonais, coréen, arabe, hindi.
+    Les animateurs parlent cette langue : l'IA (Claude ou Gemini) écrit
+    directement dans la langue choisie, et les voix Gemini, multilingues,
+    la parlent. On peut donc avoir l'interface en anglais et la radio en
+    allemand.
+- Limites : sans IA pour les textes, les phrases toutes faites restent en
+  français ; avec la voix de l'ordinateur, il faut une voix de la langue
+  installée sur l'ordinateur. Le LISEZMOI et les mentions légales
+  restent en français pour le moment. Rares cas : un titre de chanson
+  d'un seul mot identique à un libellé de l'interface (« Pause »…) peut
+  être traduit à l'affichage.
 NOUVEAU DANS LA 2.23.0 : ÉMOTIONS AUTO ET REGISTRE INTIME
 - Réglages › L'émission › « Émotions des animateurs » : Auto (par
   défaut pour une nouvelle installation), Sobre, Intime, Expressif,

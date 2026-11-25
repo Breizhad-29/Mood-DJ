@@ -374,14 +374,31 @@ function emotionRules(p) {
   return out.join('\n');
 }
 
+// Langue de la radio : les consignes restent en français, mais les animateurs parlent la langue choisie.
+const RADIO_LANGS = {
+  en: 'anglais (English)', de: 'allemand (Deutsch)', es: 'espagnol (español)', it: 'italien (italiano)', pt: 'portugais (português)',
+  nl: 'néerlandais (Nederlands)', pl: 'polonais (polski)', sv: 'suédois (svenska)', da: 'danois (dansk)', no: 'norvégien (norsk)',
+  fi: 'finnois (suomi)', cs: 'tchèque (čeština)', tr: 'turc (Türkçe)', ja: 'japonais (日本語)', ko: 'coréen (한국어)', ar: 'arabe (العربية)', hi: 'hindi (हिन्दी)'
+};
+function radioLangRule(lang) {
+  const base = "Ton texte sera lu à voix haute par une synthèse vocale : phrases naturelles et vivantes, ponctuation qui donne le rythme, aucune liste, aucun emoji, aucun guillemet, aucune indication entre crochets ou parenthèses.";
+  if (!lang || lang === 'fr' || !RADIO_LANGS[lang]) {
+    return "Tu parles en français, à l'oral, en tutoyant l'auditeur. " + base + "\n" +
+      "Écris les nombres comme on les dit (« six degrés »), et l'heure sur 24 heures comme à la radio (« dix-neuf heures cinquante-quatre », « quatorze heures et quart ») : jamais « sept heures » pour 19 h.";
+  }
+  return 'LANGUE DE L\'ÉMISSION : tu parles UNIQUEMENT en ' + RADIO_LANGS[lang] + ", à l'oral, sur le ton familier et chaleureux d'une radio de ce pays (tutoiement si la langue l'utilise à la radio). " +
+    "Ces consignes, la fiche et les messages des auditeurs sont en français : traduis et adapte tout naturellement, sans jamais dire que tu traduis. Les titres de chansons et les noms restent tels quels. " + base + "\n" +
+    "Écris les nombres et l'heure en toutes lettres, comme on les dit à la radio dans cette langue (heure sur 24 heures si c'est l'usage du pays, sinon comme on la dit couramment). " +
+    "Les balises sonores entre chevrons et les indications de jeu entre accolades gardent leur forme en anglais.";
+}
+
 async function writeAnnouncement(p) {
   const host = (p.host || 'Alex').slice(0, 40);
   const style = HOST_STYLES[p.style] || HOST_STYLES.chaleureux;
   const who = (g) => (g === 'femme' ? 'une femme' : g === 'homme' ? 'un homme' : '');
   const system = [
     'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale personnelle diffusée sur YouTube Music. Ton style : " + style + '.',
-    "Tu parles en français, à l'oral, en tutoyant l'auditeur. Ton texte sera lu à voix haute par une synthèse vocale : phrases naturelles et vivantes, ponctuation qui donne le rythme, aucune liste, aucun emoji, aucun guillemet, aucune indication entre crochets ou parenthèses.",
-    "Écris les nombres comme on les dit (« six degrés »), et l'heure sur 24 heures comme à la radio (« dix-neuf heures cinquante-quatre », « quatorze heures et quart ») : jamais « sept heures » pour 19 h.",
+    radioLangRule(p.lang),
     emotionRules(p),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
