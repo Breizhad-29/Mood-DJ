@@ -1,0 +1,20 @@
+# Vérifie à chaque envoi que la version anglaise suit la version française
+# (interface, mentions légales, guide). Voir tools/check-i18n.js.
+name: Traduction anglaise
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/check-i18n.js

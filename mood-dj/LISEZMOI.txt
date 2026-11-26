@@ -1,5 +1,25 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.25.3
+MOOD DJ POUR YOUTUBE MUSIC — version 2.26.0
 ============================================
+
+2.26.0 : TRADUCTION ANGLAISE COMPLÈTE
+- Phrases toutes faites en anglais : sans IA pour les textes, les
+  animateurs parlent anglais dès que la langue de la radio n'est pas le
+  français (annonces, interludes, intros, programme des 3 titres,
+  changement d'ambiance, dédicaces, réponse au vrai ou faux). L'heure se
+  dit à l'anglaise (« 2:05 PM »), la météo aussi (« 12 degrees in
+  Brest, rain »), et l'ambiance est traduite. Les phrases de test des
+  voix Gemini suivent la même règle.
+- Mentions légales en anglais (legal.en.html) : elles s'ouvrent toutes
+  seules quand l'interface est en anglais, avec un lien vers la version
+  française, qui fait foi.
+- Guide en anglais (GUIDE-EN.md) : toutes les fonctions, rangées par
+  thème. Ce LISEZMOI reste le journal complet, en français.
+- Sur GitHub : README en anglais (README.en.md), et un contrôle
+  automatique à chaque envoi (onglet Actions, « Traduction anglaise ») qui
+  signale un texte de l'interface sans traduction, des mentions légales
+  françaises et anglaises qui ne correspondent plus, ou un guide anglais
+  en retard d'une version. À la main : node tools/check-i18n.js
+- Dictionnaire : « Musiques du monde » devient « World music ».
 
 2.25.3 : En cours en pleine page, la courbe d'énergie, la durée du cycle et
 la minuterie forment une rangée qui s'étend sous « En ce moment » et

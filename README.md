@@ -17,7 +17,7 @@ Après une mise à jour des fichiers : recharge l'extension dans `chrome://exten
 
 > **Pour profiter pleinement de Mood DJ, les clés API sont vivement conseillées.** C'est avec elles que la radio prend vie : des animateurs qui écrivent de vraies annonces sur chaque titre, des voix naturelles en solo ou en duo, des anecdotes et des dates de concerts. Une clé Gemini gratuite suffit déjà à tout débloquer.
 
-Sans clé, Mood DJ fonctionne quand même, mais en version réduite : catalogue intégré, phrases toutes faites (en français uniquement) et voix de l'ordinateur.
+Sans clé, Mood DJ fonctionne quand même, mais en version réduite : catalogue intégré, phrases toutes faites et voix de l'ordinateur.
 
 Les clés se saisissent dans la page sécurisée de l'extension (Réglages › Clés API) :
 
@@ -31,6 +31,9 @@ Les clés restent dans le navigateur et ne sont envoyées qu'à leur service.
 
 - [`mood-dj/LISEZMOI.txt`](mood-dj/LISEZMOI.txt) : toutes les fonctions, version par version.
 - [`mood-dj/legal.html`](mood-dj/legal.html) : mentions légales, confidentialité, sources et crédits.
+- En anglais : [`mood-dj/GUIDE-EN.md`](mood-dj/GUIDE-EN.md) (guide par fonction) et [`mood-dj/legal.en.html`](mood-dj/legal.en.html) (mentions légales).
+
+À chaque envoi sur GitHub, un contrôle automatique (onglet **Actions**) vérifie que la traduction anglaise suit : textes de l'interface, mentions légales, guide. À la main : `node tools/check-i18n.js`.
 
 ## Licence
 

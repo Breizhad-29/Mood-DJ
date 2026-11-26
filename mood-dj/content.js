@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.25.3';
+  const VERSION = '2.26.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -1010,6 +1010,15 @@
     if (s.seed && s.seed.artist && s.source === 'similar') return 'Dans l’esprit de ' + s.seed.artist + (s.seed.title ? ' – ' + s.seed.title : '');
     return s.prompt && s.prompt.trim() ? '« ' + s.prompt.trim() + ' »' : plainLabel(s);
   }
+  // Ambiance dite en anglais par les phrases toutes faites (styles et moment traduits par le dictionnaire).
+  function ambianceEn(s) {
+    if (s.prompt && s.prompt.trim()) return s.prompt.trim();
+    const en = (x) => tr(x, true);
+    const names = C.styleList(s.style).map((id) => { const st = C.styleById(id); return st ? en(st.label) : id; });
+    const styles = !names.length ? 'all styles' : names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+    const m = C.momentById(s.moment);
+    return styles + (m ? ' · ' + en(m.label).toLowerCase() : '');
+  }
   const moodLabel = (id) => (C.MOODS.find((m) => m[0] === id) || [])[1] || '';
   const eraLabel = (id) => C.eraText(id);
 
@@ -1596,6 +1605,9 @@
     ['fi', 'Suomi', 'fi-FI'], ['cs', 'Čeština', 'cs-CZ'], ['tr', 'Türkçe', 'tr-TR'], ['ja', '日本語', 'ja-JP'], ['ko', '한국어', 'ko-KR'], ['ar', 'العربية', 'ar-SA'], ['hi', 'हिन्दी', 'hi-IN']];
   const RADIO_LANG_ADJ = { fr: 'French', en: 'English-speaking', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', nl: 'Dutch', pl: 'Polish', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', cs: 'Czech', tr: 'Turkish', ja: 'Japanese', ko: 'Korean', ar: 'Arabic', hi: 'Hindi' };
   const radioLang = () => (RADIO_LANG_LIST.some((x) => x[0] === settings.radioLang) ? settings.radioLang : 'fr');
+  // Phrases toutes faites (sans IA) et phrases de test : en français pour une radio en français,
+  // en anglais pour toutes les autres langues.
+  const fbEnglish = () => radioLang() !== 'fr';
   // Genre du coanimateur : choisi, ou l'inverse de l'animateur.
   function cohostGenderOf(hostGender) {
     if (settings.cohostGender === 'homme' || settings.cohostGender === 'femme') return settings.cohostGender;
@@ -1826,6 +1838,11 @@
   const hookDue = (s, t) => !!(s && s.hook && s.queue && t && (t.key === s.hook.forKey || !s.queue.some((x) => x.key === s.hook.forKey)));
   const hookIdFor = (s, t) => (hookDue(s, t) ? s.hook.id : '');
   function hookAnswerLine(h) {
+    if (fbEnglish()) {
+      return h.type === 'question'
+        ? 'To answer the question from earlier about ' + h.title + (h.answer ? ': ' + h.answer : '') + '.'
+        : 'The answer to the true or false from earlier: it was ' + (h.truth === 'faux' ? 'false' : 'true') + '.' + (h.answer ? ' ' + h.answer : '');
+    }
     return h.type === 'question'
       ? 'Pour répondre à la question de tout à l\'heure sur ' + h.title + (h.answer ? ' : ' + h.answer : '') + '.'
       : 'Réponse au vrai ou faux de tout à l\'heure : c\'était ' + h.truth + '.' + (h.answer ? ' ' + h.answer : '');
@@ -1950,7 +1967,9 @@
     const time = hh + ' h' + (mm ? ' ' + String(mm).padStart(2, '0') : '');
     const part = hh < 5 ? 'nuit' : hh < 12 ? 'matin' : hh < 14 ? 'midi' : hh < 18 ? 'après-midi' : hh < 23 ? 'soirée' : 'nuit';
     const greet = hh >= 5 && hh < 18 ? 'Bonjour' : 'Bonsoir';
-    return { time, part, greet };
+    const timeEn = (hh % 12 || 12) + (mm ? ':' + String(mm).padStart(2, '0') : '') + (hh < 12 ? ' AM' : ' PM');
+    const greetEn = hh >= 5 && hh < 12 ? 'Good morning' : hh >= 12 && hh < 18 ? 'Good afternoon' : 'Good evening';
+    return { time, part, greet, timeEn, greetEn };
   }
 
   function trendOf(prev, next) {
@@ -1962,6 +1981,9 @@
   let weatherCache = { city: '', at: 0, data: null };
   function fmtWeather(w) {
     return w ? w.temp + ' degrés à ' + w.city + (w.desc ? ', ' + w.desc : '') : '';
+  }
+  function fmtWeatherEn(w) {
+    return w ? w.temp + ' degrees in ' + w.city + (w.descEn ? ', ' + w.descEn : '') : '';
   }
   async function weatherLine() {
     const city = (settings.weatherCity || '').trim();
@@ -2054,6 +2076,56 @@
         : pick(['on reste dans le même esprit avec ', 'on continue avec ', 'place à ']);
     const tag = Math.random() < 0.25 ? " C'est " + c.host + ' sur Mood DJ.' : '';
     if (c.change) return "Changement d'ambiance : place à " + c.change.to + ' ! ' + cap(call + 'on commence avec ' + c.next.artist + ', ' + spokenTitle(c.next.title) + '.');
+    return cap(call + lead + c.next.artist + ', ' + spokenTitle(c.next.title) + '.') + tag;
+  }
+
+  // Phrases toutes faites en anglais (radio dans une autre langue que le français).
+  const progNamesEn = (list) => list.map((t) => spokenTitle(t.title) + ' by ' + t.artist);
+  const progTextEn = (names) => (names.length === 2 ? names[0] + ', then ' + names[1]
+    : names.slice(0, -1).join(', then ') + ', and to finish, ' + names[names.length - 1]);
+  const PART_EN = { matin: 'this morning', midi: 'this lunchtime', 'après-midi': 'this afternoon', soirée: 'tonight', nuit: 'tonight' };
+  function templateDuoEn(kind, c) {
+    const nx = spokenTitle(c.next.title) + ', by ' + c.next.artist;
+    const hi = c.greetEn + (c.listener ? ' ' + c.listener : '') + '! ' + c.host + ' and ' + c.cohost + ' with you on Mood DJ.';
+    if (c.programme) {
+      const names = progNamesEn(c.programme);
+      return 'A: ' + (kind === 'intro' ? hi + ' ' : '') + 'Coming up in the next few minutes: ' + progTextEn(names) + '.\nB: And we start right now with ' + names[0] + '!';
+    }
+    if (kind === 'intro') {
+      return 'A: ' + hi + '\nB: On the menu ' + (PART_EN[c.part] || 'today') + ': ' + c.ambianceEn + '. We start with ' + nx + '.';
+    }
+    const w = c.weatherEn ? ' Outside, ' + c.weatherEn + '.' : '';
+    return 'A: ' + (c.sayTime === false ? "You're listening to Mood DJ." : "You're listening to Mood DJ, it's " + c.timeEn + '.') + w + '\n' +
+      'B: ' + (c.prev ? 'That was ' + spokenTitle(c.prev.title) + ', by ' + c.prev.artist + '. ' : '') + pick(['Up next, ', 'Coming up, ', 'And now, ']) + nx + '!';
+  }
+  function templateLineEn(kind, c) {
+    const nx = spokenTitle(c.next.title) + ', by ' + c.next.artist;
+    const call = c.listener && Math.random() < 0.4 ? c.listener + ', ' : '';
+    const changeTo = c.change ? c.change.toEn || c.change.to : '';
+    if (c.programme) {
+      const head = kind === 'intro' ? c.greetEn + (c.listener ? ' ' + c.listener : '') + '! This is ' + c.host + ' on Mood DJ, with ' + c.ambianceEn + '. '
+        : c.change ? 'Change of mood: here comes ' + changeTo + '! ' : '';
+      return head + 'Coming up in the next few minutes: ' + progTextEn(progNamesEn(c.programme)) + '. Let\'s get started!';
+    }
+    if (kind === 'intro') {
+      return pick([
+        c.greetEn + (c.listener ? ' ' + c.listener : '') + '! This is ' + c.host + ' on Mood DJ. On the menu: ' + c.ambianceEn + '. We start with ' + nx + '.',
+        c.greetEn + ", it's " + c.host + '. Make yourself comfortable, we\'re going for ' + c.ambianceEn + ', starting with ' + nx + '.'
+      ]);
+    }
+    if (kind === 'interlude') {
+      const w = c.weatherEn ? ' Outside, ' + c.weatherEn + '.' : '';
+      const back = c.prev ? pick(['That was ' + spokenTitle(c.prev.title) + ', by ' + c.prev.artist + '.', 'You just heard ' + c.prev.artist + '.']) : '';
+      return pick([
+        "You're listening to Mood DJ with " + c.host + ", it's " + c.timeEn + '.' + w + ' ' + back + ' ' + cap(call + 'up next, ' + nx + '.'),
+        back + " It's " + c.timeEn + ' on Mood DJ.' + w + ' ' + cap(call + "here's what's next: " + nx + '.')
+      ]).replace(/\s+/g, ' ').trim();
+    }
+    const lead = c.trend === 'monte' ? pick(["let's turn it up a notch with ", 'picking up the pace with ', 'more energy now with '])
+      : c.trend === 'redescend' ? pick(["let's bring it down gently with ", 'a little calm now with ', 'time to breathe with '])
+        : pick(['staying in the same mood with ', 'carrying on with ', 'here comes ']);
+    const tag = Math.random() < 0.25 ? ' This is ' + c.host + ' on Mood DJ.' : '';
+    if (c.change) return 'Change of mood: here comes ' + changeTo + '! ' + cap(call + 'we start with ' + c.next.artist + ', ' + spokenTitle(c.next.title) + '.');
     return cap(call + lead + c.next.artist + ', ' + spokenTitle(c.next.title) + '.') + tag;
   }
 
@@ -2770,6 +2842,10 @@
       greet: tp.greet, time: tp.time, part: tp.part, prev, next, trend: trendOf(prev, next), ambiance: plainLabel(s.sel),
       weather: plan.sayWeather ? await weatherLine() : ''
     };
+    c.timeEn = tp.timeEn;
+    c.greetEn = tp.greetEn;
+    c.ambianceEn = s.sel ? ambianceEn(s.sel) : c.ambiance;
+    c.weatherEn = c.weather ? fmtWeatherEn(weatherCache.data) : '';
     if (plan.sayWeather && !c.weather) { plan.sayWeather = false; s.variety.weatherAt = plan.prevWeatherAt; }
     const progShown = progList && progList.length >= 2 ? progList : null;
     // Réponse au jeu posé pendant le programme (vrai ou faux, question en suspens).
@@ -2906,13 +2982,15 @@
     c.change = ch;
     c.programme = progShown;
     if (!text) {
-      text = duo && kind !== 'talkover' ? templateDuo(kind, c) : templateLine(kind, c);
+      text = duo && kind !== 'talkover' ? (fbEnglish() ? templateDuoEn : templateDuo)(kind, c) : (fbEnglish() ? templateLineEn : templateLine)(kind, c);
       // Sans Claude, la réponse au jeu est quand même donnée.
       if (hookAnswer) text = (duo && kind !== 'talkover' ? 'A: ' : '') + hookAnswerLine(hookAnswer) + (duo && kind !== 'talkover' ? '\n' : ' ') + text;
       // Sans Claude, la dédicace est quand même lue, en une phrase simple.
       if (dedic) {
         const who = dedic.from || c.listener;
-        const line = (dedic.request ? 'Une demande' + (who ? ' de ' + who : '') : 'Une dédicace' + (who ? ' de ' + who : '')) + (dedic.to ? ' pour ' + dedic.to : '') + (dedic.msg ? ' : ' + dedic.msg : '') + '.';
+        const line = fbEnglish()
+          ? (dedic.request ? 'A request' : 'A dedication') + (who ? ' from ' + who : '') + (dedic.to ? ' for ' + dedic.to : '') + (dedic.msg ? ': ' + dedic.msg : '') + '.'
+          : (dedic.request ? 'Une demande' + (who ? ' de ' + who : '') : 'Une dédicace' + (who ? ' de ' + who : '')) + (dedic.to ? ' pour ' + dedic.to : '') + (dedic.msg ? ' : ' + dedic.msg : '') + '.';
         text = (duo && kind !== 'talkover' ? 'A: ' : '') + line + (duo && kind !== 'talkover' ? '\n' : ' ') + text;
       }
     }
@@ -3262,9 +3340,23 @@
     const host = (settings.hostName || 'Alex').trim() || 'Alex';
     const cohost = (settings.cohostName || 'Sam').trim() || 'Sam';
     const role = gv.gB === 'femme' ? 'ta coanimatrice' : 'ton coanimateur';
+    const en = fbEnglish();
     let turns;
     let label;
-    if (which === 'B') {
+    if (en && which === 'B') {
+      turns = [{ speaker: 'A', text: 'And I\'m ' + cohost + ', your co-host on Mood DJ! <chuckle> See you during the interludes.', style: gv.styleB }];
+      label = 'Voix de ' + cohost + ' : ' + gv.b;
+    } else if (en && which === 'duo') {
+      turns = [
+        { speaker: 'A', text: 'You\'re listening to Mood DJ, with ' + host + '…', style: gv.styleA },
+        { speaker: 'B', text: '… and ' + cohost + '! <laugh> Shall we play the next track?', style: gv.styleB },
+        { speaker: 'A', text: 'Here we go!', style: gv.styleA }
+      ];
+      label = 'Duo : ' + gv.a + ' et ' + gv.b;
+    } else if (en) {
+      turns = [{ speaker: 'A', text: 'Hi, ' + host + ' here on Mood DJ. <short pause> This is my voice for the announcements.', style: gv.styleA }];
+      label = 'Voix de ' + host + ' : ' + gv.a;
+    } else if (which === 'B') {
       turns = [{ speaker: 'A', text: 'Et moi, c\'est ' + cohost + ', ' + role + ' sur Mood DJ ! <chuckle> On se retrouve pendant les interludes.', style: gv.styleB }];
       label = 'Voix de ' + cohost + ' : ' + gv.b;
     } else if (which === 'duo') {
@@ -4058,7 +4150,7 @@
       s.sel = Object.assign(clone(sel), { mode: s.sel.mode });
       // L'animateur annoncera la nouvelle ambiance sur le premier titre après les titres verrouillés.
       const locked = s.queue.slice(0, keepN);
-      s.ambianceChange = { from: fromLabel, to: plainLabel(s.sel), locked: locked.map((t) => t.key), at: Date.now(), done: false };
+      s.ambianceChange = { from: fromLabel, to: plainLabel(s.sel), toEn: ambianceEn(s.sel), locked: locked.map((t) => t.key), at: Date.now(), done: false };
       dlog('session', "changement d'ambiance", { de: fromLabel, vers: s.ambianceChange.to, apres: locked.map((t) => t.title) });
     }
     refreshSessionSel(s);
@@ -4240,8 +4332,9 @@
     try { l = chrome.i18n.getUILanguage(); } catch (e) { l = navigator.language || 'fr'; }
     return !/^fr/i.test(l || 'fr');
   }
-  function tr(s) {
-    if (typeof s !== 'string' || !s || !uiIsEnglish()) return s;
+  // force : traduit même si l'interface est en français (phrases de la radio en anglais).
+  function tr(s, force) {
+    if (typeof s !== 'string' || !s || (!force && !uiIsEnglish())) return s;
     const hit = i18nCache.get(s);
     if (hit !== undefined) return hit;
     let out = I18N_EN[s];
@@ -6173,7 +6266,7 @@
         RADIO_LANG_LIST.map((o) => h('option', { value: o[0], selected: radioLang() === o[0] }, o[1]))),
       h('div', { class: 'muted' }, radioLang() === 'fr'
         ? 'Les animateurs parlent français.'
-        : 'Les animateurs parlent la langue choisie : l’IA écrit directement dans cette langue, et les voix Gemini la parlent. Il faut une IA pour les textes (clé Claude ou Gemini) : sans elle, les phrases toutes faites restent en français. Avec la voix de l’ordinateur, il faut une voix de cette langue installée sur l’ordinateur.'));
+        : 'Les animateurs parlent la langue choisie : l’IA écrit directement dans cette langue, et les voix Gemini la parlent. Sans IA pour les textes (clé Claude ou Gemini), les animateurs utilisent des phrases toutes faites, en anglais pour toute autre langue que le français. Avec la voix de l’ordinateur, il faut une voix de cette langue installée sur l’ordinateur.'));
 
     // --------------------------------------------------------------- Voix
     const missing = engine === 'gemini' && !hasGemini ? 'Gemini' : '';
