@@ -1,5 +1,7 @@
 # Mood DJ pour YouTube Music
 
+🇫🇷 Français · [🇬🇧 English](README.en.md)
+
 Extension Chrome qui transforme YouTube Music en radio personnelle : ambiances, courbe d'énergie, fondus enchaînés, égaliseur, et animateurs à la voix de synthèse (annonces, interludes, invités, jeux, dédicaces).
 
 ## Installation
@@ -11,12 +13,16 @@ Extension Chrome qui transforme YouTube Music en radio personnelle : ambiances, 
 
 Après une mise à jour des fichiers : recharge l'extension dans `chrome://extensions`, puis fais F5 sur YouTube Music.
 
-## Clés API (facultatives)
+## Clés API (vivement conseillées)
 
-Sans clé, Mood DJ fonctionne avec son catalogue intégré, des phrases toutes faites et la voix de l'ordinateur. Les clés se saisissent dans la page sécurisée de l'extension (Réglages › Clés API) :
+> **Pour profiter pleinement de Mood DJ, les clés API sont vivement conseillées.** C'est avec elles que la radio prend vie : des animateurs qui écrivent de vraies annonces sur chaque titre, des voix naturelles en solo ou en duo, des anecdotes et des dates de concerts. Une clé Gemini gratuite suffit déjà à tout débloquer.
+
+Sans clé, Mood DJ fonctionne quand même, mais en version réduite : catalogue intégré, phrases toutes faites (en français uniquement) et voix de l'ordinateur.
+
+Les clés se saisissent dans la page sécurisée de l'extension (Réglages › Clés API) :
 
 - **Claude** (Anthropic) ou **Gemini** (Google) : les textes des animateurs, les sélections décrites en toutes lettres, l'ajout de styles.
-- **Gemini** : les voix des animateurs, en solo ou en duo.
+- **Gemini** : les voix des animateurs, en solo ou en duo. Clé gratuite sur [aistudio.google.com](https://aistudio.google.com) (bouton « Get API key »).
 - **Last.fm, Discogs, Setlist.fm, Ticketmaster** : des anecdotes et des dates de concerts en plus.
 
 Les clés restent dans le navigateur et ne sont envoyées qu'à leur service.
