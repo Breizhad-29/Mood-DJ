@@ -40,23 +40,10 @@ function tabReglages() {
 
   // ---------------------------------------------------------- Clés API
   const keyBlock = (o) => {
-    const inp = h('input', {
-      class: 'input', id: o.id, type: 'password', autocomplete: 'off', spellcheck: 'false',
-      placeholder: o.has ? 'Clé enregistrée (masquée)' : o.placeholder
-    });
-    const save = () => {
-      const v = inp.value.trim();
-      if (!v) { inp.focus(); return; }
-      store({ [o.storeKey]: v });
-      inp.value = '';
-      o.saved();
-    };
-    // Dans Chrome, les clés se tapent dans une page de l'extension (chrome-extension://…), jamais dans
-    // la page YouTube Music : ses scripts ne peuvent pas les lire ni capter la saisie ou le collage.
-    const entry = IN_APP
-      ? h('div', { class: 'row' }, inp, h('button', { class: 'btn small', type: 'button', onclick: save }, 'Enregistrer'))
-      : h('div', { class: 'row' }, h('button', { class: 'btn small', type: 'button', onclick: () => openExtPage('keys', o.storeKey) },
-        o.has ? 'Changer la clé…' : 'Saisir la clé…'), h('span', { class: 'muted' }, 'dans une page sécurisée de l’extension'));
+    // Les clés se tapent dans une page de l'extension (chrome-extension://…), jamais dans la page
+    // YouTube Music : ses scripts ne peuvent pas les lire ni capter la saisie ou le collage.
+    const entry = h('div', { class: 'row' }, h('button', { class: 'btn small', type: 'button', onclick: () => openExtPage('keys', o.storeKey) },
+      o.has ? 'Changer la clé…' : 'Saisir la clé…'), h('span', { class: 'muted' }, 'dans une page sécurisée de l’extension'));
     return h('div', { class: 'keyblock' },
       h('div', { class: 'row' }, h('span', { class: 'label white' }, o.title), pill(o.has ? 'Clé enregistrée' : 'Aucune clé')),
       h('div', { class: 'muted' }, o.use),
@@ -77,7 +64,6 @@ function tabReglages() {
       id: 'mdj-key', title: 'Claude (Anthropic)', storeKey: 'apiKey', has: hasClaude, placeholder: 'Colle ta clé Claude ici',
       use: 'Écrit les annonces, compose les sélections décrites en toutes lettres et classe tes titres.',
       help: 'Clé à créer dans la console Anthropic, rubrique API Keys.',
-      saved: () => { hasClaude = true; syncTextKey(); toast(IN_APP ? 'Clé Claude enregistrée, chiffrée par Windows.' : 'Clé Claude enregistrée dans ce navigateur.'); render(); },
       removed: () => { hasClaude = false; syncTextKey(); toast('Clé Claude supprimée.'); },
       extra: h('button', {
         class: 'btn small', type: 'button', disabled: !hasClaude,
@@ -96,19 +82,15 @@ function tabReglages() {
       id: 'mdj-gemini', title: 'Gemini (Google) · clé gratuite', storeKey: 'geminiKey', has: hasGemini1, placeholder: 'Colle ta clé Google AI Studio ici',
       use: 'Les voix Gemini des animateurs, et le duo à deux voix. Utilisée en premier.',
       help: 'Crée une clé sur aistudio.google.com (bouton « Get API key »), dans un projet sans facturation, puis colle-la ici.',
-      saved: () => { hasGemini1 = true; hasGemini = true; syncTextKey(); toast(IN_APP ? 'Clé Gemini enregistrée, chiffrée par Windows.' : 'Clé Gemini enregistrée dans ce navigateur.'); render(); },
       removed: () => { hasGemini1 = false; hasGemini = hasGemini2; syncTextKey(); toast('Clé Gemini supprimée.'); }
     }),
     keyBlock({
       id: 'mdj-gemini2', title: 'Gemini (Google) · clé payante, en relais', storeKey: 'geminiKey2', has: hasGemini2, placeholder: 'Colle ta clé Gemini payante ici (facultatif)',
       use: "Prend le relais seulement quand la clé gratuite atteint sa limite (par minute ou du jour). Chaque voix passée par elle est facturée par Google : sur tes crédits, puis sur ta carte.",
       help: "Une clé créée dans un projet Google Cloud lié à un compte de facturation (marquée « Paid » dans AI Studio). Pense à fixer une alerte de budget dans la console Google Cloud.",
-      saved: () => { hasGemini2 = true; hasGemini = true; syncTextKey(); toast(IN_APP ? 'Clé Gemini payante enregistrée, chiffrée par Windows.' : 'Clé Gemini payante enregistrée dans ce navigateur.'); render(); },
       removed: () => { hasGemini2 = false; hasGemini = hasGemini1; syncTextKey(); toast('Clé Gemini payante supprimée.'); }
     }),
-    h('div', { class: 'muted' }, (IN_APP
-      ? "Chaque clé est chiffrée par Windows pour ta session, reste sur cet ordinateur et n'est envoyée qu'à son service (Anthropic, Google, Last.fm, Discogs, Setlist.fm ou Ticketmaster)."
-      : "Chaque clé reste dans ce navigateur et n'est envoyée qu'à son service (Anthropic, Google, Last.fm, Discogs, Setlist.fm ou Ticketmaster).") +
+    h('div', { class: 'muted' }, "Chaque clé reste dans ce navigateur et n'est envoyée qu'à son service (Anthropic, Google, Last.fm, Discogs, Setlist.fm ou Ticketmaster)." +
       ' Elles n\'apparaissent jamais dans le journal technique, ni dans la sauvegarde.')];
   // Sources d'anecdotes à clé : facultatives, elles complètent MusicBrainz, Wikidata, Deezer et Wikipédia.
   const testSource = (which, has, name) => h('button', {
@@ -124,7 +106,6 @@ function tabReglages() {
       id: 'mdj-lastfm', title: 'Last.fm · clé gratuite', storeKey: 'lastfmKey', has: hasLastfm, placeholder: 'Colle ta clé API Last.fm ici',
       use: "Pour les animateurs : l'audience et les tags des titres, la bio des artistes. Pour « Mix de ce titre » : les artistes proches selon les auditeurs.",
       help: "Connecte-toi sur last.fm, puis crée une clé sur last.fm/api/account/create (un nom d'application suffit, le reste peut rester vide). Colle la « API key », pas le « Shared secret ».",
-      saved: () => { hasLastfm = true; toast('Clé Last.fm enregistrée.'); render(); },
       removed: () => { hasLastfm = false; toast('Clé Last.fm supprimée.'); },
       extra: testSource('lastfm', hasLastfm, 'Last.fm')
     }),
@@ -132,7 +113,6 @@ function tabReglages() {
       id: 'mdj-discogs', title: 'Discogs · jeton gratuit', storeKey: 'discogsToken', has: hasDiscogs, placeholder: 'Colle ton jeton Discogs ici',
       use: "Pour les animateurs : l'édition d'origine (label, pays, format), les styles précis et les crédits détaillés (producteurs, musiciens, ingénieurs du son).",
       help: 'Connecte-toi sur discogs.com, puis dans Paramètres › Développeurs, clique sur « Générer un nouveau jeton » et colle-le ici.',
-      saved: () => { hasDiscogs = true; toast('Jeton Discogs enregistré.'); render(); },
       removed: () => { hasDiscogs = false; toast('Jeton Discogs supprimé.'); },
       extra: testSource('discogs', hasDiscogs, 'Discogs')
     }),
@@ -140,7 +120,6 @@ function tabReglages() {
       id: 'mdj-setlist', title: 'Setlist.fm · clé gratuite', storeKey: 'setlistfmKey', has: hasSetlist, placeholder: 'Colle ta clé API Setlist.fm ici',
       use: "Pour les animateurs : le dernier concert de l'artiste et la place du morceau sur scène (joué à tous les concerts, en ouverture, en rappel… ou jamais).",
       help: 'Crée un compte sur setlist.fm, puis demande une clé sur setlist.fm/settings/api (usage non commercial). Elle arrive en général tout de suite.',
-      saved: () => { hasSetlist = true; toast('Clé Setlist.fm enregistrée.'); render(); },
       removed: () => { hasSetlist = false; toast('Clé Setlist.fm supprimée.'); },
       extra: testSource('setlistfm', hasSetlist, 'Setlist.fm')
     }),
@@ -148,7 +127,6 @@ function tabReglages() {
       id: 'mdj-ticketmaster', title: 'Ticketmaster · clé gratuite', storeKey: 'ticketmasterKey', has: hasTicketmaster, placeholder: 'Colle ta « Consumer Key » Ticketmaster ici',
       use: "Pour les animateurs : un court flash concert quand l'artiste qui passe a des dates prévues (au plus une fois tous les 3 jours par artiste), et « près de chez toi » si c'est dans ta ville de la météo.",
       help: 'Crée un compte sur developer.ticketmaster.com, puis dans « My Apps », copie la « Consumer Key ».',
-      saved: () => { hasTicketmaster = true; toast('Clé Ticketmaster enregistrée.'); render(); },
       removed: () => { hasTicketmaster = false; toast('Clé Ticketmaster supprimée.'); },
       extra: testSource('ticketmaster', hasTicketmaster, 'Ticketmaster'),
       after: h('div', { class: 'section', style: { gap: '6px' } },
@@ -610,7 +588,7 @@ function tabReglages() {
   const aboutCard = h('div', { class: 'card' },
     h('h2', { class: 'label white' }, 'À propos'),
     h('div', { class: 'muted' }, "Mood DJ est une extension indépendante, sans lien avec YouTube, Google, Anthropic ni les autres services utilisés. Elle n'a pas de serveur : tes données restent " + WHERE + ", sauf ce qui part vers les services dont tu as mis la clé. Les voix des animateurs et leurs textes sont produits par des IA."),
-    IN_APP ? null : h('div', { class: 'btns' },
+    h('div', { class: 'btns' },
       h('button', { class: 'btn small', type: 'button', onclick: () => openExtPage('legal') }, 'Mentions légales et confidentialité'),
       h('button', { class: 'btn small', type: 'button', onclick: () => openExtPage('legal', 'credits') }, 'Sources et crédits')),
     versionLine);

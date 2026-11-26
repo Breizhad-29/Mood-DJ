@@ -1,5 +1,12 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.33.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.33.1
 ============================================
+
+2.33.1 : l'application Windows n'existe plus ; le code qui lui servait
+est retiré (saisie des clés dans le panneau, clés chiffrées par Windows,
+textes propres à l'application). Rien ne change dans Chrome : les clés se
+saisissent toujours dans la page sécurisée de l'extension. La sauvegarde
+sert maintenant à garder ses données ou à les reprendre sur un autre
+ordinateur.
 
 2.33.0 : LE CODE DU PANNEAU RANGÉ EN PLUSIEURS FICHIERS
 Rien ne change à l'usage : le code est identique, ligne pour ligne, mais

@@ -8,12 +8,11 @@
 window.__moodDjContent = true;
 
 const C = MDJ_CORE;
-// Le même code tourne dans l'extension Chrome et dans l'application (qui définit MDJ_ENV = 'app').
-const IN_APP = typeof MDJ_ENV !== 'undefined' && MDJ_ENV === 'app';
-const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
+// Où restent les données (repris dans quelques textes de l'interface).
+const WHERE = 'dans ce navigateur';
 const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
 const LOOKAHEAD = 5;
-const VERSION = '2.33.0';
+const VERSION = '2.33.1';
 // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
 // titres des styles ajoutés par l'IA (applyStyleSet).
 const BASE_CATALOG = CATALOG.slice();
@@ -173,13 +172,13 @@ function markProblem() {
 
 // ======================================================== sauvegarde
 // Exporter : un fichier avec les réglages, les J'aime classés, les découvertes et les mémoires des
-// animateurs (jamais les clés API ni le journal). Importer : le même fichier, dans l'extension ou
-// dans l'application. C'est aussi le passage de l'extension Chrome vers l'application.
+// animateurs (jamais les clés API ni le journal). Importer : le même fichier, par exemple sur un autre
+// ordinateur.
 const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles'];
 async function exportData() {
   try {
     const all = await chrome.storage.local.get(BACKUP_KEYS);
-    const out = { format: 'mood-dj-sauvegarde', version: VERSION, origine: IN_APP ? 'application' : 'extension', exporteLe: new Date().toISOString(), donnees: {} };
+    const out = { format: 'mood-dj-sauvegarde', version: VERSION, origine: 'extension', exporteLe: new Date().toISOString(), donnees: {} };
     for (const k of BACKUP_KEYS) if (all[k] !== undefined) out.donnees[k] = all[k];
     const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -222,9 +221,7 @@ function backupCard() {
   const file = h('input', { type: 'file', accept: 'application/json,.json', style: { display: 'none' }, onchange: (e) => { const f = e.target.files && e.target.files[0]; if (f) importData(f); e.target.value = ''; } });
   return h('div', { class: 'card' },
     h('h2', { class: 'label white' }, 'Sauvegarde'),
-    h('div', { class: 'muted' }, IN_APP
-      ? "Pour reprendre ce que l'extension Chrome a appris : dans l'extension, Réglages › Sauvegarde › Exporter, puis ici Importer. Les clés API ne sont jamais dans le fichier : recolle-les dans Clés API."
-      : "Un fichier avec tes réglages, tes J'aime classés, tes découvertes et la mémoire des animateurs, pour les garder ou les reprendre dans l'application Mood DJ. Les clés API ne sont jamais dans le fichier."),
+    h('div', { class: 'muted' }, "Un fichier avec tes réglages, tes J'aime classés, tes découvertes et la mémoire des animateurs, pour les garder ou les reprendre sur un autre ordinateur. Les clés API ne sont jamais dans le fichier."),
     h('div', { class: 'btns' },
       h('button', { class: 'btn small', type: 'button', onclick: () => exportData() }, 'Exporter'),
       h('button', { class: 'btn small', type: 'button', onclick: () => file.click() }, 'Importer'),
