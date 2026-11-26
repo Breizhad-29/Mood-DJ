@@ -1,5 +1,12 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.30.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.30.1
 ============================================
+
+2.30.1 : correctif. Un long dialogue en duo (plus d'une minute de voix
+Gemini, fréquent en Pleine puissance) était cru perdu au bout de
+60 secondes : la voix de l'ordinateur relisait alors le texte par-dessus
+la voix Gemini, qui continuait. Le délai suit maintenant la durée réelle
+de la voix, et si une voix ne répond vraiment plus, elle est coupée avant
+que celle de l'ordinateur prenne le relais.
 
 2.30.0 : INVERSER, ENREGISTRER ET RECHARGER LES ANIMATEURS ET LES UNIVERS
 - « Inverser les animateurs » (en haut de la carte Animateurs, en duo) :

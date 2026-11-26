@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.30.0';
+  const VERSION = '2.30.1';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -333,7 +333,10 @@
     const args = Array.prototype.slice.call(arguments, 1);
     return new Promise((resolve, reject) => {
       const id = (++rpcSeq) + '-' + uid();
-      const ms = method === 'playVoice' ? 60000 : method === 'search' || method === 'createPlaylist' || method === 'findArtist' || method === 'artistPage' ? 20000
+      // La réponse de playVoice arrive à la fin de la voix : le délai suit la durée réelle (un dialogue
+      // en duo dépasse parfois la minute ; avant, Mood DJ croyait la voix perdue et lançait celle de
+      // l'ordinateur par-dessus).
+      const ms = method === 'playVoice' ? Math.max(60000, (wavSeconds(args[0]) + 20) * 1000) : method === 'search' || method === 'createPlaylist' || method === 'findArtist' || method === 'artistPage' ? 20000
         : method === 'play' ? 16000 : method === 'browseTracks' ? 90000 : method === 'playJingle' ? 10000 : 8000;
       const timeout = setTimeout(() => {
         pending.delete(id);
@@ -3445,6 +3448,9 @@
       const r = await call('playVoice', ann.audio).catch(() => null);
       if (r && r.ok) return;
       clearSfx();
+      // Pas de réponse : la voix joue peut-être encore. On la coupe avant de passer à celle de l'ordinateur,
+      // pour ne jamais entendre les deux en même temps.
+      if (!r) await callSafe('stopVoice');
       const why = VOICE_REASONS[r && r.reason] || 'lecture impossible';
       radioLog(ann.s, 'Voix ' + (ann.engine || '') + ' reçue mais pas lue (' + why + ") : voix de l'ordinateur.");
       voiceWarn(ann.s, 'Voix ' + (ann.engine || '') + ' reçue mais pas lue : ' + why + '.');
