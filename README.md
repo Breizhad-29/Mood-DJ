@@ -25,6 +25,8 @@ Les clés se saisissent dans la page sécurisée de l'extension (Réglages › C
 - **Gemini** : les voix des animateurs, en solo ou en duo. Clé gratuite sur [aistudio.google.com](https://aistudio.google.com) (bouton « Get API key »).
 - **Last.fm, Discogs, Setlist.fm, Ticketmaster** : des anecdotes et des dates de concerts en plus.
 
+Avec une clé Claude ou Gemini, chaque animateur a sa personnalité et se souvient de ce qu'il raconte d'une émission à l'autre. Le réglage **Puissance de l'IA** (Économe, Normale ou Pleine puissance) et un plafond d'appels par heure permettent de choisir entre des animateurs plus vivants et une consommation plus faible.
+
 Les clés restent dans le navigateur et ne sont envoyées qu'à leur service.
 
 ## Documentation

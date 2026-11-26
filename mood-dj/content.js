@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.26.0';
+  const VERSION = '2.27.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -40,7 +40,7 @@
     hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
     voiceEngine: 'systeme',
     geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-    anecdotes: 'souvent', programme: true
+    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: ''
   };
   const DEFAULT_SEL = {
     style: 'rock', sub: 'all', moment: 'route', energy: 3, mood: null, era: 'all', prompt: '',
@@ -170,7 +170,7 @@
   // Exporter : un fichier avec les réglages, les J'aime classés, les découvertes et les mémoires des
   // animateurs (jamais les clés API ni le journal). Importer : le même fichier, dans l'extension ou
   // dans l'application. C'est aussi le passage de l'extension Chrome vers l'application.
-  const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles'];
+  const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory'];
   async function exportData() {
     try {
       const all = await chrome.storage.local.get(BACKUP_KEYS);
@@ -219,7 +219,7 @@
   }
 
   async function loadAll() {
-    const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles']);
+    const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory']);
     showHistory = Array.isArray(d.showHistory) ? d.showHistory.filter((x) => x && x.id && Array.isArray(x.tracks)) : [];
     hasSetlist = !!d.setlistfmKey;
     hasTicketmaster = !!d.ticketmasterKey;
@@ -228,6 +228,7 @@
     savedAmb = Array.isArray(d.savedAmbiances) ? d.savedAmbiances.filter((a) => a && a.name && a.sel) : [];
     wikiCache = d.wikiCache && typeof d.wikiCache === 'object' ? d.wikiCache : {};
     toldCache = d.toldCache && typeof d.toldCache === 'object' ? d.toldCache : {};
+    hostMemory = d.hostMemory && typeof d.hostMemory === 'object' ? { A: Array.isArray(d.hostMemory.A) ? d.hostMemory.A : [], B: Array.isArray(d.hostMemory.B) ? d.hostMemory.B : [] } : { A: [], B: [] };
     learned = Array.isArray(d.learnedCat) ? d.learnedCat : [];
     artistCache = d.artistCache && d.artistCache.pages ? d.artistCache : { names: {}, pages: {} };
     if (Array.isArray(d.debugLog)) dbgBuf = d.debugLog.slice(-DEBUG_MAX);
@@ -641,6 +642,88 @@
       store({ wikiCache });
     }, 3000);
   }
+  // ------------------------------------------- personnalité et mémoire des animateurs
+  // Chaque animateur a une fiche stable (goûts, manie, bout de vie, rôle dans le duo), tirée au sort
+  // une fois puis modifiable dans les Réglages. Ce qu'il révèle de lui à l'antenne est retenu
+  // (hostMemory) et rappelé à l'IA d'une émission à l'autre.
+  const PERSONA_POOLS = {
+    fr: {
+      aime: ['le funk des années 70 et les vinyles d’occasion', 'les grosses guitares et les concerts debout', 'la soul, les cuivres et les voix éraillées',
+        'les synthés des années 80, sans aucune honte', 'les ballades qui font pleurer, en cachette', 'le jazz du dimanche matin', 'les tubes de mariage, assumés jusqu’au bout',
+        'les groupes que personne ne connaît encore', 'les bandes originales de films', 'le rap des années 90'],
+      manie: ['note chaque solo de guitare sur 10', 'tape le rythme sur la table du studio', 'connaît l’année de sortie de tout, et le fait savoir', 'chante les refrains une demi-seconde trop tôt',
+        'boit des litres de thé pendant l’émission', 'garde un carnet des meilleurs fondus', 'invente des surnoms à tous les groupes', 'collectionne les vieux billets de concert',
+        'refait chaque semaine son classement des meilleurs albums', 'imite les batteurs avec deux crayons'],
+      vie: ['a un chat qui s’appelle Riff', 'vient au studio à vélo, par tous les temps', 'apprend la batterie depuis trois ans, sans grands progrès', 'cuisine très mal, mais avec enthousiasme',
+        'a vu son premier concert à douze ans, dans un gymnase', 'jardine en écoutant du hard rock', 'part chaque été en road trip avec une playlist de six heures',
+        'a un voisin qui joue de l’accordéon le dimanche', 'court un semi-marathon par an', 'collectionne les plantes vertes et en oublie la moitié'],
+      deteste: ['les fondus trop longs', 'les remix de ses chansons préférées', 'qu’on parle pendant les intros', 'les karaokés', 'le mot « playlist »',
+        'les refrains en anglais approximatif', 'les solos de batterie de plus de deux minutes', 'les chansons qui finissent en fondu'],
+      roles: [['la mémoire de la station, qui a tout vu et le rappelle souvent', 'la recrue de l’équipe, qui taquine les goûts « de vieux »'],
+        ['la tête bien faite, qui prépare ses fiches', 'l’improvisation incarnée, qui découvre tout en direct'],
+        ['le cœur d’artichaut, qui voit de l’amour dans chaque chanson', 'l’esprit critique, qui n’y voit que du marketing'],
+        ['le pilier rock', 'la passion pop, assumée sans complexe'],
+        ['l’énergie du matin, toujours en forme', 'l’âme de nuit, qui se réveille à peine']],
+      fmt: (x) => 'Aime ' + x.aime + '. Manie : ' + x.manie + '. Dans la vie : ' + x.vie + '. Ne supporte pas ' + x.deteste + '.' + (x.role ? ' Dans le duo : ' + x.role + '.' : '')
+    },
+    en: {
+      aime: ['70s funk and second-hand vinyl', 'big guitars and standing-room gigs', 'soul, horns and gravelly voices', '80s synths, with no shame at all',
+        'tear-jerking ballads, in secret', 'Sunday-morning jazz', 'wedding anthems, fully owned', 'bands nobody has heard of yet', 'film soundtracks', '90s rap'],
+      manie: ['rates every guitar solo out of 10', 'drums along on the studio desk', 'knows the release year of everything, and says so', 'sings the chorus half a second too early',
+        'drinks gallons of tea during the show', 'keeps a notebook of the best crossfades', 'gives nicknames to every band', 'collects old concert tickets',
+        'redoes a best-albums ranking every week', 'air-drums with two pencils'],
+      vie: ['has a cat called Riff', 'cycles to the studio whatever the weather', 'has been learning the drums for three years, with little progress', 'cooks very badly but with enthusiasm',
+        'saw a first gig at twelve, in a school gym', 'gardens to hard rock', 'goes on a summer road trip every year with a six-hour playlist',
+        'has a neighbour who plays the accordion on Sundays', 'runs one half-marathon a year', 'collects houseplants and forgets half of them'],
+      deteste: ['crossfades that drag on', 'remixes of favourite songs', 'people talking over intros', 'karaoke', 'the word "playlist"',
+        'choruses in broken English', 'drum solos longer than two minutes', 'songs that end on a fade-out'],
+      roles: [['the station veteran, who has seen it all and says so', 'the newcomer, who teases the "old-timer" tastes'],
+        ['the organised one, who prepares notes', 'the improviser, who discovers everything live'],
+        ['the romantic, who hears love in every song', 'the cynic, who hears only marketing'],
+        ['the rock pillar', 'the unapologetic pop lover'],
+        ['the morning person, always full of energy', 'the night owl, barely awake']],
+      fmt: (x) => 'Loves ' + x.aime + '. Quirk: ' + x.manie + '. In life: ' + x.vie + '. Can’t stand ' + x.deteste + '.' + (x.role ? ' In the duo: ' + x.role + '.' : '')
+    }
+  };
+  function makePersona(slot, pair, avoid) {
+    const P = PERSONA_POOLS[uiIsEnglish() ? 'en' : 'fr'];
+    const take = (list) => { const free = list.filter((x) => !(avoid || '').includes(x)); return pick(free.length ? free : list); };
+    return P.fmt({ aime: take(P.aime), manie: take(P.manie), vie: take(P.vie), deteste: take(P.deteste), role: pair != null ? P.roles[pair][slot] : '' });
+  }
+  // Fiches manquantes : tirées au sort (les deux d'un coup, avec deux rôles qui se répondent).
+  function ensurePersonas() {
+    const P = PERSONA_POOLS[uiIsEnglish() ? 'en' : 'fr'];
+    const pair = Math.floor(Math.random() * P.roles.length);
+    let changed = false;
+    if (!settings.hostPersona) { settings.hostPersona = makePersona(0, pair, settings.cohostPersona); changed = true; }
+    if (!settings.cohostPersona) { settings.cohostPersona = makePersona(1, pair, settings.hostPersona); changed = true; }
+    if (changed) saveSettings();
+  }
+  let hostMemory = { A: [], B: [] };
+  const saveMemory = debounce(() => store({ hostMemory }), 800);
+  function rememberSelf(who, text) {
+    const t = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (!t || (who !== 'A' && who !== 'B')) return;
+    const key = t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim();
+    const list = hostMemory[who] || [];
+    if (list.some((m) => m.t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim() === key)) return;
+    hostMemory[who] = list.concat([{ t, at: Date.now() }]).slice(-30);
+    saveMemory();
+    dlog('annonce', 'souvenir retenu (' + who + ')', { texte: t });
+  }
+  const aiPower = () => (settings.aiPower === 'eco' || settings.aiPower === 'max' ? settings.aiPower : 'normal');
+  // Délai laissé à l'IA : la pleine puissance réfléchit plus longtemps (l'annonce est préparée à l'avance).
+  const slowModel = () => aiPower() !== 'eco' && (settings.textEngine === 'gemini' ? settings.geminiTextModel === 'gemini-4-argon' : /opus/.test(settings.model || ''));
+  const aiTimeout = (ms) => (aiPower() === 'max' || slowModel() ? Math.max(ms, 45000) : ms);
+  // Ce que l'IA reçoit sur les animateurs. guestTalks : l'invité remplace B, sans sa fiche.
+  function personaPayload(duo, guestTalks, s) {
+    ensurePersonas();
+    const mem = (who) => (aiPower() === 'eco' ? [] : (hostMemory[who] || []).slice(-12).map((m) => m.t));
+    const thread = s && s.variety && s.variety.thread ? s.variety.thread : '';
+    if (s && s.variety) s.variety.thread = '';
+    return { a: settings.hostPersona, memA: mem('A'), b: duo && !guestTalks ? settings.cohostPersona : '', memB: duo && !guestTalks ? mem('B') : [], thread: duo ? thread : '' };
+  }
+
   // Anecdotes déjà racontées (par artiste, par titre et par style), gardées 90 jours :
   // elles sont rappelées à Claude pour qu'il raconte autre chose la fois suivante.
   let toldCache = {};
@@ -2594,11 +2677,11 @@
         kind: 'outro', host, style: settings.hostStyle, listener: (settings.listenerName || '').trim(), time: tp.time, partOfDay: tp.part, lang: radioLang(),
         sayTime: false, duo, turns: duo ? 4 : 0, cohost, cohostStyle: settings.cohostStyle, hostGender: g.host, cohostGender: g.cohost,
         tags: useGemini(), emotion: emotionFor(s, 'outro', null, null, {}), sfx: false, sing: false, recent: (s.lastLines || []).slice(-4),
-        show: s.show ? { name: s.show.name } : null,
+        show: s.show ? { name: s.show.name } : null, power: aiPower(), persona: personaPayload(duo, false, null),
         recap: { count: played.length, minutes: Math.max(1, Math.round((s.playedSec || 0) / 60)), artists, highlights,
           guests: (s.guestList || []).map((x) => x.name + ' (' + x.role + ')'), dedics: (s.dedicList || []).length, score: s.score || null,
           hostName: host, cohostName: cohost, next: nx ? { name: nx.e.name, when: whenText(nx.at) } : null }
-      }), 15000);
+      }), aiTimeout(15000));
     } catch (e) { dlog('annonce', 'bilan : ' + e.message); return; }
     if (!text) return;
     const turns = takeMarks(parseTurns(String(text).split('\n@@MDJ@@')[0], duo)).turns;
@@ -2956,10 +3039,10 @@
           ambiance: oldAmb || (plan.momentOk || (s.sel && s.sel.prompt && s.sel.prompt.trim()) ? c.ambiance : styleText(s.sel)),
           change: ch ? { from: ch.from, to: ch.to } : null,
           previous: prev ? desc(prev) : '', next: desc(next), trend: c.trend,
-          weather: c.weather, recent: (s.lastLines || []).slice(-5),
+          weather: c.weather, recent: (s.lastLines || []).slice(aiPower() === 'max' ? -8 : aiPower() === 'eco' ? -3 : -5),
           angle: plan.angle ? plan.angle.txt : '', sayTime: plan.sayTime, sayStation: plan.sayStation,
           momentOk: plan.momentOk, yearOk: plan.yearOk, avoid: plan.avoid, openers: plan.openers,
-          turns: plan.turns, opener: plan.opener, facts, long: plan.long, show: s.id || '',
+          turns: duo && aiPower() === 'max' && kind !== 'talkover' ? Math.min(8, (plan.turns || 4) + 2) : plan.turns, opener: plan.opener, facts, long: plan.long, show: s.id || '',
           role: plan.role, programme: progShown ? progShown.map(desc) : null, programmeCycle: settings.radioFreq === 'every', told,
           rubrique: rub ? rub.name : '', hook: pub(hook), hookFacts, hookAnswer: pub(hookAnswer), express, ephemeride: eph, episode, stats, local,
           duo, cohost: gTalks ? guest.name : c.cohost, cohostStyle: gTalks ? guest.style : settings.cohostStyle,
@@ -2967,12 +3050,16 @@
           show: s.show ? { name: s.show.name, wake: !!s.show.wake } : null,
           dedic: dedic ? { to: dedic.to, msg: dedic.msg, from: dedic.from || c.listener, request: dedic.request } : null,
           guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost } : null,
-          tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant'
-        }), 12000);
+          tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
+          power: aiPower(), persona: personaPayload(duo, gTalks, s)
+        }), aiTimeout(12000));
         textInfo = 'Claude (' + secs(Date.now() - t0) + ')';
         // Lignes cachées du jeu (question posée, vraie réponse) : jamais lues à l'antenne.
         const cut = typeof text === 'string' ? text.indexOf('\n@@MDJ@@') : -1;
         if (cut >= 0) { try { hidden = JSON.parse(text.slice(cut + 8)) || {}; } catch (e) { hidden = {}; } text = text.slice(0, cut); }
+        // Mémoire des animateurs : ce qu'ils ont révélé d'eux-mêmes, et le sujet à reprendre.
+        if (Array.isArray(hidden.souvenirs)) for (const m of hidden.souvenirs) if (m && (m.who === 'A' || (m.who === 'B' && !gTalks))) rememberSelf(m.who, m.text);
+        if (hidden.suivi && duo && s.variety) s.variety.thread = String(hidden.suivi).slice(0, 200);
         fromClaude = !!text;
       } catch (e) { text = ''; textInfo = 'phrases toutes faites (Claude : ' + e.message + ')'; }
     } else if (!hasKey) {
@@ -6248,12 +6335,28 @@
               .catch((e) => toast(e.message, null, 9000));
           }
         }, 'Tester'))) : null);
+    const POWER_NOTES = {
+      eco: 'Textes courts, écrits par le modèle le plus léger (Claude Haiku 5.5 ou Gemini 3.8 Flash), duo à trois répliques au plus, sans mémoire des animateurs. Le moins cher.',
+      normal: 'Le modèle choisi plus haut écrit les textes. Les animateurs ont leur personnalité et se souviennent de ce qu’ils racontent d’une émission à l’autre.',
+      max: 'Le modèle le plus puissant (Claude Opus 5.5 ou Gemini 4 Argon) écrit des dialogues plus longs et plus travaillés, sauf par-dessus les intros. Plus vivant, mais plus cher (avec Claude, environ deux fois le prix de Sonnet) et un peu plus lent : l’annonce est préparée à l’avance.'
+    };
+    const CAP_AUTO = { eco: 'Automatique : 40 textes et 60 voix par heure', normal: 'Automatique : 150 textes et 150 voix par heure', max: 'Automatique : 300 textes et 300 voix par heure' };
+    const powerCard = h('div', { class: 'card' },
+      h('h2', { class: 'label white' }, 'Puissance de l’IA'),
+      h('div', { class: 'muted' }, 'Pour les textes des animateurs : annonces, interludes, invités, bilans.'),
+      seg([['eco', 'Économe'], ['normal', 'Normale'], ['max', 'Pleine puissance']], aiPower(), (id) => { settings.aiPower = id; saveSettings(); render(); }, 'Puissance de l’IA'),
+      h('div', { class: 'muted' }, POWER_NOTES[aiPower()]),
+      h('label', { class: 'label', for: 'mdj-aicap' }, 'Plafond d’appels par heure'),
+      h('select', { class: 'select', id: 'mdj-aicap', onchange: (e) => { settings.aiCap = e.target.value; saveSettings(); render(); } },
+        [['auto', CAP_AUTO[aiPower()]], ['20', '20 par heure'], ['40', '40 par heure'], ['80', '80 par heure'], ['150', '150 par heure'], ['300', '300 par heure']]
+          .map((o) => h('option', { value: o[0], selected: String(settings.aiCap || 'auto') === o[0] }, o[1]))),
+      h('div', { class: 'muted' }, 'Compté à part pour les textes et pour les voix Gemini. Au-delà, Mood DJ n’appelle plus l’IA jusqu’à l’heure suivante et les animateurs passent aux phrases toutes faites. Ce plafond ne remplace pas une limite de dépenses fixée dans la console du service.'));
     const srcIntro = h('div', { class: 'muted' }, "Sources d'anecdotes en plus, facultatives : sans elles, les animateurs puisent déjà dans MusicBrainz, Wikidata, Deezer et Wikipédia.");
     const keysView = isFull()
-      ? [keyParts[1], cols(card(keyParts[2]), card(keyParts[3]), card(keyParts[4])), cols(textCard),
+      ? [keyParts[1], cols(card(keyParts[2]), card(keyParts[3]), card(keyParts[4])), cols(textCard, powerCard),
         h('h3', { class: 'label white' }, "Sources d'anecdotes"), srcIntro, cols(card(srcBlocks[0]), card(srcBlocks[1])),
         h('h3', { class: 'label white' }, 'Concerts'), cols(card(srcBlocks[2]), card(srcBlocks[3])), keyParts[5]]
-      : [card(keyParts), textCard, card(h('h2', { class: 'label white' }, "Sources d'anecdotes"), srcIntro, srcBlocks)];
+      : [card(keyParts), textCard, powerCard, card(h('h2', { class: 'label white' }, "Sources d'anecdotes"), srcIntro, srcBlocks)];
 
     // ------------------------------------------------------------- Langues
     const langCard = h('div', { class: 'card' },
@@ -6315,6 +6418,33 @@
     }
     const duoPossible = engine === 'gemini';
     const cg = settings.duo ? cohostGenderUi() : 'femme';
+    // Personnalité (fiche modifiable) et souvenirs gardés, pour l'animateur A ou B.
+    const personaBlock = (who) => {
+      if (!hasKey) return null;
+      ensurePersonas();
+      const key = who === 'A' ? 'hostPersona' : 'cohostPersona';
+      const id = who === 'A' ? 'mdj-persona-a' : 'mdj-persona-b';
+      const n = (hostMemory[who] || []).length;
+      return h('div', { class: 'section', style: { gap: '6px' } },
+        h('label', { class: 'label', for: id }, 'Personnalité'),
+        h('textarea', {
+          class: 'input', id, rows: '4', maxlength: '600', spellcheck: 'true', value: settings[key] || '',
+          style: { height: 'auto', minHeight: '104px', padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' },
+          onchange: (e) => { settings[key] = e.target.value.trim(); saveSettings(); }
+        }),
+        h('div', { class: 'muted' }, 'Ses goûts, une manie, un bout de sa vie : l’IA s’en sert par petites touches. Tu peux la réécrire à ta façon.'),
+        h('div', { class: 'btns' },
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => { settings[key] = makePersona(who === 'A' ? 0 : 1, null, settings[who === 'A' ? 'cohostPersona' : 'hostPersona']); hostMemory[who] = []; saveMemory(); saveSettings(); render(); }
+          }, 'Nouvelle personnalité'),
+          h('button', {
+            class: 'btn small', type: 'button', disabled: !n,
+            onclick: () => { hostMemory[who] = []; saveMemory(); toast('Souvenirs oubliés.'); render(); }
+          }, 'Oublier ses souvenirs')),
+        aiPower() === 'eco' ? h('div', { class: 'muted' }, 'En mode Économe, les souvenirs ne sont ni rappelés ni enregistrés.')
+          : h('div', { class: 'muted' }, n ? 'Souvenirs gardés : ' + n : 'Pas encore de souvenir : ils se créent au fil des émissions.'));
+    };
     const hostCard = h('div', { class: 'card' },
       h('h2', { class: 'label white' }, 'Animateurs'),
       subhead(hg === 'femme' ? 'Animatrice principale' : 'Animateur principal', 'Parle seul, ou mène le duo.'),
@@ -6330,6 +6460,7 @@
       h('label', { class: 'label', for: 'mdj-hoststyle' }, 'Style'),
       h('select', { class: 'select', id: 'mdj-hoststyle', onchange: (e) => { settings.hostStyle = e.target.value; saveSettings(); render(); } },
         HOST_STYLE_LABELS.map((x) => h('option', { value: x[0], selected: settings.hostStyle === x[0] }, x[1]))),
+      personaBlock('A'),
       h('label', { class: 'label', for: engine === 'gemini' ? 'mdj-gvoice' : 'mdj-voice' }, 'Voix de ' + hostName),
       hostVoice,
       switchRow("Duo d'animateurs", duoPossible ? 'Deux animateurs qui se répondent et se chambrent' : 'Nécessite les voix Gemini (carte Voix)', settings.duo, (v) => { settings.duo = v; saveSettings(); render(); }));
@@ -6347,6 +6478,7 @@
         h('label', { class: 'label', for: 'mdj-cohoststyle' }, 'Style'),
         h('select', { class: 'select', id: 'mdj-cohoststyle', onchange: (e) => { settings.cohostStyle = e.target.value; saveSettings(); render(); } },
           HOST_STYLE_LABELS.map((x) => h('option', { value: x[0], selected: (settings.cohostStyle || 'decale') === x[0] }, x[1]))),
+        duoPossible ? personaBlock('B') : null,
         duoPossible ? h('label', { class: 'label', for: 'mdj-gvoiceb' }, 'Voix de ' + coName) : null,
         duoPossible ? h('div', { class: 'voicepick' },
           geminiSelect('mdj-gvoiceb', settings.geminiVoiceB, gv.b, cg, (v) => { settings.geminiVoiceB = v; saveSettings(); render(); }),

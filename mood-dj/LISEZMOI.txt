@@ -1,5 +1,39 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.26.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.27.0
 ============================================
+
+2.27.0 : DES ANIMATEURS PLUS VIVANTS, ET LA PUISSANCE DE L'IA AU CHOIX
+- Personnalité des animateurs (Réglages › Animateurs, voix, langues,
+  avec une clé Claude ou Gemini) : chacun a une fiche avec ses goûts, une
+  manie, un bout de sa vie et, en duo, un rôle (la tête bien faite et
+  l'improvisateur, la mémoire de la station et la recrue…). Elle est tirée
+  au sort la première fois ; tu peux la réécrire à ta façon, ou cliquer
+  sur « Nouvelle personnalité ». L'IA s'en sert par petites touches.
+- Mémoire : quand un animateur raconte quelque chose de nouveau sur lui à
+  l'antenne (« je les ai vus en concert en 1998, sous la pluie »), Mood DJ
+  le retient, et il y revient dans les émissions suivantes, comme une
+  vieille blague. « Oublier ses souvenirs » efface tout. En duo, un sujet
+  laissé en suspens à un interlude peut revenir au suivant. Les souvenirs
+  sont dans la sauvegarde.
+- Duo plus naturel : de vraies répliques qui se répondent, des réactions
+  très courtes (« Non ! », « Attends… », « Mmh. »), des phrases coupées,
+  et plus de formules creuses (« Absolument ! », « Tout à fait ! »).
+- Réglages › Clés API › « Puissance de l'IA » :
+  · Économe : textes courts, modèle le plus léger (Claude Haiku 5.5 ou
+    Gemini 3.8 Flash), duo à trois répliques au plus, sans mémoire.
+  · Normale (par défaut) : le modèle choisi, avec personnalité et mémoire.
+  · Pleine puissance : le modèle le plus puissant (Claude Opus 5.5 ou
+    Gemini 4 Argon), des dialogues plus longs et plus travaillés (sauf
+    par-dessus les intros). Plus cher : avec Claude, environ deux fois le
+    prix de Sonnet. Un peu plus lent, mais l'annonce est préparée à
+    l'avance.
+- « Plafond d'appels par heure » : Automatique (40 textes et 60 voix en
+  Économe, 150 et 150 en Normale, 300 et 300 en Pleine puissance), ou
+  20, 40, 80, 150 ou 300 par heure. Au-delà, les animateurs passent aux
+  phrases toutes faites jusqu'à l'heure suivante.
+- Claude Opus 5.5 peut aussi être choisi comme modèle Claude. En cas de
+  refus de sécurité, Anthropic repasse la demande à un autre modèle.
+- Mentions légales : la personnalité et les souvenirs des animateurs font
+  partie de ce qui est envoyé à l'IA qui écrit les textes.
 
 2.26.0 : TRADUCTION ANGLAISE COMPLÈTE
 - Phrases toutes faites en anglais : sans IA pour les textes, les

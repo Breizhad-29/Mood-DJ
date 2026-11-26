@@ -23,7 +23,7 @@ const DICT = sandbox.D || {};
 const known = (s) => DICT[s] !== undefined || DICT[s.trim()] !== undefined;
 // Un texte « français » : un accent, ou un petit mot courant. Les noms identiques dans les deux langues
 // (« Mood DJ », « Volume ») ne sont pas signalés.
-const FRENCH = /[éèàçùâêîôûëïœ]|\b(le|la|les|des|du|un|une|et|ou|pour|avec|sur|dans|pas|au|aux|ton|ta|tes)\b/i;
+const FRENCH = /[éèàçùâêîôûëïœ]|\b(le|la|les|de|des|du|un|une|et|ou|en|ne|pour|avec|sur|dans|pas|au|aux|ton|ta|tes)\b/i;
 
 // 1. Textes du panneau (content.js) : toast('…'), h('tag', {…}, '…'), title / placeholder / aria-label.
 const unquote = (q) => q.slice(1, -1).replace(/\\(['"\\])/g, '$1');

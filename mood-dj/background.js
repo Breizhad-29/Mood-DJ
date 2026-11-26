@@ -14,15 +14,27 @@ async function getSettings() {
 // Les modèles Claude 5.5 réfléchissent avant de répondre (réflexion « adaptative » par défaut), et
 // cette réflexion compte dans max_tokens : sur une annonce courte, elle mangeait tout le texte.
 // Sonnet 5.5 refuse aussi qu'on force l'appel d'un outil (erreur 400).
+// Opus 5.5 réfléchit toujours (on ne peut pas couper la réflexion) : on règle seulement son « effort »
+// et on lui laisse de la place dans max_tokens. En cas de refus de sécurité, le serveur repasse la
+// demande à un autre modèle (« fallbacks »).
+const OPUS_MODEL = 'claude-opus-5-5';
 function adaptForModel(body, model) {
   const b = Object.assign({}, body);
   const sonnet55 = /sonnet-5-5/.test(model);
   const haiku55 = /haiku-5-5/.test(model);
-  if (!b.thinking) {
-    if (sonnet55) b.thinking = { type: 'between_tools' };
-    else if (haiku55) b.thinking = { type: 'disabled' };
+  const opus55 = /opus-5-5/.test(model);
+  if (opus55) {
+    delete b.thinking;
+    b.output_config = Object.assign({ effort: 'medium' }, b.output_config || {});
+    b.max_tokens = Math.max(Number(b.max_tokens) || 0, 6000);
+    b.fallbacks = 'default';
+  } else {
+    if (!b.thinking) {
+      if (sonnet55) b.thinking = { type: 'between_tools' };
+      else if (haiku55) b.thinking = { type: 'disabled' };
+    }
   }
-  if (sonnet55 && b.tool_choice && (b.tool_choice.type === 'tool' || b.tool_choice.type === 'any')) b.tool_choice = { type: 'auto' };
+  if ((sonnet55 || opus55) && b.tool_choice && (b.tool_choice.type === 'tool' || b.tool_choice.type === 'any')) b.tool_choice = { type: 'auto' };
   return b;
 }
 
@@ -37,7 +49,8 @@ async function callClaude(body, forceModel) {
       'content-type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'anthropic-dangerous-direct-browser-access': 'true',
+      ...(/opus-5-5/.test(model) ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {})
     },
     body: JSON.stringify(Object.assign({}, body, { model }))
   });
@@ -392,13 +405,40 @@ function radioLangRule(lang) {
     "Les balises sonores entre chevrons et les indications de jeu entre accolades gardent leur forme en anglais.";
 }
 
+// Personnalité d'un animateur (fiche stable) et ce qu'il a déjà raconté de lui à l'antenne.
+function personaLines(label, name, persona, memories) {
+  const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+  const out = [];
+  // label vide : l'animateur parle seul (« ta personnalité »).
+  if (q(persona, 600)) out.push((label ? 'PERSONNALITÉ DE ' + label + ' (' + q(name, 40) + ')' : 'TA PERSONNALITÉ') + ' : ' + q(persona, 600) + " À faire sentir par petites touches (un goût, une manie, un souvenir), jamais tout à la fois et jamais récité comme une fiche.");
+  const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-12);
+  if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
+  return out;
+}
+// Lignes « SOUVENIR A : », « SOUVENIR B : » et « À SUIVRE : » : la mémoire des animateurs, jamais lue.
+function splitMemory(raw) {
+  const mem = { souvenirs: [], suivi: '' };
+  const spoken = String(raw || '').replace(/^[ \t]*(?:[AB]\s*:\s*)?[«"*]*\s*(SOUVENIR\s*([AB])|[ÀA] SUIVRE)\s*[»"*]*\s*:\s*(.+)$/gm, (m, k, who, v) => {
+    const t = v.replace(/[«»"*]/g, '').trim().slice(0, 200);
+    if (t && who) mem.souvenirs.push({ who, text: t });
+    else if (t && !who) mem.suivi = t;
+    return '';
+  });
+  return { spoken: spoken.replace(/\n{2,}/g, '\n').trim(), mem };
+}
+
 async function writeAnnouncement(p) {
   const host = (p.host || 'Alex').slice(0, 40);
   const style = HOST_STYLES[p.style] || HOST_STYLES.chaleureux;
   const who = (g) => (g === 'femme' ? 'une femme' : g === 'homme' ? 'un homme' : '');
+  // Puissance de l'IA : économe (court, modèle léger), normale, ou pleine puissance (meilleur modèle, plus de place).
+  const power = p.power === 'eco' || p.power === 'max' ? p.power : 'normal';
+  const pz = p.persona || {};
+  const memoryOn = power !== 'eco' && p.kind !== 'outro';
   const system = [
     'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale personnelle diffusée sur YouTube Music. Ton style : " + style + '.',
     radioLangRule(p.lang),
+    ...personaLines(p.duo ? 'A' : '', host, pz.a, power === 'eco' ? [] : pz.memA),
     emotionRules(p),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
@@ -430,17 +470,40 @@ async function writeAnnouncement(p) {
   if (p.duo) {
     const cohost = String(p.cohost || 'Sam').slice(0, 40);
     const cstyle = HOST_STYLES[p.cohostStyle] || HOST_STYLES.decale;
-    const n = Math.max(2, Math.min(6, Number(p.turns) || (p.kind === 'talkover' ? 2 : 4)));
-    const words = (isProg ? ({ talkover: 75, intro: 85, interlude: 110 }[p.kind] || 80)
+    const n = Math.max(2, Math.min(power === 'max' ? 8 : power === 'eco' ? 3 : 6, Number(p.turns) || (p.kind === 'talkover' ? 2 : 4)));
+    const words0 = (isProg ? ({ talkover: 75, intro: 85, interlude: 110 }[p.kind] || 80)
       : p.long ? (p.kind === 'talkover' ? (p.role === 'culture' ? 45 : 55) : p.role === 'chronique' ? Math.min(135, n * 24) : Math.min(115, n * 22)) : p.kind === 'talkover' ? 35 : Math.min(90, n * 20)) +
       hookWords + answerWords + expressWords;
+    const words = Math.round(words0 * (power === 'max' && p.kind !== 'talkover' ? 1.35 : power === 'eco' ? 0.8 : 1));
     lines.push("FORMAT DUO : l'émission est animée à deux. A = " + host + (who(p.hostGender) ? ', ' + who(p.hostGender) : '') + ', style ' + style + '. ' +
       'B = ' + cohost + (who(p.cohostGender) ? ', ' + who(p.cohostGender) : '') + ', style ' + cstyle + '. ' +
       'Chacun garde sa personnalité, sa façon de parler et ses accords (masculin ou féminin). ' +
-      "C'est un vrai duo de radio complice : ils réagissent à ce que l'autre vient de dire, se coupent un peu, se chambrent, s'envoient des vannes gentilles et ne sont pas toujours d'accord. " +
+      "C'est une vraie conversation entre deux complices qui se connaissent par cœur, pas deux annonces mises bout à bout : chaque réplique répond à la précédente (elle la contredit, la relance, la détourne ou en rajoute), et on doit sentir qui parle sans lire les prénoms. " +
+      "Ils se chambrent, s'envoient des vannes gentilles, se coupent un peu et ne sont pas toujours d'accord : une petite divergence vaut mieux qu'un consensus mou. " +
       "Pas deux monologues à la suite, et jamais de méchanceté envers l'auditeur ou les artistes. " +
-      'Écris exactement ' + n + ' répliques, ' + words + ' mots au plus au total. ' + (p.opener === 'B' ? "Cette fois, c'est B qui ouvre. " : '') +
+      'Écris ' + n + ' répliques, ' + words + ' mots au plus au total. ' + (p.opener === 'B' ? "Cette fois, c'est B qui ouvre. " : '') +
       'Une réplique par ligne, chaque ligne commence par « A: » ou « B: ».' + (p.kind === 'outro' ? ' Ils se disent au revoir tous les deux.' : ' Le titre suivant et son artiste doivent être clairement annoncés.'));
+    lines.push("NATUREL DU DIALOGUE : les répliques n'ont pas toutes la même longueur. En plus des " + n + ' répliques, tu peux glisser une ou deux réactions très courtes, de trois mots au plus, sur leur propre ligne (« Non ! », « Attends… », « Mmh. », « Sérieux ? », un rire), ' +
+      "et une phrase peut être coupée par l'autre (« Moi je trouve que… », « Non mais laisse-moi finir ! »). " +
+      "Bannis les formules creuses d'animateur : « Absolument ! », « Tout à fait ! », « Exactement ! », « Tu as raison », « Excellente question », « Quelle transition », les compliments de l'un à l'autre, et le prénom de l'autre en tête de chaque réplique. Une vanne ne s'explique jamais.\n" +
+      "Exemple du ton recherché (ne le recopie pas, n'en reprends ni les idées ni les mots) :\n" +
+      "A: Je préviens, celle-là, je la chante dans ma voiture tous les matins.\nB: Ah, c'est donc toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Bref ! La suite, c'est…");
+    lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB));
+  }
+  if (pz.thread && power !== 'eco' && p.kind !== 'intro') {
+    lines.push("SUJET LAISSÉ EN SUSPENS à l'intervention précédente : « " + String(pz.thread).replace(/[«»"\n]/g, ' ').slice(0, 200) + " ». Reprends-le en passant si c'est naturel (« bon, pour revenir à… »), sinon laisse tomber.");
+  }
+  if (power === 'max') {
+    lines.push("PLEINE PUISSANCE : prends le temps d'écrire un vrai moment de radio, vivant, drôle ou touchant, avec une chute." +
+      (p.kind === 'talkover' ? '' : " Tu peux dépasser d'environ un tiers les longueurs indiquées si le moment le mérite."));
+  } else if (power === 'eco') {
+    lines.push('VERSION COURTE : reste nettement sous les longueurs indiquées et va droit au but.');
+  }
+  if (memoryOn) {
+    lines.push('MÉMOIRE DES ANIMATEURS (lignes cachées, jamais lues à l\'antenne) : après le texte, tu peux ajouter, chacune sur sa propre ligne : ' +
+      (p.duo ? "« SOUVENIR A : … » ou « SOUVENIR B : … » si un animateur vient de révéler un nouveau détail sur lui-même (un goût, une manie, un souvenir, un bout de sa vie), en une courte phrase à la troisième personne ; et « À SUIVRE : … » si leur conversation laisse un sujet à reprendre à la prochaine intervention. "
+        : "« SOUVENIR A : … » si tu viens de révéler un nouveau détail sur toi-même (un goût, une manie, un souvenir), en une courte phrase à la troisième personne. ") +
+      "Au plus une ligne de chaque sorte, et aucune s'il n'y a rien de neuf. Ces lignes n'entrent pas dans le nombre de mots.");
   }
   // Émission de la grille : son nom (et le ton du réveil).
   if (p.show && p.show.name) {
@@ -588,8 +651,13 @@ async function writeAnnouncement(p) {
     max_tokens: p.duo ? 1200 : 800,
     system,
     messages: [{ role: 'user', content: lines.join('\n') }]
-  });
-  const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
+  }, power === 'max' ? OPUS_MODEL : power === 'eco' ? 'claude-haiku-5-5' : undefined,
+  power === 'max' ? { geminiModel: 'gemini-4-argon', thinkingLevel: 'medium' } : power === 'eco' ? { geminiModel: GEMINI_TEXT_DEFAULT } : undefined);
+  const raw0 = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(p.duo ? '\n' : ' ').trim();
+  // Les lignes de mémoire ne sont jamais lues ; elles ne sont gardées que si la mémoire est active.
+  const split = splitMemory(raw0);
+  const raw = split.spoken;
+  const mem = memoryOn ? split.mem : null;
   // Texte coupé ou vide : on préfère une phrase de secours à une annonce tronquée.
   if (data.stop_reason === 'max_tokens') throw new Error('annonce coupée par la limite de longueur');
   // Seulement quand un jeu est en cours : sinon le texte est gardé tel quel.
@@ -597,7 +665,9 @@ async function writeAnnouncement(p) {
   if (text.replace(/<[^<>]{1,25}>/g, '').trim().length < 15) throw new Error('annonce vide ou trop courte');
   const clean = (t) => t.replace(/^["«\s]+|["»\s]+$/g, '').replace(/\[[^\]]*\]|\*[^*]*\*/g, '').replace(/[ \t]+/g, ' ').trim();
   const out = p.duo ? text.split('\n').map(clean).filter(Boolean).join('\n') : clean(text.replace(/\s+/g, ' '));
-  return out + (hidden.question || hidden.answer ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
+  if (mem && mem.souvenirs.length) hidden.souvenirs = mem.souvenirs.slice(0, 2);
+  if (mem && mem.suivi) hidden.suivi = mem.suivi;
+  return out + (hidden.question || hidden.answer || hidden.souvenirs || hidden.suivi ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
 }
 // Lignes « QUESTION : » et « RÉPONSE : » du jeu : retirées du texte lu, gardées pour la suite.
 function splitHidden(raw) {
@@ -1461,14 +1531,14 @@ function toGeminiSchema(s) {
   return o;
 }
 
-function geminiTextBody(body, withThinking) {
+function geminiTextBody(body, withThinking, thinkingLevel) {
   const textOf = (c) => (typeof c === 'string' ? c : (Array.isArray(c) ? c.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n') : ''));
   const out = {
     contents: (body.messages || []).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: textOf(m.content) }] })),
     // Gemini compte sa réflexion dans la limite de longueur : on laisse de la marge.
     generationConfig: { maxOutputTokens: Math.min(32000, (Number(body.max_tokens) || 1000) * 2 + 2000) }
   };
-  if (withThinking) out.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+  if (withThinking) out.generationConfig.thinkingConfig = { thinkingLevel: thinkingLevel || 'low' };
   if (body.system) out.systemInstruction = { parts: [{ text: String(body.system) }] };
   if (Array.isArray(body.tools) && body.tools.length) {
     out.tools = [{ functionDeclarations: body.tools.map((t) => ({ name: t.name, description: t.description || '', parameters: toGeminiSchema(t.input_schema) })) }];
@@ -1500,11 +1570,11 @@ function geminiToClaudeShape(data, model) {
   };
 }
 
-async function geminiGenerate(key, model, body) {
+async function geminiGenerate(key, model, body, thinkingLevel) {
   const ask = (withThinking) => fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
     method: 'POST',
     headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
-    body: JSON.stringify(geminiTextBody(body, withThinking))
+    body: JSON.stringify(geminiTextBody(body, withThinking, thinkingLevel))
   });
   let res = await ask(true);
   let data = null;
@@ -1535,26 +1605,28 @@ async function findGeminiTextModel(key) {
   return names[0] || '';
 }
 
-async function callGeminiText(body) {
+async function callGeminiText(body, opts) {
+  const o = opts || {};
   const { settings } = await chrome.storage.local.get(['settings']);
-  const chosen = (settings && settings.geminiTextModel) || GEMINI_TEXT_DEFAULT;
+  const chosen = o.geminiModel || (settings && settings.geminiTextModel) || GEMINI_TEXT_DEFAULT;
   return withGeminiKeys(async (key) => {
     const model = chosen === GEMINI_TEXT_DEFAULT && geminiTextFallback ? geminiTextFallback : chosen;
     try {
-      return await geminiGenerate(key, model, body);
+      return await geminiGenerate(key, model, body, o.thinkingLevel);
     } catch (e) {
       if (!e.notFound) throw e;
       const alt = await findGeminiTextModel(key).catch(() => '');
       if (!alt || alt === model) throw new Error('Modèle de texte Gemini « ' + model + ' » introuvable, et aucun autre modèle Flash disponible pour cette clé.');
       geminiTextFallback = alt;
-      return geminiGenerate(key, alt, body);
+      return geminiGenerate(key, alt, body, o.thinkingLevel);
     }
   });
 }
 
 // Qui écrit les textes : le moteur choisi, sinon l'autre s'il a une clé (clé absente, refusée, limite
 // atteinte, crédit épuisé, service en panne).
-async function callText(body, forceClaudeModel) {
+// opts : { geminiModel, thinkingLevel } imposés par la puissance de l'IA (annonces).
+async function callText(body, forceClaudeModel, opts) {
   const { apiKey, geminiKey, geminiKey2, settings } = await chrome.storage.local.get(['apiKey', 'geminiKey', 'geminiKey2', 'settings']);
   const want = settings && settings.textEngine === 'gemini' ? 'gemini' : 'claude';
   const has = { claude: !!apiKey, gemini: !!(geminiKey || geminiKey2) };
@@ -1563,7 +1635,7 @@ async function callText(body, forceClaudeModel) {
   const errs = [];
   for (let i = 0; i < order.length; i++) {
     try {
-      const data = order[i] === 'claude' ? await callClaude(body, forceClaudeModel) : await callGeminiText(body);
+      const data = order[i] === 'claude' ? await callClaude(body, forceClaudeModel) : await callGeminiText(body, opts);
       if (i > 0) data.relay = order[0] + ' indisponible (' + String(errs[0] && errs[0].message).slice(0, 120) + ')';
       return data;
     } catch (e) {
@@ -1641,7 +1713,16 @@ function trustedSender(sender) {
 
 // Garde-fou de dépenses : au plus tant d'appels par heure glissante vers les services payants. Une
 // boucle (bug, page qui se recharge en continu) ne peut donc pas vider des crédits Claude ou Gemini.
+// Plafond par heure : réglable (Réglages › Puissance de l'IA), sinon selon la puissance choisie.
 const PAID_LIMITS = { texte: 150, voix: 150 };
+const POWER_LIMITS = { eco: { texte: 40, voix: 60 }, normal: PAID_LIMITS, max: { texte: 300, voix: 300 } };
+async function paidLimit(kind) {
+  let s = {};
+  try { s = (await chrome.storage.local.get(['settings'])).settings || {}; } catch (e) { /* ignore */ }
+  const cap = Number(s.aiCap);
+  if (cap > 0) return cap;
+  return (POWER_LIMITS[s.aiPower] || PAID_LIMITS)[kind];
+}
 const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
 let paidLog = null;
 async function paidGuard(action) {
@@ -1652,9 +1733,10 @@ async function paidGuard(action) {
   }
   const now = Date.now();
   const list = (paidLog[kind] || []).filter((t) => now - t < 3600000);
-  if (list.length >= PAID_LIMITS[kind]) {
+  const limit = await paidLimit(kind);
+  if (list.length >= limit) {
     const wait = Math.ceil((list[0] + 3600000 - now) / 60000);
-    throw new Error('Garde-fou de dépenses : ' + PAID_LIMITS[kind] + ' appels ' + (kind === 'texte' ? 'pour les textes (Claude ou Gemini)' : 'pour les voix Gemini') +
+    throw new Error('Garde-fou de dépenses : ' + limit + ' appels ' + (kind === 'texte' ? 'pour les textes (Claude ou Gemini)' : 'pour les voix Gemini') +
       " en une heure, c'est le maximum. Nouvel essai possible dans " + wait + ' min.');
   }
   list.push(now);

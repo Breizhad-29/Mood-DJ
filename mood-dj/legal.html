@@ -14,7 +14,7 @@
     <div class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="8.5"></circle><circle cx="12" cy="12" r="2.5"></circle></svg></div>
     <h1>Mentions légales et confidentialité</h1>
   </header>
-  <p class="muted">Mood DJ pour YouTube Music · dernière mise à jour : 25 novembre 2026. <a href="legal.en.html" lang="en">English version</a></p>
+  <p class="muted">Mood DJ pour YouTube Music · dernière mise à jour : 26 novembre 2026. <a href="legal.en.html" lang="en">English version</a></p>
   <nav class="toc" aria-label="Sommaire">
     <a href="#editeur">Éditeur</a><a href="#marques">Marques</a><a href="#conditions">Conditions d'utilisation</a>
     <a href="#confidentialite">Confidentialité</a><a href="#ia">Contenus créés par IA</a><a href="#credits">Sources et crédits</a><a href="#licence">Licence</a>
@@ -41,7 +41,7 @@
     <ul>
       <li><strong>Usage personnel.</strong> Mood DJ pilote la lecture de YouTube Music dans ton navigateur : il choisit les titres, gère le volume et les fondus, et fait parler des animateurs. Tu restes soumis aux <a href="https://www.youtube.com/t/terms" rel="noopener noreferrer" target="_blank">conditions d'utilisation de YouTube</a>. L'extension ne contourne pas les publicités et ne télécharge pas de musique.</li>
       <li><strong>Fondu enchaîné réel.</strong> Cette option joue la fin du titre dans un second lecteur YouTube intégré. Pour suivre les règles de YouTube sur les lecteurs intégrés, ce lecteur reste visible pendant qu'il joue : au moins 200 × 200 pixels, non recouvert, avec ses commandes et le logo YouTube. Il apparaît en bas à gauche et peut être fermé. YouTube reste seul juge de l'usage de ses lecteurs. L'option se désactive dans Réglages › Son.</li>
-      <li><strong>Clés API et coûts.</strong> Les services payants (Claude, la clé Gemini payante) sont facturés à ton compte, selon les conditions de chaque service. Mood DJ plafonne les appels (150 par heure pour les textes, 150 pour les voix), mais ce plafond ne remplace pas une limite de dépenses fixée dans la console du service.</li>
+      <li><strong>Clés API et coûts.</strong> Les services payants (Claude, la clé Gemini payante) sont facturés à ton compte, selon les conditions de chaque service. Mood DJ plafonne les appels par heure (selon la puissance de l'IA choisie, ou le plafond que tu fixes dans Réglages › Clés API), mais ce plafond ne remplace pas une limite de dépenses fixée dans la console du service.</li>
       <li><strong>Exactitude.</strong> Les annonces, anecdotes et sélections sont écrites par une IA à partir de sources publiques. Elles peuvent contenir des erreurs. Elles n'abordent pas la vie privée, la santé, les décès ou les affaires judiciaires des artistes, et ne citent pas de paroles de chansons.</li>
       <li><strong>Dédicaces.</strong> Les messages que tu écris sont lus à l'antenne par une voix de synthèse et envoyés à Claude pour être mis en forme. N'y mets pas d'informations sensibles sur toi ou sur d'autres personnes.</li>
       <li><strong>Sans garantie.</strong> L'extension est fournie telle quelle, sans garantie de fonctionnement : YouTube Music peut changer à tout moment. Dans les limites permises par la loi, l'éditeur n'est pas responsable des dommages liés à son utilisation, notamment des coûts d'API.</li>
@@ -53,13 +53,13 @@
     <p><strong>En bref :</strong> Mood DJ n'a pas de serveur. Il ne collecte rien pour son éditeur, n'affiche pas de publicité et ne contient aucun outil de mesure d'audience. Tes données restent dans ton navigateur. Seul ce qui est nécessaire à chaque fonction part vers le service concerné, et seulement si tu l'utilises.</p>
 
     <h3>Ce qui est gardé dans ton navigateur</h3>
-    <p>Réglages, ambiances, historique des émissions, titres aimés ou écartés, liste noire, grille des émissions, caches d'anecdotes, journal technique (s'il est activé) et clés API. Tout est stocké dans l'espace de l'extension et n'est envoyé à personne. Le journal et la sauvegarde ne sont créés que si tu cliques pour les télécharger, et ils ne contiennent aucune clé API.</p>
+    <p>Réglages, ambiances, personnalités et souvenirs des animateurs, historique des émissions, titres aimés ou écartés, liste noire, grille des émissions, caches d'anecdotes, journal technique (s'il est activé) et clés API. Tout est stocké dans l'espace de l'extension et n'est envoyé à personne. Le journal et la sauvegarde ne sont créés que si tu cliques pour les télécharger, et ils ne contiennent aucune clé API.</p>
 
     <h3>Ce qui part vers d'autres services</h3>
     <div class="tablewrap"><table>
       <tr><th>Service</th><th>Quand</th><th>Données envoyées</th></tr>
       <tr><td>YouTube Music (Google)</td><td>Toujours, c'est la page où tourne l'extension</td><td>Recherches de titres, lecture, « J'aime », playlists créées sur ton compte. Le lecteur intégré du fondu enchaîné charge aussi le titre en cours depuis youtube.com.</td></tr>
-      <tr><td>Claude (Anthropic)</td><td>Avec une clé Claude</td><td>Ambiance choisie, titres joués et à venir, prénoms des animateurs, ton prénom si tu l'as indiqué, ville et météo, texte des dédicaces, anecdotes trouvées.</td></tr>
+      <tr><td>Claude (Anthropic)</td><td>Avec une clé Claude</td><td>Ambiance choisie, titres joués et à venir, prénoms, personnalités et souvenirs des animateurs, ton prénom si tu l'as indiqué, ville et météo, texte des dédicaces, anecdotes trouvées.</td></tr>
       <tr><td>Gemini (Google)</td><td>Avec une clé Gemini</td><td>Le texte des annonces à lire, pour fabriquer la voix. Si Gemini écrit les textes (ton choix, ou en relais de Claude) : les mêmes données que pour Claude.</td></tr>
       <tr><td>Open-Meteo</td><td>Si la météo est activée</td><td>Le nom de la ville choisie.</td></tr>
       <tr><td>Wikipédia, Wikidata, MusicBrainz, Deezer</td><td>Pour les anecdotes</td><td>Noms d'artistes et titres de morceaux.</td></tr>

@@ -40,7 +40,7 @@
     <ul>
       <li><strong>Personal use.</strong> Mood DJ controls YouTube Music playback in your browser: it picks the tracks, handles volume and fades, and makes hosts speak. You remain bound by the <a href="https://www.youtube.com/t/terms" rel="noopener noreferrer" target="_blank">YouTube Terms of Service</a>. The extension does not bypass ads and does not download music.</li>
       <li><strong>Real crossfade.</strong> This option plays the end of the track in a second embedded YouTube player. To follow YouTube's rules on embedded players, this player stays visible while it plays: at least 200 × 200 pixels, not covered, with its controls and the YouTube logo. It appears at the bottom left and can be closed. YouTube alone decides how its players may be used. The option can be turned off in Settings › Sound.</li>
-      <li><strong>API keys and costs.</strong> Paid services (Claude, the paid Gemini key) are billed to your account, under each service's terms. Mood DJ caps the calls (150 per hour for texts, 150 for voices), but this cap does not replace a spending limit set in the service's console.</li>
+      <li><strong>API keys and costs.</strong> Paid services (Claude, the paid Gemini key) are billed to your account, under each service's terms. Mood DJ caps the calls per hour (according to the AI power chosen, or the cap you set in Settings › API keys), but this cap does not replace a spending limit set in the service's console.</li>
       <li><strong>Accuracy.</strong> Announcements, trivia and selections are written by an AI from public sources. They may contain errors. They do not cover the private life, health, deaths or legal matters of artists, and do not quote song lyrics.</li>
       <li><strong>Dedications.</strong> The messages you write are read on air by a synthetic voice and sent to Claude to be put into shape. Do not include sensitive information about yourself or other people.</li>
       <li><strong>No warranty.</strong> The extension is provided as is, with no guarantee that it works: YouTube Music may change at any time. To the extent permitted by law, the publisher is not liable for damages related to its use, including API costs.</li>
@@ -52,13 +52,13 @@
     <p><strong>In short:</strong> Mood DJ has no server. It collects nothing for its publisher, shows no ads and contains no analytics. Your data stays in your browser. Only what each feature needs is sent to the service concerned, and only if you use it.</p>
 
     <h3>What is kept in your browser</h3>
-    <p>Settings, moods, show history, liked or dismissed tracks, blocklist, show schedule, trivia caches, technical log (if enabled) and API keys. Everything is stored in the extension's storage and sent to no one. The log and the backup are only created if you click to download them, and they never contain any API key.</p>
+    <p>Settings, moods, the hosts' personalities and memories, show history, liked or dismissed tracks, blocklist, show schedule, trivia caches, technical log (if enabled) and API keys. Everything is stored in the extension's storage and sent to no one. The log and the backup are only created if you click to download them, and they never contain any API key.</p>
 
     <h3>What is sent to other services</h3>
     <div class="tablewrap"><table>
       <tr><th>Service</th><th>When</th><th>Data sent</th></tr>
       <tr><td>YouTube Music (Google)</td><td>Always, it is the page the extension runs on</td><td>Track searches, playback, likes, playlists created on your account. The embedded crossfade player also loads the current track from youtube.com.</td></tr>
-      <tr><td>Claude (Anthropic)</td><td>With a Claude key</td><td>Chosen mood, tracks played and coming up, the hosts' names, your first name if you entered it, city and weather, dedication text, trivia found.</td></tr>
+      <tr><td>Claude (Anthropic)</td><td>With a Claude key</td><td>Chosen mood, tracks played and coming up, the hosts' names, personalities and memories, your first name if you entered it, city and weather, dedication text, trivia found.</td></tr>
       <tr><td>Gemini (Google)</td><td>With a Gemini key</td><td>The text of the announcements to read, to produce the voice. If Gemini writes the scripts (your choice, or as a fallback for Claude): the same data as for Claude.</td></tr>
       <tr><td>Open-Meteo</td><td>If weather is enabled</td><td>The name of the chosen city.</td></tr>
       <tr><td>Wikipedia, Wikidata, MusicBrainz, Deezer</td><td>For trivia</td><td>Artist names and track titles.</td></tr>
