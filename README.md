@@ -25,6 +25,8 @@ Les clés se saisissent dans la page sécurisée de l'extension (Réglages › C
 - **Gemini** : les voix des animateurs, en solo ou en duo. Clé gratuite sur [aistudio.google.com](https://aistudio.google.com) (bouton « Get API key »).
 - **Last.fm, Discogs, Setlist.fm, Ticketmaster** : des anecdotes et des dates de concerts en plus.
 
+Avec une clé Claude ou Gemini, chaque animateur a sa personnalité et se souvient de ce qu'il raconte d'une émission à l'autre. Le réglage **Puissance de l'IA** (Économe, Normale ou Pleine puissance) et un plafond d'appels par heure permettent de choisir entre des animateurs plus vivants et une consommation plus faible.
+
 Les clés restent dans le navigateur et ne sont envoyées qu'à leur service.
 
 ## Documentation
@@ -33,7 +35,7 @@ Les clés restent dans le navigateur et ne sont envoyées qu'à leur service.
 - [`mood-dj/legal.html`](mood-dj/legal.html) : mentions légales, confidentialité, sources et crédits.
 - En anglais : [`mood-dj/GUIDE-EN.md`](mood-dj/GUIDE-EN.md) (guide par fonction) et [`mood-dj/legal.en.html`](mood-dj/legal.en.html) (mentions légales).
 
-À chaque envoi sur GitHub, un contrôle automatique (onglet **Actions**) vérifie que la traduction anglaise suit : textes de l'interface, mentions légales, guide. À la main : `node tools/check-i18n.js`.
+À chaque envoi sur GitHub, des contrôles automatiques (onglet **Actions**) vérifient que la traduction anglaise suit (textes de l'interface, mentions légales, guide) et font tourner les tests. À la main : `node tools/check-i18n.js` et `node --test tests/*.test.js`.
 
 ## Licence
 

@@ -1,5 +1,228 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.26.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.34.0
 ============================================
+
+2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
+- Réponses structurées : quand l'IA doit choisir (sélection décrite en
+  toutes lettres, nouveau style, choix des animateurs, villes), sa
+  réponse suit maintenant un schéma JSON garanti par l'API (Claude et
+  Gemini). Avant, Sonnet et Opus 5.5 remplissaient le formulaire « presque
+  toujours ».
+- Choix des animateurs mieux informés : l'IA connaît l'énergie que la
+  courbe vise au moment où le titre passera, et ses choix précédents
+  (écoutés jusqu'au bout ou zappés). Un choix zappé, l'animateur
+  l'encaisse à l'antenne (mauvaise foi, fair-play ou autodérision).
+- Claude surchargé : un nouvel essai 2,5 s plus tard, avant de passer à
+  Gemini ou aux phrases toutes faites.
+- Réglages › Clés API › Puissance de l'IA : « Consommation du jour
+  (estimation) » : coût estimé de Claude depuis minuit, d'après ses
+  tarifs publics (cache compris), et nombre d'appels Gemini avec la clé
+  gratuite et la clé payante.
+- Sécurité : une « fin de titre » arrivée moins de 15 s après le début
+  d'un titre normal, ou plus de 4 fins en une minute, est ignorée (une
+  page qui imiterait le lecteur ne peut plus enchaîner les annonces).
+- Création d'un style : le bouton montre depuis combien de secondes l'IA
+  cherche, avec une explication.
+- 7 nouveaux tests (26 en tout).
+
+2.33.1 : l'application Windows n'existe plus ; le code qui lui servait
+est retiré (saisie des clés dans le panneau, clés chiffrées par Windows,
+textes propres à l'application). Rien ne change dans Chrome : les clés se
+saisissent toujours dans la page sécurisée de l'extension. La sauvegarde
+sert maintenant à garder ses données ou à les reprendre sur un autre
+ordinateur.
+
+2.33.0 : LE CODE DU PANNEAU RANGÉ EN PLUSIEURS FICHIERS
+Rien ne change à l'usage : le code est identique, ligne pour ligne, mais
+l'ancien content.js (7 200 lignes) est réparti en fichiers thématiques,
+chargés dans l'ordre par le manifest :
+- mdj-etat.js : état, réglages, journal technique, sauvegarde ;
+- mdj-services.js : pont avec YouTube Music, appels à l'IA, son,
+  recherche, J'aime, artistes similaires ;
+- mdj-animateurs.js : personnalités, mémoire, Jeff & Laeti, profils,
+  choix des animateurs, univers de la station, puissance de l'IA ;
+- mdj-sources.js : anecdotes, Wikipédia, catalogue personnel, réserve ;
+- mdj-moteur.js : file d'attente, choix des titres, liste noire ;
+- mdj-radio.js : rythme, programme, jeux, phrases toutes faites, grille,
+  dédicaces ;
+- mdj-annonces.js : invité, préparation et diffusion des annonces, voix ;
+- mdj-lecture.js : déroulement de l'émission, changement d'ambiance,
+  historique ;
+- mdj-ui.js, mdj-ui-onglets.js, mdj-ui-reglages.js : l'interface ;
+- content.js : le démarrage.
+Un test vérifie à chaque envoi que les fichiers se chargent dans le bon
+ordre. Après la mise à jour, recharge bien l'extension dans
+chrome://extensions : Chrome doit relire le manifest.
+
+2.32.0 : MOINS CHER, PLUS LÉGER, ET DES TESTS
+- Cache des consignes (Claude) : la partie fixe de ce qu'on envoie à l'IA
+  (identité, langue, fiches des animateurs, relation du duo, règles) est
+  maintenant identique d'une annonce à l'autre et mise en cache par
+  l'API. Relue dans les 5 minutes, elle coûte environ dix fois moins
+  cher. Ce qui change à chaque fois (émotions, souvenirs, titres) vient
+  après. Le journal technique note « cache des consignes » avec le nombre
+  de mots-jetons relus depuis le cache. Avec une fiche courte, la partie
+  fixe peut être trop petite pour être mise en cache : rien ne change
+  alors.
+- Journal technique : il était réécrit en entier (jusqu'à 1 Mo) toutes
+  les 4 secondes ; c'est maintenant toutes les 30 secondes, et dès que
+  l'onglet est caché ou fermé. L'export reste complet.
+- Le cache des noms d'artistes est limité à 3 000 entrées.
+- Choix des animateurs : le titre est retrouvé sur YouTube Music avec le
+  même rapprochement que le catalogue (version studio préférée).
+- Tests automatiques (dossier tests du dépôt, sur GitHub à chaque envoi) :
+  consignes et cache, lignes cachées jamais lues, réglages par modèle,
+  garde-fou de dépenses, choix des animateurs, rapprochement YouTube
+  Music, liste noire, phrases en anglais.
+
+2.31.1 : CORRECTIFS APRÈS L'ANALYSE DU CODE
+- Le choix des animateurs a toujours son annonce : celui qui l'a choisi le
+  lance vraiment, et s'il n'y a pas d'intervention juste après, l'autre en
+  reparle à la suivante.
+- Les souvenirs, les événements de l'univers et le sujet laissé en suspens
+  ne sont retenus que si l'annonce passe vraiment à l'antenne (plus de
+  faux souvenirs après un titre passé ou une annonce refaite), et jamais
+  par les exemples des Réglages.
+- La fiche de Laeti n'est plus coupée : les fiches acceptent 2 500 signes.
+- L'univers tiré au sort écrit {A} et {B} à la place des prénoms : il suit
+  les animateurs quand on les renomme, les inverse ou les recharge.
+- « Annuler » ne défait plus que le changement qu'il annonce, pas un autre
+  réglage modifié entre-temps.
+- Villes des animateurs : après un échec, pas de nouvel essai payant avant
+  6 heures ; une réponse arrivée après un changement de ville est ignorée.
+- Un souvenir abîmé (sauvegarde, profil) ne désactive plus les annonces.
+- Bilan de fin : si une nouvelle émission démarre pendant sa préparation,
+  il est abandonné et ne dérègle plus la nouvelle émission.
+- Annonce en début de titre : la musique baissée n'attend plus que 15
+  secondes au plus ; au-delà, le titre est lancé sans annonce.
+- Garde-fou de dépenses : des appels simultanés ne peuvent plus dépasser le
+  plafond ; nouveau plafond sur 24 heures (huit fois le plafond horaire) ;
+  un plafond importé est borné à 500 par heure.
+- Seuls les modèles Claude connus sont envoyés à l'API, et une sauvegarde
+  importée ne peut plus changer le type d'un réglage.
+- Mentions légales : le journal technique contient tes réglages (prénom,
+  ville, fiches des animateurs), à relire avant de l'envoyer.
+
+2.31.0 : LE CHOIX DES ANIMATEURS
+- Réglages › Animateurs, voix, langues › « Le choix des animateurs » :
+  Jamais, Rare (par défaut, environ un titre sur six) ou Souvent (un sur
+  quatre). De temps en temps, un animateur choisit lui-même un titre :
+  son coup de cœur, d'après sa personnalité, ou un titre amené par
+  l'univers de la station (l'intrigue en cours, un personnage, une
+  légende). En duo, ils choisissent chacun leur tour.
+- Le titre reste dans ton ambiance (style, énergie), est vérifié sur
+  YouTube Music, respecte ta liste noire et n'est jamais un titre déjà
+  passé. Il se glisse après les titres verrouillés et apparaît dans
+  « À suivre » avec la mention « choix de … » : tu peux le retirer.
+- Les animateurs en profitent : ils le font attendre avant (« tout à
+  l'heure, je vous ai gardé quelque chose… »), celui qui l'a choisi le
+  lance avec son histoire, et après, l'autre rend son verdict.
+- Un appel d'IA de plus par titre choisi. Pas en mode Économe, ni sans
+  clé d'IA.
+
+2.30.1 : correctif. Un long dialogue en duo (plus d'une minute de voix
+Gemini, fréquent en Pleine puissance) était cru perdu au bout de
+60 secondes : la voix de l'ordinateur relisait alors le texte par-dessus
+la voix Gemini, qui continuait. Le délai suit maintenant la durée réelle
+de la voix, et si une voix ne répond vraiment plus, elle est coupée avant
+que celle de l'ordinateur prenne le relais.
+
+2.30.0 : INVERSER, ENREGISTRER ET RECHARGER LES ANIMATEURS ET LES UNIVERS
+- « Inverser les animateurs » (en haut de la carte Animateurs, en duo) :
+  le coanimateur devient l'animateur principal, et inversement, avec
+  prénoms, genres, styles, fiches, histoires, voix et souvenirs.
+  « Annuler » dans le message remet tout comme avant.
+- « Son histoire », pour chaque animateur : son lore personnel (passé,
+  parcours, secrets). L'IA y fait allusion rarement et ne trahit jamais
+  un secret. Dans le duo Jeff & Laeti, leurs parcours et ce qu'ils
+  cachent y sont maintenant rangés.
+- « Mes animateurs », pour chaque animateur : « Enregistrer cet
+  animateur » garde son prénom, son genre, son style, sa personnalité,
+  son histoire, la direction et la voix Gemini, et ses souvenirs. Plus
+  tard, on le choisit dans la liste et « Charger » le met à cette place
+  (principal ou coanimateur). Jeff et Laeti y sont toujours, en
+  préréglages.
+- « Mes univers » (carte de l'univers de la station) : « Enregistrer cet
+  univers » garde l'univers, la relation du duo, le dosage et les
+  événements retenus, sous le nom de ton choix. « Charger » le remet,
+  « Supprimer » efface un des tiens (les préréglages restent).
+- Tout cela est dans la sauvegarde.
+
+2.29.0 : LE DUO JEFF & LAETI
+- Bouton « Charger le duo Jeff & Laeti » en haut de la carte Animateurs
+  (avec une clé Claude ou Gemini), d'après la bible des animateurs : Jeff,
+  ancien cadreur, regarde la musique ; Laeti, ancienne ingénieure du son,
+  l'écoute. Un clic remplit les prénoms, les styles, les deux
+  personnalités (tics, manies, réactions, secrets), leur relation,
+  l'univers de la station (la régie mobile, la playlist du retour, la
+  cheffe, Anna) et la direction de leurs voix. « Annuler » dans le message
+  remet tes réglages d'avant. Tout reste modifiable.
+- Nouveau champ « Relation du duo » (carte du coanimateur) : la bible du
+  duo, envoyée à l'IA à chaque dialogue (comment ils se parlent, qui
+  taquine qui, qui mène quand, running gags, garde-fous). Facultatif, pour
+  n'importe quel duo.
+- « Direction de la voix (Gemini) » pour chaque animateur : une courte
+  indication ajoutée au style de la voix.
+- Villes des animateurs : quand tu donnes ta ville (pour la météo), l'IA
+  tire une fois deux villes réelles à moins de 50 km environ, une pour
+  chacun. Ils la citent en passant (« chez moi, à… »). Elles restent les
+  mêmes tant que tu restes dans le même pays.
+- L'IA sait si tu écoutes en mode Découverte ou Mes J'aime : c'est utile
+  pour savoir qui mène.
+- Les fiches acceptent maintenant des textes plus longs (1 600 signes).
+
+2.28.0 : L'UNIVERS DE LA STATION
+- Réglages › Animateurs, voix, langues › « L'univers de la station »
+  (avec une clé Claude ou Gemini) : le petit monde des animateurs. D'où
+  émet la station (un dernier étage sans ascenseur, une péniche…), un
+  objet du studio (la machine à café qu'il faut taper), des personnages
+  qu'on n'entend jamais (Gégé le technicien, la directrice qui envoie des
+  textos, le chat du studio), une légende de la station, l'histoire
+  commune des deux animateurs et une intrigue en cours.
+- Tiré au sort la première fois ; tu peux tout réécrire, ou cliquer sur
+  « Nouvel univers ».
+- Dosage : Jamais, Discret (par défaut, environ une intervention sur
+  sept), Régulier (une sur trois) ou Très présent (souvent, même par-dessus
+  les intros). Jamais deux fois de suite, et la musique reste le sujet.
+- Ce que les animateurs inventent à l'antenne (un incident au studio,
+  l'intrigue qui avance) est retenu et reste cohérent d'une émission à
+  l'autre. « Oublier les événements » efface tout. C'est dans la
+  sauvegarde.
+- Pas utilisé en mode Économe. Mentions légales : l'univers de la station
+  fait partie de ce qui est envoyé à l'IA qui écrit les textes.
+
+2.27.0 : DES ANIMATEURS PLUS VIVANTS, ET LA PUISSANCE DE L'IA AU CHOIX
+- Personnalité des animateurs (Réglages › Animateurs, voix, langues,
+  avec une clé Claude ou Gemini) : chacun a une fiche avec ses goûts, une
+  manie, un bout de sa vie et, en duo, un rôle (la tête bien faite et
+  l'improvisateur, la mémoire de la station et la recrue…). Elle est tirée
+  au sort la première fois ; tu peux la réécrire à ta façon, ou cliquer
+  sur « Nouvelle personnalité ». L'IA s'en sert par petites touches.
+- Mémoire : quand un animateur raconte quelque chose de nouveau sur lui à
+  l'antenne (« je les ai vus en concert en 1998, sous la pluie »), Mood DJ
+  le retient, et il y revient dans les émissions suivantes, comme une
+  vieille blague. « Oublier ses souvenirs » efface tout. En duo, un sujet
+  laissé en suspens à un interlude peut revenir au suivant. Les souvenirs
+  sont dans la sauvegarde.
+- Duo plus naturel : de vraies répliques qui se répondent, des réactions
+  très courtes (« Non ! », « Attends… », « Mmh. »), des phrases coupées,
+  et plus de formules creuses (« Absolument ! », « Tout à fait ! »).
+- Réglages › Clés API › « Puissance de l'IA » :
+  · Économe : textes courts, modèle le plus léger (Claude Haiku 5.5 ou
+    Gemini 3.8 Flash), duo à trois répliques au plus, sans mémoire.
+  · Normale (par défaut) : le modèle choisi, avec personnalité et mémoire.
+  · Pleine puissance : le modèle le plus puissant (Claude Opus 5.5 ou
+    Gemini 4 Argon), des dialogues plus longs et plus travaillés (sauf
+    par-dessus les intros). Plus cher : avec Claude, environ deux fois le
+    prix de Sonnet. Un peu plus lent, mais l'annonce est préparée à
+    l'avance.
+- « Plafond d'appels par heure » : Automatique (40 textes et 60 voix en
+  Économe, 150 et 150 en Normale, 300 et 300 en Pleine puissance), ou
+  20, 40, 80, 150 ou 300 par heure. Au-delà, les animateurs passent aux
+  phrases toutes faites jusqu'à l'heure suivante.
+- Claude Opus 5.5 peut aussi être choisi comme modèle Claude. En cas de
+  refus de sécurité, Anthropic repasse la demande à un autre modèle.
+- Mentions légales : la personnalité et les souvenirs des animateurs font
+  partie de ce qui est envoyé à l'IA qui écrit les textes.
 
 2.26.0 : TRADUCTION ANGLAISE COMPLÈTE
 - Phrases toutes faites en anglais : sans IA pour les textes, les

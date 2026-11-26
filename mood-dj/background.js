@@ -14,39 +14,121 @@ async function getSettings() {
 // Les modèles Claude 5.5 réfléchissent avant de répondre (réflexion « adaptative » par défaut), et
 // cette réflexion compte dans max_tokens : sur une annonce courte, elle mangeait tout le texte.
 // Sonnet 5.5 refuse aussi qu'on force l'appel d'un outil (erreur 400).
+// Opus 5.5 réfléchit toujours (on ne peut pas couper la réflexion) : on règle seulement son « effort »
+// et on lui laisse de la place dans max_tokens. En cas de refus de sécurité, le serveur repasse la
+// demande à un autre modèle (« fallbacks »).
+const OPUS_MODEL = 'claude-opus-5-5';
 function adaptForModel(body, model) {
   const b = Object.assign({}, body);
   const sonnet55 = /sonnet-5-5/.test(model);
   const haiku55 = /haiku-5-5/.test(model);
-  if (!b.thinking) {
-    if (sonnet55) b.thinking = { type: 'between_tools' };
-    else if (haiku55) b.thinking = { type: 'disabled' };
+  const opus55 = /opus-5-5/.test(model);
+  if (opus55) {
+    delete b.thinking;
+    b.output_config = Object.assign({ effort: 'medium' }, b.output_config || {});
+    b.max_tokens = Math.max(Number(b.max_tokens) || 0, 6000);
+    b.fallbacks = 'default';
+  } else {
+    if (!b.thinking) {
+      if (sonnet55) b.thinking = { type: 'between_tools' };
+      else if (haiku55) b.thinking = { type: 'disabled' };
+    }
   }
-  if (sonnet55 && b.tool_choice && (b.tool_choice.type === 'tool' || b.tool_choice.type === 'any')) b.tool_choice = { type: 'auto' };
+  if ((sonnet55 || opus55) && b.tool_choice && (b.tool_choice.type === 'tool' || b.tool_choice.type === 'any')) {
+    // Ces modèles refusent qu'on force un outil. Quand l'outil ne servait qu'à obtenir des données
+    // structurées, on demande une réponse JSON garantie conforme à son schéma (« structured outputs ») ;
+    // callClaude la remet ensuite sous forme d'appel d'outil, comme avant.
+    const tool = b.tool_choice.type === 'tool' && Array.isArray(b.tools) ? b.tools.find((t) => t.name === b.tool_choice.name) : null;
+    if (tool && tool.input_schema) {
+      b.output_config = Object.assign({}, b.output_config || {}, { format: { type: 'json_schema', schema: strictSchema(tool.input_schema) } });
+      const hint = 'Réponds uniquement avec un objet JSON conforme au schéma demandé. ' + (tool.description || '');
+      b.system = Array.isArray(b.system) ? b.system.concat([{ type: 'text', text: hint }]) : (b.system ? b.system + '\n' : '') + hint;
+      delete b.tools;
+      delete b.tool_choice;
+      Object.defineProperty(b, 'asTool', { value: tool.name, enumerable: false });
+    } else b.tool_choice = { type: 'auto' };
+  }
   return b;
+}
+// Schéma JSON accepté par les réponses structurées : objets fermés, sans bornes numériques ni de longueur.
+function strictSchema(s) {
+  if (Array.isArray(s)) return s.map(strictSchema);
+  if (!s || typeof s !== 'object') return s;
+  const o = {};
+  for (const k of Object.keys(s)) {
+    if (['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems', 'pattern'].includes(k)) continue;
+    o[k] = k === 'properties' ? Object.fromEntries(Object.entries(s.properties).map(([n, v]) => [n, strictSchema(v)])) : strictSchema(s[k]);
+  }
+  if (o.type === 'object') o.additionalProperties = false;
+  return o;
+}
+// Texte JSON d'une réponse structurée (avec ou sans balises de code) → objet, sinon null.
+function parseJsonText(t) {
+  const m = String(t || '').match(/\{[\s\S]*\}/);
+  try { return m ? JSON.parse(m[0]) : null; } catch (e) { return null; }
+}
+
+// Seuls ces modèles sont envoyés à l'API (un réglage importé ou abîmé ne peut pas en imposer un autre).
+const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
+// --------------------------------------------------- consommation du jour
+// Estimation en dollars des appels à Claude (tarifs par million de mots-jetons : entrée, sortie, lecture
+// du cache ; l'écriture en cache coûte 1,25 fois l'entrée), et nombre d'appels Gemini par clé.
+const CLAUDE_PRICES = { 'claude-sonnet-5-5': [2, 10, 0.1], 'claude-opus-5-5': [4, 20, 0.2], 'claude-haiku-5-5': [0.1, 0.5, 0.01] };
+let usageMem = null;
+let usageLoad = null;
+const usageDay = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+async function bumpUsage(fn) {
+  if (!usageLoad) usageLoad = chrome.storage.local.get('aiUsage').then((d) => d.aiUsage || null).catch(() => null);
+  const loaded = await usageLoad;
+  if (!usageMem) usageMem = loaded && loaded.day === usageDay() ? loaded : null;
+  if (!usageMem || usageMem.day !== usageDay()) usageMem = { day: usageDay(), claudeUsd: 0, claudeCalls: 0, geminiFree: 0, geminiPaid: 0 };
+  fn(usageMem);
+  try { await chrome.storage.local.set({ aiUsage: usageMem }); } catch (e) { /* ignore */ }
+}
+function recordClaudeUsage(model, u) {
+  const pr = CLAUDE_PRICES[Object.keys(CLAUDE_PRICES).find((k) => String(model || '').startsWith(k))] || CLAUDE_PRICES[DEFAULT_MODEL];
+  const x = u || {};
+  const usd = ((x.input_tokens || 0) * pr[0] + (x.cache_creation_input_tokens || 0) * pr[0] * 1.25 + (x.cache_read_input_tokens || 0) * pr[2] + (x.output_tokens || 0) * pr[1]) / 1e6;
+  bumpUsage((m) => { m.claudeUsd += usd; m.claudeCalls++; });
 }
 
 async function callClaude(body, forceModel) {
   const { apiKey, model: chosen } = await getSettings();
-  const model = forceModel || chosen;
+  const wanted = forceModel || chosen;
+  const model = CLAUDE_MODELS.includes(wanted) ? wanted : DEFAULT_MODEL;
   body = adaptForModel(body, model);
+  const asTool = body.asTool;
   if (!apiKey) throw new Error('Aucune clé API enregistrée (onglet Réglages).');
-  const res = await fetch(API_URL, {
+  const send = () => fetch(API_URL, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
+      'anthropic-dangerous-direct-browser-access': 'true',
+      ...(/opus-5-5/.test(model) ? { 'anthropic-beta': 'server-side-fallback-2026-07-01' } : {})
     },
     body: JSON.stringify(Object.assign({}, body, { model }))
   });
+  let res = await send();
+  // Claude surchargé ou en erreur passagère : un seul nouvel essai, 2,5 s plus tard, avant de passer la main.
+  if (res.status === 529 || res.status === 503 || res.status === 500) {
+    await new Promise((r) => setTimeout(r, 2500));
+    res = await send();
+  }
   let data = null;
   try { data = await res.json(); } catch (e) { /* ignore */ }
+  if (res.ok && data) recordClaudeUsage(data.model || model, data.usage);
+  if (res.ok && data && asTool) {
+    const txt = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const input = parseJsonText(txt);
+    if (input) data.content = [{ type: 'tool_use', name: asTool, input }];
+  }
   if (!res.ok) {
     const msg = (data && data.error && data.error.message) || ('HTTP ' + res.status);
     if (res.status === 401) throw new Error('Clé API refusée : vérifie-la dans les Réglages.');
     if (res.status === 429) throw new Error('Trop de demandes ou crédits épuisés : ' + msg);
+    if (res.status === 529) throw new Error('Claude est surchargé pour le moment : ' + msg);
     throw new Error('Claude : ' + msg);
   }
   return data;
@@ -392,14 +474,122 @@ function radioLangRule(lang) {
     "Les balises sonores entre chevrons et les indications de jeu entre accolades gardent leur forme en anglais.";
 }
 
+// Personnalité d'un animateur (fiche stable) et ce qu'il a déjà raconté de lui à l'antenne.
+function personaLines(label, name, persona, city, story) {
+  const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+  const out = [];
+  // label vide : l'animateur parle seul (« ta personnalité »).
+  // La fiche garde ses guillemets (les tics de langage y sont cités).
+  const fiche = String(persona || '').replace(/\s+/g, ' ').slice(0, 2500).trim();
+  if (fiche) out.push((label ? 'PERSONNALITÉ DE ' + label + ' (' + q(name, 40) + ')' : 'TA PERSONNALITÉ') + ' : ' + fiche + " À faire sentir par petites touches (un goût, une manie, un souvenir), jamais tout à la fois et jamais récité comme une fiche.");
+  // Histoire personnelle (lore de l'animateur) : son passé, ce qu'il cache.
+  const hist = String(story || '').replace(/\s+/g, ' ').slice(0, 2000).trim();
+  if (hist) out.push((label ? 'HISTOIRE DE ' + label : 'TON HISTOIRE') + " (son passé, ce qui l'a construit, ce qu'il garde pour lui ; à distiller rarement, une allusion à la fois, et un secret reste un secret) : " + hist);
+  if (q(city, 60)) out.push((label ? label + ' habite' : 'Tu habites') + ' à ' + q(city, 60) + ", près de chez l'auditeur : à citer de temps en temps, en passant, comme on dit d'où l'on vient (« chez moi, à " + q(city, 60) + "… »), sans en faire un sujet et sans inventer de détail vérifiable (ni adresse, ni commerce, ni voisin nommé).");
+  return out;
+}
+// Ce qu'un animateur a déjà raconté de lui : change d'une annonce à l'autre, donc hors de la partie en cache.
+function memLines(label, memories) {
+  const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+  const out = [];
+  const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-12);
+  if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
+  return out;
+}
+// Lignes « SOUVENIR A : », « SOUVENIR B : », « À SUIVRE : » et « LORE : » : la mémoire des
+// animateurs et de l'univers de la station, jamais lue.
+function splitMemory(raw) {
+  const mem = { souvenirs: [], suivi: '', lore: [] };
+  const spoken = String(raw || '').replace(/^[ \t]*(?:[AB]\s*:\s*)?[«"*]*\s*(SOUVENIR\s*([AB])|[ÀA] SUIVRE|LORE)\s*[»"*]*\s*:\s*(.+)$/gm, (m, k, who, v) => {
+    const t = v.replace(/[«»"*]/g, '').trim().slice(0, 200);
+    if (t && who) mem.souvenirs.push({ who, text: t });
+    else if (t && k === 'LORE') mem.lore.push(t);
+    else if (t) mem.suivi = t;
+    return '';
+  });
+  return { spoken: spoken.replace(/\n{2,}/g, '\n').trim(), mem };
+}
+
+// Réponses structurées (JSON garanti conforme) pour les villes et le choix des animateurs.
+const CITIES_SCHEMA = { type: 'object', properties: { pays: { type: 'string' }, villeA: { type: 'string' }, villeB: { type: 'string' } }, required: ['pays', 'villeA', 'villeB'], additionalProperties: false };
+const PICK_SCHEMA = { type: 'object', properties: { artiste: { type: 'string' }, titre: { type: 'string' }, energie: { type: 'integer' }, pourquoi: { type: 'string' } }, required: ['artiste', 'titre', 'energie', 'pourquoi'], additionalProperties: false };
+// Villes des animateurs : deux villes réelles à moins de 50 km environ de celle de l'auditeur.
+async function hostCities(p) {
+  const city = String(p.city || '').replace(/[«»"\n]/g, ' ').slice(0, 80).trim();
+  if (!city) throw new Error('Aucune ville indiquée.');
+  const data = await callText({
+    max_tokens: 300,
+    messages: [{ role: 'user', content: "Ville de l'auditeur : « " + city + " ». Donne son pays, puis deux autres villes ou villages réels, différents l'un de l'autre et de cette ville, situés à moins de 50 km environ. " +
+      'Réponds uniquement avec ce JSON, sans rien autour : {"pays": "…", "villeA": "…", "villeB": "…"}' }],
+    output_config: { format: { type: 'json_schema', schema: CITIES_SCHEMA } }
+  }, 'claude-haiku-5-5');
+  const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ');
+  const m = raw.match(/\{[\s\S]*\}/);
+  let j = null;
+  try { j = m ? JSON.parse(m[0]) : null; } catch (e) { j = null; }
+  const clean = (x) => String(x || '').replace(/[«»"\n{}<>]/g, ' ').replace(/\s+/g, ' ').slice(0, 60).trim();
+  if (!j || !clean(j.villeA) || !clean(j.villeB)) throw new Error("L'IA n'a pas proposé de villes.");
+  return { country: clean(j.pays), a: clean(j.villeA), b: clean(j.villeB) };
+}
+
+// Le choix d'un animateur : un titre qu'il a envie de passer, parce qu'il a quelque chose à en dire
+// (son coup de cœur, ou un titre amené par l'univers de la station).
+async function hostPick(p) {
+  const q = (x, n) => String(x || '').replace(/\s+/g, ' ').slice(0, n).trim();
+  const power = p.power === 'max' ? 'max' : 'normal';
+  const name = q(p.name, 40) || 'Alex';
+  const lines = [
+    'Tu es ' + name + ", l'un des animateurs de Mood DJ, une radio musicale personnelle. Tu choisis UN titre à passer bientôt dans l'émission, parce que tu as quelque chose de personnel à en dire.",
+    p.kind === 'lore'
+      ? "Ce titre est amené par l'univers de la station : l'intrigue en cours, un personnage, une légende ou un événement récent (voir plus bas). Le lien doit sauter aux yeux une fois raconté."
+      : 'C’est ton coup de cœur : un titre qui te ressemble, d’après ta personnalité ci-dessous.'
+  ];
+  if (q(p.persona, 2500)) lines.push('TA PERSONNALITÉ : ' + q(p.persona, 2500));
+  if (q(p.story, 1200)) lines.push('TON HISTOIRE : ' + q(p.story, 1200));
+  const mem = (Array.isArray(p.memories) ? p.memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-8);
+  if (mem.length) lines.push('Ce que tu as déjà raconté de toi à l’antenne :\n- ' + mem.join('\n- '));
+  const past = (Array.isArray(p.history) ? p.history : []).filter((h) => h && h.title).slice(-6);
+  if (past.length) {
+    lines.push('Tes choix précédents et comment l’auditeur les a reçus (choisis dans la même veine que ceux qui ont plu, et change de piste après un zap) :\n- ' +
+      past.map((h) => '« ' + q(h.title, 120) + ' » : ' + (h.skipped ? 'zappé' : 'écouté jusqu’au bout')).join('\n- '));
+  }
+  if (p.lore && q(p.lore.text, 1500)) {
+    const ev = (Array.isArray(p.lore.memories) ? p.lore.memories : []).map((m) => q(m, 200)).filter(Boolean).slice(-8);
+    lines.push("L'UNIVERS DE LA STATION : " + q(p.lore.text, 1500) + (ev.length ? '\nÉvénements récents :\n- ' + ev.join('\n- ') : ''));
+  }
+  lines.push('CONTRAINTES : le titre doit coller à l’ambiance en cours, « ' + q(p.ambiance, 200) + ' » (styles : ' + q(p.styles, 200) + '), avec une énergie autour de ' + (Number(p.energy) || 3) + ' sur 5. ' +
+    'Un vrai titre qui existe en version studio sur YouTube Music ; pas de live, de remix ni de karaoké. ' +
+    (Array.isArray(p.avoid) && p.avoid.length ? 'Pas un de ceux-ci, ni un titre de ces artistes (déjà passés ou prévus) : ' + p.avoid.slice(-40).map((x) => q(x, 120)).join(' ; ') + '. ' : ''));
+  lines.push('Réponds uniquement avec ce JSON, sans rien autour : {"artiste": "…", "titre": "…", "energie": 1 à 5, "pourquoi": "en une phrase, à la première personne, ce que tu vas raconter pour l\'amener : un ressenti, un souvenir de ta vie, un lien avec l\'univers ; aucun fait inventé sur l\'artiste"}');
+  const data = await callText({ max_tokens: 600, messages: [{ role: 'user', content: lines.join('\n') }], output_config: { format: { type: 'json_schema', schema: PICK_SCHEMA } } },
+    power === 'max' ? OPUS_MODEL : undefined, power === 'max' ? { geminiModel: 'gemini-4-argon', thinkingLevel: 'medium' } : undefined);
+  const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ');
+  const m = raw.match(/\{[\s\S]*\}/);
+  let j = null;
+  try { j = m ? JSON.parse(m[0]) : null; } catch (e) { j = null; }
+  const clean = (x, n) => String(x || '').replace(/[\n{}<>]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+  if (!j || !clean(j.artiste, 80) || !clean(j.titre, 120)) throw new Error("L'IA n'a pas proposé de titre.");
+  return { artist: clean(j.artiste, 80), title: clean(j.titre, 120), energy: Math.max(1, Math.min(5, Math.round(Number(j.energie) || 3))), why: clean(j.pourquoi, 300) };
+}
+
 async function writeAnnouncement(p) {
   const host = (p.host || 'Alex').slice(0, 40);
   const style = HOST_STYLES[p.style] || HOST_STYLES.chaleureux;
   const who = (g) => (g === 'femme' ? 'une femme' : g === 'homme' ? 'un homme' : '');
-  const system = [
+  // Puissance de l'IA : économe (court, modèle léger), normale, ou pleine puissance (meilleur modèle, plus de place).
+  const power = p.power === 'eco' || p.power === 'max' ? p.power : 'normal';
+  const pz = p.persona || {};
+  const memoryOn = power !== 'eco' && p.kind !== 'outro';
+  // Partie fixe des consignes (identité, langue, fiches, relation du duo, règles) : identique d'une annonce à
+  // l'autre, elle est mise en cache par l'API Claude et relue bien moins cher. La partie variable vient après.
+  const cohostName = String(p.cohost || 'Sam').slice(0, 40);
+  const duoB = !!(p.duo && pz.b);
+  const stable = [
     'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale personnelle diffusée sur YouTube Music. Ton style : " + style + '.',
     radioLangRule(p.lang),
-    emotionRules(p),
+    ...personaLines(p.duo ? 'A' : '', host, pz.a, pz.cityA, pz.storyA),
+    ...(duoB ? personaLines('B', cohostName, pz.b, pz.cityB, pz.storyB) : []),
+    ...(duoB && String(pz.relation || '').trim() ? ['LEUR RELATION (la bible du duo, à respecter, mais à faire vivre par petites touches, jamais à réciter) :\n' + String(pz.relation).slice(0, 4000).trim()] : []),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
       "N'ajoute aucun détail qui n'est pas dans la fiche (nationalité, origine, date, chiffre) : même pour une blague, une personne réelle garde sa vraie nationalité.",
@@ -407,6 +597,12 @@ async function writeAnnouncement(p) {
     "Ne dis jamais que tu n'as pas d'anecdote, pas d'information ou que tu ne connais pas un artiste ou un morceau : parle alors du style, du thème ou de l'ambiance. Ne présente jamais un titre ou un artiste comme nouveau, une découverte, inconnu de l'auditeur, ni comme proche ou cousin d'un autre artiste.",
     'Réponds uniquement avec le texte à dire.'
   ].join('\n');
+  const variable = [
+    emotionRules(p),
+    ...memLines(p.duo ? 'A' : '', power === 'eco' ? [] : pz.memA),
+    ...(duoB ? memLines('B', power === 'eco' ? [] : pz.memB) : [])
+  ].filter(Boolean).join('\n');
+  const system = [{ type: 'text', text: stable, cache_control: { type: 'ephemeral' } }].concat(variable ? [{ type: 'text', text: variable }] : []);
   const rule = KIND_RULES[p.kind] || KIND_RULES.talkover;
   // En duo, la longueur est fixée par le format duo (nombre de répliques) : on retire celle du solo.
   // Longueurs revues après le journal du 24/11 : des pauses de 44 à 54 s et une « culture courte »
@@ -430,17 +626,74 @@ async function writeAnnouncement(p) {
   if (p.duo) {
     const cohost = String(p.cohost || 'Sam').slice(0, 40);
     const cstyle = HOST_STYLES[p.cohostStyle] || HOST_STYLES.decale;
-    const n = Math.max(2, Math.min(6, Number(p.turns) || (p.kind === 'talkover' ? 2 : 4)));
-    const words = (isProg ? ({ talkover: 75, intro: 85, interlude: 110 }[p.kind] || 80)
+    const n = Math.max(2, Math.min(power === 'max' ? 8 : power === 'eco' ? 3 : 6, Number(p.turns) || (p.kind === 'talkover' ? 2 : 4)));
+    const words0 = (isProg ? ({ talkover: 75, intro: 85, interlude: 110 }[p.kind] || 80)
       : p.long ? (p.kind === 'talkover' ? (p.role === 'culture' ? 45 : 55) : p.role === 'chronique' ? Math.min(135, n * 24) : Math.min(115, n * 22)) : p.kind === 'talkover' ? 35 : Math.min(90, n * 20)) +
       hookWords + answerWords + expressWords;
+    const words = Math.round(words0 * (power === 'max' && p.kind !== 'talkover' ? 1.35 : power === 'eco' ? 0.8 : 1));
     lines.push("FORMAT DUO : l'émission est animée à deux. A = " + host + (who(p.hostGender) ? ', ' + who(p.hostGender) : '') + ', style ' + style + '. ' +
       'B = ' + cohost + (who(p.cohostGender) ? ', ' + who(p.cohostGender) : '') + ', style ' + cstyle + '. ' +
       'Chacun garde sa personnalité, sa façon de parler et ses accords (masculin ou féminin). ' +
-      "C'est un vrai duo de radio complice : ils réagissent à ce que l'autre vient de dire, se coupent un peu, se chambrent, s'envoient des vannes gentilles et ne sont pas toujours d'accord. " +
+      "C'est une vraie conversation entre deux complices qui se connaissent par cœur, pas deux annonces mises bout à bout : chaque réplique répond à la précédente (elle la contredit, la relance, la détourne ou en rajoute), et on doit sentir qui parle sans lire les prénoms. " +
+      "Ils se chambrent, s'envoient des vannes gentilles, se coupent un peu et ne sont pas toujours d'accord : une petite divergence vaut mieux qu'un consensus mou. " +
       "Pas deux monologues à la suite, et jamais de méchanceté envers l'auditeur ou les artistes. " +
-      'Écris exactement ' + n + ' répliques, ' + words + ' mots au plus au total. ' + (p.opener === 'B' ? "Cette fois, c'est B qui ouvre. " : '') +
+      'Écris ' + n + ' répliques, ' + words + ' mots au plus au total. ' + (p.opener === 'B' ? "Cette fois, c'est B qui ouvre. " : '') +
       'Une réplique par ligne, chaque ligne commence par « A: » ou « B: ».' + (p.kind === 'outro' ? ' Ils se disent au revoir tous les deux.' : ' Le titre suivant et son artiste doivent être clairement annoncés.'));
+    lines.push("NATUREL DU DIALOGUE : les répliques n'ont pas toutes la même longueur. En plus des " + n + ' répliques, tu peux glisser une ou deux réactions très courtes, de trois mots au plus, sur leur propre ligne (« Non ! », « Attends… », « Mmh. », « Sérieux ? », un rire), ' +
+      "et une phrase peut être coupée par l'autre (« Moi je trouve que… », « Non mais laisse-moi finir ! »). " +
+      "Bannis les formules creuses d'animateur : « Absolument ! », « Tout à fait ! », « Exactement ! », « Tu as raison », « Excellente question », « Quelle transition », les compliments de l'un à l'autre, et le prénom de l'autre en tête de chaque réplique. Une vanne ne s'explique jamais.\n" +
+      "Exemple du ton recherché (ne le recopie pas, n'en reprends ni les idées ni les mots) :\n" +
+      "A: Je préviens, celle-là, je la chante dans ma voiture tous les matins.\nB: Ah, c'est donc toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Bref ! La suite, c'est…");
+  }
+  // Univers de la station (lore) : envoyé seulement quand Mood DJ a tiré une référence pour cette intervention.
+  const lore = p.lore && String(p.lore.text || '').trim() && power !== 'eco' ? p.lore : null;
+  if (lore) {
+    const q = (x, n) => String(x || '').replace(/[«»"]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+    const facts = (Array.isArray(lore.memories) ? lore.memories : []).map((m) => q(m, 200)).filter(Boolean).slice(-10);
+    lines.push("L'UNIVERS DE LA STATION (le « lore » de l'émission, que les auditeurs fidèles connaissent) : " + q(lore.text, 1500) +
+      (facts.length ? "\nCe qui s'est déjà passé à l'antenne dans cet univers (reste cohérent) :\n- " + facts.join('\n- ') : '') +
+      "\nCette fois, glisse UNE référence à cet univers (un personnage, un objet du studio, une légende, " + (p.duo ? 'leur histoire commune' : 'ton histoire avec ton coanimateur, absent aujourd\'hui') + " ou l'intrigue en cours), en passant, comme une blague entre habitués : une réplique ou une demi-phrase, jamais une explication ni un résumé. " +
+      "Tu peux faire avancer un tout petit peu l'intrigue en cours. Ne contredis jamais cet univers, et la musique reste le sujet principal.");
+  }
+  // Le choix d'un animateur : il l'annonce lui-même, avant on le fait attendre, après on en reparle.
+  const pickWho = (x) => (x.who === 'B' && p.duo ? 'B (' + String(x.name || '').slice(0, 40) + ')' : p.duo ? 'A (' + String(x.name || '').slice(0, 40) + ')' : 'toi');
+  const pq = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').slice(0, n).trim();
+  if (p.hostPick) {
+    const k = p.hostPick;
+    lines.push('CHOIX DE ' + pickWho(k).toUpperCase() + " : le titre suivant n'a pas été tiré par le programme, " + (p.duo ? pickWho(k) + " l'a choisi" : 'tu l\'as choisi') +
+      (k.kind === 'lore' ? ", parce qu'il est amené par l'univers de la station" : ', c’est son coup de cœur') + (pq(k.why, 300) ? '. Ce qu’il y a à en dire : « ' + pq(k.why, 300) + ' »' : '') + '. ' +
+      (p.duo ? "C'est " + pickWho(k) + ' qui le lance, avec un vrai élan personnel, et l’autre réagit selon son caractère (adhère, doute, chambre, se laisse convaincre).' : 'Lance-le avec un vrai élan personnel.') +
+      ' Aucun fait inventé sur l’artiste.');
+  }
+  if (p.hostPickAfter && p.hostPickAfter.skipped) {
+    const k = p.hostPickAfter;
+    lines.push((k.earlier ? 'Le titre choisi tout à l’heure par ' : 'Le titre qu’on vient de quitter était le choix de ') + pickWho(k) + (k.earlier ? ' (« ' + pq(k.earlier, 150) + ' »)' : '') +
+      ', et l’auditeur l’a zappé avant la fin. ' + (p.duo ? pickWho(k) + ' encaisse en une ligne (mauvaise foi, fair-play ou autodérision), et l’autre peut en profiter gentiment.' : 'Encaisse-le en une demi-phrase, avec humour.'));
+  } else if (p.hostPickAfter) {
+    const k = p.hostPickAfter;
+    lines.push((k.earlier ? 'Un titre passé un peu plus tôt (« ' + pq(k.earlier, 150) + ' ») était' : "Le titre qu'on vient d'écouter était") + ' le choix de ' + pickWho(k) + (p.duo ? " : l'autre peut rendre son verdict (conquis, pas convaincu, une vanne ou une concession), et " + pickWho(k) + ' défendre son choix en une ligne.' : ' : dis en une demi-phrase si ça a fait son effet.'));
+  }
+  if (p.hostPickTease) {
+    const k = p.hostPickTease;
+    lines.push('À VENIR : ' + pickWho(k) + ' a choisi un titre qui passera un peu plus tard. Glisse une allusion (« tout à l’heure, je vous ai gardé quelque chose… ») sans le nommer, en une demi-phrase' + (p.duo ? ', et l’autre peut essayer de deviner ou se méfier.' : '.'));
+  }
+  if (p.listenMode === 'decouverte') lines.push("MODE D'ÉCOUTE : Découverte (des titres que l'auditeur ne connaît pas encore).");
+  else if (p.listenMode === 'jaime') lines.push("MODE D'ÉCOUTE : Mes J'aime (les titres que l'auditeur a aimés).");
+  if (pz.thread && power !== 'eco' && p.kind !== 'intro') {
+    lines.push("SUJET LAISSÉ EN SUSPENS à l'intervention précédente : « " + String(pz.thread).replace(/[«»"\n]/g, ' ').slice(0, 200) + " ». Reprends-le en passant si c'est naturel (« bon, pour revenir à… »), sinon laisse tomber.");
+  }
+  if (power === 'max') {
+    lines.push("PLEINE PUISSANCE : prends le temps d'écrire un vrai moment de radio, vivant, drôle ou touchant, avec une chute." +
+      (p.kind === 'talkover' ? '' : " Tu peux dépasser d'environ un tiers les longueurs indiquées si le moment le mérite."));
+  } else if (power === 'eco') {
+    lines.push('VERSION COURTE : reste nettement sous les longueurs indiquées et va droit au but.');
+  }
+  if (memoryOn) {
+    lines.push('MÉMOIRE DES ANIMATEURS (lignes cachées, jamais lues à l\'antenne) : après le texte, tu peux ajouter, chacune sur sa propre ligne : ' +
+      (p.duo ? "« SOUVENIR A : … » ou « SOUVENIR B : … » si un animateur vient de révéler un nouveau détail sur lui-même (un goût, une manie, un souvenir, un bout de sa vie), en une courte phrase à la troisième personne ; et « À SUIVRE : … » si leur conversation laisse un sujet à reprendre à la prochaine intervention. "
+        : "« SOUVENIR A : … » si tu viens de révéler un nouveau détail sur toi-même (un goût, une manie, un souvenir), en une courte phrase à la troisième personne. ") +
+      (lore ? "« LORE : … » si tu viens d'inventer un fait nouveau dans l'univers de la station (un incident au studio, un nouveau personnage, l'intrigue qui avance), en une courte phrase. " : '') +
+      "Au plus une ligne de chaque sorte, et aucune s'il n'y a rien de neuf. Ces lignes n'entrent pas dans le nombre de mots.");
   }
   // Émission de la grille : son nom (et le ton du réveil).
   if (p.show && p.show.name) {
@@ -588,8 +841,13 @@ async function writeAnnouncement(p) {
     max_tokens: p.duo ? 1200 : 800,
     system,
     messages: [{ role: 'user', content: lines.join('\n') }]
-  });
-  const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
+  }, power === 'max' ? OPUS_MODEL : power === 'eco' ? 'claude-haiku-5-5' : undefined,
+  power === 'max' ? { geminiModel: 'gemini-4-argon', thinkingLevel: 'medium' } : power === 'eco' ? { geminiModel: GEMINI_TEXT_DEFAULT } : undefined);
+  const raw0 = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(p.duo ? '\n' : ' ').trim();
+  // Les lignes de mémoire ne sont jamais lues ; elles ne sont gardées que si la mémoire est active.
+  const split = splitMemory(raw0);
+  const raw = split.spoken;
+  const mem = memoryOn ? split.mem : null;
   // Texte coupé ou vide : on préfère une phrase de secours à une annonce tronquée.
   if (data.stop_reason === 'max_tokens') throw new Error('annonce coupée par la limite de longueur');
   // Seulement quand un jeu est en cours : sinon le texte est gardé tel quel.
@@ -597,7 +855,13 @@ async function writeAnnouncement(p) {
   if (text.replace(/<[^<>]{1,25}>/g, '').trim().length < 15) throw new Error('annonce vide ou trop courte');
   const clean = (t) => t.replace(/^["«\s]+|["»\s]+$/g, '').replace(/\[[^\]]*\]|\*[^*]*\*/g, '').replace(/[ \t]+/g, ' ').trim();
   const out = p.duo ? text.split('\n').map(clean).filter(Boolean).join('\n') : clean(text.replace(/\s+/g, ' '));
-  return out + (hidden.question || hidden.answer ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
+  if (mem && mem.souvenirs.length) hidden.souvenirs = mem.souvenirs.slice(0, 2);
+  if (mem && mem.suivi) hidden.suivi = mem.suivi;
+  if (mem && lore && mem.lore.length) hidden.lore = mem.lore.slice(0, 1);
+  // Mots-jetons lus depuis le cache des consignes (Claude) : pour le journal technique.
+  const u = data.usage || {};
+  if (u.cache_read_input_tokens || u.cache_creation_input_tokens) hidden.cache = { lus: u.cache_read_input_tokens || 0, ecrits: u.cache_creation_input_tokens || 0, autres: u.input_tokens || 0 };
+  return out + (hidden.question || hidden.answer || hidden.souvenirs || hidden.suivi || hidden.lore || hidden.cache ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
 }
 // Lignes « QUESTION : » et « RÉPONSE : » du jeu : retirées du texte lu, gardées pour la suite.
 function splitHidden(raw) {
@@ -1349,6 +1613,7 @@ async function withGeminiKeys(fn) {
     try {
       const r = await fn(keys[i].key);
       if (r && typeof r === 'object') r.cle = keys[i].id + (keys[i].id === 'payante' && geminiKey ? ' (relais)' : '');
+      bumpUsage((m) => { if (keys[i].id === 'payante') m.geminiPaid++; else m.geminiFree++; });
       return r;
     } catch (e) {
       last = e;
@@ -1461,15 +1726,17 @@ function toGeminiSchema(s) {
   return o;
 }
 
-function geminiTextBody(body, withThinking) {
+function geminiTextBody(body, withThinking, thinkingLevel) {
   const textOf = (c) => (typeof c === 'string' ? c : (Array.isArray(c) ? c.filter((b) => b && b.type === 'text').map((b) => b.text).join('\n') : ''));
   const out = {
     contents: (body.messages || []).map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: textOf(m.content) }] })),
     // Gemini compte sa réflexion dans la limite de longueur : on laisse de la marge.
     generationConfig: { maxOutputTokens: Math.min(32000, (Number(body.max_tokens) || 1000) * 2 + 2000) }
   };
-  if (withThinking) out.generationConfig.thinkingConfig = { thinkingLevel: 'low' };
-  if (body.system) out.systemInstruction = { parts: [{ text: String(body.system) }] };
+  if (withThinking) out.generationConfig.thinkingConfig = { thinkingLevel: thinkingLevel || 'low' };
+  const fmt = body.output_config && body.output_config.format;
+  if (fmt && fmt.schema) { out.generationConfig.responseMimeType = 'application/json'; out.generationConfig.responseSchema = toGeminiSchema(fmt.schema); }
+  if (body.system) out.systemInstruction = { parts: [{ text: Array.isArray(body.system) ? body.system.map((b) => (b && b.text) || '').join('\n') : String(body.system) }] };
   if (Array.isArray(body.tools) && body.tools.length) {
     out.tools = [{ functionDeclarations: body.tools.map((t) => ({ name: t.name, description: t.description || '', parameters: toGeminiSchema(t.input_schema) })) }];
     const tc = body.tool_choice;
@@ -1500,11 +1767,11 @@ function geminiToClaudeShape(data, model) {
   };
 }
 
-async function geminiGenerate(key, model, body) {
+async function geminiGenerate(key, model, body, thinkingLevel) {
   const ask = (withThinking) => fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
     method: 'POST',
     headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
-    body: JSON.stringify(geminiTextBody(body, withThinking))
+    body: JSON.stringify(geminiTextBody(body, withThinking, thinkingLevel))
   });
   let res = await ask(true);
   let data = null;
@@ -1535,26 +1802,28 @@ async function findGeminiTextModel(key) {
   return names[0] || '';
 }
 
-async function callGeminiText(body) {
+async function callGeminiText(body, opts) {
+  const o = opts || {};
   const { settings } = await chrome.storage.local.get(['settings']);
-  const chosen = (settings && settings.geminiTextModel) || GEMINI_TEXT_DEFAULT;
+  const chosen = o.geminiModel || (settings && settings.geminiTextModel) || GEMINI_TEXT_DEFAULT;
   return withGeminiKeys(async (key) => {
     const model = chosen === GEMINI_TEXT_DEFAULT && geminiTextFallback ? geminiTextFallback : chosen;
     try {
-      return await geminiGenerate(key, model, body);
+      return await geminiGenerate(key, model, body, o.thinkingLevel);
     } catch (e) {
       if (!e.notFound) throw e;
       const alt = await findGeminiTextModel(key).catch(() => '');
       if (!alt || alt === model) throw new Error('Modèle de texte Gemini « ' + model + ' » introuvable, et aucun autre modèle Flash disponible pour cette clé.');
       geminiTextFallback = alt;
-      return geminiGenerate(key, alt, body);
+      return geminiGenerate(key, alt, body, o.thinkingLevel);
     }
   });
 }
 
 // Qui écrit les textes : le moteur choisi, sinon l'autre s'il a une clé (clé absente, refusée, limite
 // atteinte, crédit épuisé, service en panne).
-async function callText(body, forceClaudeModel) {
+// opts : { geminiModel, thinkingLevel } imposés par la puissance de l'IA (annonces).
+async function callText(body, forceClaudeModel, opts) {
   const { apiKey, geminiKey, geminiKey2, settings } = await chrome.storage.local.get(['apiKey', 'geminiKey', 'geminiKey2', 'settings']);
   const want = settings && settings.textEngine === 'gemini' ? 'gemini' : 'claude';
   const has = { claude: !!apiKey, gemini: !!(geminiKey || geminiKey2) };
@@ -1563,7 +1832,7 @@ async function callText(body, forceClaudeModel) {
   const errs = [];
   for (let i = 0; i < order.length; i++) {
     try {
-      const data = order[i] === 'claude' ? await callClaude(body, forceClaudeModel) : await callGeminiText(body);
+      const data = order[i] === 'claude' ? await callClaude(body, forceClaudeModel) : await callGeminiText(body, opts);
       if (i > 0) data.relay = order[0] + ' indisponible (' + String(errs[0] && errs[0].message).slice(0, 120) + ')';
       return data;
     } catch (e) {
@@ -1641,24 +1910,44 @@ function trustedSender(sender) {
 
 // Garde-fou de dépenses : au plus tant d'appels par heure glissante vers les services payants. Une
 // boucle (bug, page qui se recharge en continu) ne peut donc pas vider des crédits Claude ou Gemini.
+// Plafond par heure : réglable (Réglages › Puissance de l'IA), sinon selon la puissance choisie.
 const PAID_LIMITS = { texte: 150, voix: 150 };
-const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
+const POWER_LIMITS = { eco: { texte: 40, voix: 60 }, normal: PAID_LIMITS, max: { texte: 300, voix: 300 } };
+async function paidLimit(kind) {
+  let s = {};
+  try { s = (await chrome.storage.local.get(['settings'])).settings || {}; } catch (e) { /* ignore */ }
+  const cap = Number(s.aiCap);
+  if (cap > 0) return Math.min(500, Math.round(cap));
+  return (POWER_LIMITS[s.aiPower] || PAID_LIMITS)[kind];
+}
+// Plafond sur 24 heures glissantes, en plus du plafond par heure : huit heures au plafond, au plus.
+const DAY_FACTOR = 8;
+const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', hostcities: 'texte', hostpick: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
 let paidLog = null;
+let paidLoad = null;
 async function paidGuard(action) {
   const kind = PAID_ACTIONS[action];
   if (!kind) return;
-  if (!paidLog) {
-    try { paidLog = (await chrome.storage.session.get('paidLog')).paidLog || {}; } catch (e) { paidLog = {}; }
-  }
+  // Tout ce qui attend se fait d'abord ; ensuite, vérifier et compter se font d'un seul tenant, sans
+  // attente entre les deux : deux appels simultanés ne peuvent plus passer sur le même compte.
+  if (!paidLoad) paidLoad = chrome.storage.session.get('paidLog').then((d) => d.paidLog || {}).catch(() => ({}));
+  const loaded = await paidLoad;
+  if (!paidLog) paidLog = loaded;
+  const limit = await paidLimit(kind);
   const now = Date.now();
-  const list = (paidLog[kind] || []).filter((t) => now - t < 3600000);
-  if (list.length >= PAID_LIMITS[kind]) {
-    const wait = Math.ceil((list[0] + 3600000 - now) / 60000);
-    throw new Error('Garde-fou de dépenses : ' + PAID_LIMITS[kind] + ' appels ' + (kind === 'texte' ? 'pour les textes (Claude ou Gemini)' : 'pour les voix Gemini') +
-      " en une heure, c'est le maximum. Nouvel essai possible dans " + wait + ' min.');
+  const day = (paidLog[kind] || []).filter((t) => now - t < 86400000);
+  const hour = day.filter((t) => now - t < 3600000);
+  const what = kind === 'texte' ? 'pour les textes (Claude ou Gemini)' : 'pour les voix Gemini';
+  if (hour.length >= limit) {
+    const wait = Math.ceil((hour[0] + 3600000 - now) / 60000);
+    throw new Error('Garde-fou de dépenses : ' + limit + ' appels ' + what + " en une heure, c'est le maximum. Nouvel essai possible dans " + wait + ' min.');
   }
-  list.push(now);
-  paidLog[kind] = list;
+  if (day.length >= limit * DAY_FACTOR) {
+    const wait = Math.ceil((day[0] + 86400000 - now) / 3600000);
+    throw new Error('Garde-fou de dépenses : ' + (limit * DAY_FACTOR) + ' appels ' + what + " en 24 heures, c'est le maximum. Nouvel essai possible dans " + wait + ' h.');
+  }
+  day.push(now);
+  paidLog[kind] = day;
   try { await chrome.storage.session.set({ paidLog }); } catch (e) { /* ignore */ }
 }
 
@@ -1683,6 +1972,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 function runAction(msg) {
   return msg.action === 'tracks' ? proposeTracks(msg.payload || {})
     : msg.action === 'announce' ? writeAnnouncement(msg.payload || {})
+      : msg.action === 'hostcities' ? hostCities(msg.payload || {})
+      : msg.action === 'hostpick' ? hostPick(msg.payload || {})
       : msg.action === 'classify' ? classifyTracks(msg.payload || {})
         : msg.action === 'weather' ? getWeather(msg.payload || {})
           : msg.action === 'wiki' ? songFacts(msg.payload || {})

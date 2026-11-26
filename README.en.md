@@ -29,6 +29,8 @@ Keys are entered in the extension's secure page (Settings › API keys):
 - **Gemini**: the hosts' voices, solo or duo. Free key at [aistudio.google.com](https://aistudio.google.com) (“Get API key” button).
 - **Last.fm, Discogs, Setlist.fm, Ticketmaster**: extra trivia and concert dates.
 
+With a Claude or Gemini key, each host has a personality and remembers what they say from one show to the next. The **AI power** setting (Economy, Normal or Full power) and an hourly call cap let you choose between livelier hosts and lower usage.
+
 Keys stay in your browser and are only sent to their own service.
 
 ## Documentation

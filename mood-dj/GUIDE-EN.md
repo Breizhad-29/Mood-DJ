@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.26.0.
+Up to date with version 2.34.0.
 
 ---
 
@@ -155,11 +155,54 @@ Radio mode adds a host (or two) who talk between tracks. Most of it is in Settin
 ### Hosts and voices
 
 - For each host: **First name**, **Voice gender**, **Style** and **Voice** (with **Test**). Optional: **Your first name** and **City for the weather** (weather from Open-Meteo, free).
-- **Host duo**: two hosts who answer each other, tease and don't always agree (2 to 5 lines). Needs the Gemini voices. **Test the duo** plays both.
+- **Host duo**: two hosts who answer each other, tease and don't always agree, with short reactions ("No!", "Wait…") between the lines. Needs the Gemini voices. **Test the duo** plays both.
 - **Host styles**: Warm, Quirky, Late-night voice, Pro FM, General-interest radio, Sports commentator, TV presenter, Rock'n'roll, Learned music buff, Hyped morning show, Nostalgic storyteller, Deadpan, Zen. The style changes how the AI writes and, with Gemini, the voice's tone and default voice. With the computer voice, only the text changes.
 - **What makes the hosts talk?**:
   - **Computer**: voices installed on your computer — free and instant, but more robotic, no duo. To add voices: Windows, Settings › Time & language › Speech; Mac, System Settings › Accessibility › Spoken Content › System voice.
   - **Gemini**: 30 natural Google voices, male or female, solo or duo. If Gemini doesn't answer or your credits run out, the computer voice takes over: the radio never goes silent.
+
+### Personality and memories
+
+With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a bit of their life and, in a duo, a role (the organised one and the improviser, the veteran and the newcomer…). It is drawn at random the first time; you can rewrite it freely, or click **New personality**.
+
+- The AI uses it in small touches, never all at once.
+- When a host reveals something new about themselves on air ("I saw them live in 1998, in the rain"), Mood DJ remembers it, and the hosts refer back to it in later shows, like an old running joke. **Forget memories** clears them.
+- In a duo, a topic left hanging at one interlude can come back at the next one.
+- In **Economy** mode (see API keys › AI power), memories are neither recalled nor saved.
+
+### The Jeff & Laeti duo, relationship and voice direction
+
+- **Load the Jeff & Laeti duo** (top of the Hosts card, with a Claude or Gemini key): a former camera operator who *watches* the music and a former sound engineer who *listens* to it. One click fills in their names, styles, personalities, their relationship, the station's universe and their voice direction. **Undo** in the message restores your previous settings. Everything stays editable.
+- **Duo relationship** (co-host card): the duo's "bible", sent to the AI with every dialogue: how they talk, who teases whom, who leads when, their running gags, what they must never do. Optional, for any duo.
+- **Voice direction (Gemini)**, for each host: a short note added to the voice style (e.g. "measured pace, a beat before the punchline").
+- **The hosts' towns**: when you give your city (for the weather), Mood DJ asks the AI once for two real towns within about 50 km, one for each host. They mention it in passing ("back home in…"). The towns stay the same as long as you stay in the same country.
+- The AI also knows whether you are in **Discovery** or **My likes** mode, so the right host can lead.
+
+### Swapping, saving and loading hosts and universes
+
+- **Swap the hosts** (top of the Hosts card, in a duo): the co-host becomes the main host and vice versa, with their names, genders, styles, profiles, stories, voices and memories. **Undo** in the message puts things back.
+- **Their story** (each host): their personal lore — past, path, secrets. The AI alludes to it rarely and never gives a secret away.
+- **My hosts** (each host): **Save this host** keeps their name, gender, style, personality, story, voice direction, Gemini voice and memories. Later, pick them in the list and click **Load** to put them in this seat — main host or co-host. Jeff and Laeti are always in the list as presets.
+- **My universes** (station's universe card): **Save this universe** keeps the universe, the duo relationship, the amount and the events kept, under a name you choose. **Load** brings it back; **Delete** removes one of yours (presets stay).
+- All of this is included in the backup.
+
+### The hosts' picks
+
+Settings › Hosts, voices, languages › **The hosts' picks**: **Never**, **Rare** (default, about one track in six) or **Often** (about one in four).
+
+- Now and then, a host picks a track themselves: a personal favourite matching their personality, or a track brought in by the station's universe (the ongoing plot, a character, a legend).
+- The track always fits your mood (style, energy), is checked on YouTube Music, respects your blocklist and is never one already played. It is slotted in after the locked tracks and shows up in **Up next** marked "pick by …" — you can remove it.
+- The hosts make the most of it: a teaser beforehand ("I've saved you something for later…"), the host who chose it introduces it with their story, and after it the other one gives a verdict.
+- One extra AI call per pick. Not used in **Economy** mode, nor without an AI key.
+
+### The station's universe
+
+With a Claude or Gemini key, Settings › Hosts, voices, languages › **The station’s universe** gives the hosts a small world of their own: where the station broadcasts from (a top-floor studio with a lift that never works, a houseboat…), an object of the studio, characters you never hear (the grumbling sound engineer, the station manager who texts during the show, the studio cat), a station legend, the hosts' shared story and an ongoing plot.
+
+- It is drawn at random the first time; rewrite it as you like, or click **New universe**.
+- **Amount**: **Never**, **Subtle** (default, about one segment in seven), **Regular** (about one in three) or **Very present** (often, even over intros). Never twice in a row, and the music stays the main topic.
+- What the hosts make up on air (a studio mishap, the plot moving on) is kept and stays consistent from show to show. **Forget events** clears it.
+- Not used in **Economy** mode.
 
 ### Announcements
 
@@ -366,9 +409,23 @@ Settings › **API keys** › **Enter key…**, or the remote › **API keys**. 
 - **Setlist.fm**: create an account, then setlist.fm/settings/api.
 - **Ticketmaster**: account on developer.ticketmaster.com, "My Apps", copy the "Consumer Key".
 
+### AI power
+
+Settings › API keys › **AI power**, for the hosts' scripts:
+
+- **Economy**: short scripts written by the lightest model (Claude Haiku 5.5 or Gemini 3.8 Flash), a duo of three lines at most, no host memory. The cheapest.
+- **Normal** (default): the model you chose writes the scripts, with personalities and memories.
+- **Full power**: the most powerful model (Claude Opus 5.5 or Gemini 4 Argon) writes longer, more polished dialogues (except over track intros). Livelier, but more expensive (with Claude, about twice the price of Sonnet) and a little slower; announcements are prepared in advance, so you don't hear the difference.
+
+Claude Opus 5.5 can also be picked directly as the **Claude model**.
+
+### Today's usage
+
+Under the call cap, **Today’s usage (estimate)** shows the estimated cost of Claude since midnight (from Claude's public prices and the usage each answer reports, cache included) and the number of Gemini calls with the free and the paid key. Gemini paid calls are billed by Google at its own prices.
+
 ### Spending cap
 
-At most 150 calls per hour for the texts (Claude or Gemini) and 150 for the Gemini voices. Beyond that, calls are refused with a message saying how many minutes to wait.
+**Hourly call cap**, counted separately for the scripts and for the Gemini voices. On **Automatic**, it follows the AI power: 40 scripts and 60 voices per hour in Economy, 150 and 150 in Normal, 300 and 300 in Full power. You can also set 20, 40, 80, 150 or 300 per hour. Beyond that, calls are refused with a message saying how many minutes to wait, and the hosts switch to ready-made phrases. This cap does not replace a spending limit set in the service's console.
 
 ---
 

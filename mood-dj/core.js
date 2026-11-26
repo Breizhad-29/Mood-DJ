@@ -101,7 +101,7 @@ var MDJ_CORE = (function () {
   const DURATIONS = [['30', '30 min'], ['60', '1 h'], ['90', '1 h 30'], ['120', '2 h'], ['180', '3 h'], ['until', "Jusqu'à une heure"]];
   const CYCLES = [['auto', 'Auto'], ['15', '15 min'], ['30', '30 min'], ['60', '1 h'], ['120', '2 h'], ['180', '3 h']];
   const TIMERS = [['off', 'Désactivée'], ['15', '15 min'], ['30', '30 min'], ['60', '1 h'], ['end', 'Fin du titre']];
-  const MODELS = [['claude-sonnet-5-5', 'Claude Sonnet 5.5 · recommandé'], ['claude-haiku-5-5', 'Claude Haiku 5.5 · le plus économique']];
+  const MODELS = [['claude-sonnet-5-5', 'Claude Sonnet 5.5 · recommandé'], ['claude-opus-5-5', 'Claude Opus 5.5 · le plus vivant, plus cher'], ['claude-haiku-5-5', 'Claude Haiku 5.5 · le plus économique']];
   const FREQS = [['third', 'Un titre sur trois'], ['every', 'À chaque titre'], ['change', "Seulement quand l'ambiance change"]];
 
   const PRESETS = {
