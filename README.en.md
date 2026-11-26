@@ -21,7 +21,7 @@ The interface is available in English: Settings › Hosts, voices, languages ›
 
 > **To get the most out of Mood DJ, API keys are highly recommended.** They are what bring the radio to life: hosts who write real announcements about every track, natural voices in solo or duo, trivia and concert dates. A free Gemini key is already enough to unlock everything.
 
-Without a key, Mood DJ still works, but in a limited form: built-in catalog, canned phrases (**in French only**) and your computer's voice. For an English-speaking radio, an AI key (Claude or Gemini) is therefore essential.
+Without a key, Mood DJ still works, but in a limited form: built-in catalog, a small set of canned phrases (in English for any radio language other than French) and your computer's voice. With an AI key (Claude or Gemini), the hosts write fresh, varied scripts in the language of your choice.
 
 Keys are entered in the extension's secure page (Settings › API keys):
 
@@ -33,10 +33,9 @@ Keys stay in your browser and are only sent to their own service.
 
 ## Documentation
 
-The detailed documentation is in French for now:
-
-- [`mood-dj/LISEZMOI.txt`](mood-dj/LISEZMOI.txt): every feature, version by version.
-- [`mood-dj/legal.html`](mood-dj/legal.html): legal notice, privacy, sources and credits.
+- [`mood-dj/GUIDE-EN.md`](mood-dj/GUIDE-EN.md): user guide, feature by feature.
+- [`mood-dj/legal.en.html`](mood-dj/legal.en.html): legal notice, privacy, sources and credits.
+- [`mood-dj/LISEZMOI.txt`](mood-dj/LISEZMOI.txt): full changelog, version by version (in French).
 
 ## License
 

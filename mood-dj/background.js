@@ -1294,10 +1294,11 @@ async function testSourceKey(p) {
 }
 
 // ------------------------------------------------------------- météo
+// Description en français, puis en anglais (phrases toutes faites d'une radio dans une autre langue).
 const WEATHER_CODES = [
-  [[0], 'ciel dégagé'], [[1], 'ciel plutôt dégagé'], [[2], 'quelques nuages'], [[3], 'ciel couvert'],
-  [[45, 48], 'brouillard'], [[51, 53, 55, 56, 57], 'bruine'], [[61, 63, 65, 66, 67], 'pluie'],
-  [[71, 73, 75, 77], 'neige'], [[80, 81, 82], 'averses'], [[85, 86], 'averses de neige'], [[95, 96, 99], 'orage']
+  [[0], 'ciel dégagé', 'clear skies'], [[1], 'ciel plutôt dégagé', 'mostly clear skies'], [[2], 'quelques nuages', 'a few clouds'], [[3], 'ciel couvert', 'overcast'],
+  [[45, 48], 'brouillard', 'fog'], [[51, 53, 55, 56, 57], 'bruine', 'drizzle'], [[61, 63, 65, 66, 67], 'pluie', 'rain'],
+  [[71, 73, 75, 77], 'neige', 'snow'], [[80, 81, 82], 'averses', 'showers'], [[85, 86], 'averses de neige', 'snow showers'], [[95, 96, 99], 'orage', 'thunderstorms']
 ];
 
 async function getWeather(p) {
@@ -1311,8 +1312,8 @@ async function getWeather(p) {
   const fj = await f.json();
   const cur = fj && fj.current;
   if (!cur) throw new Error('Météo indisponible.');
-  const desc = (WEATHER_CODES.find((w) => w[0].includes(cur.weather_code)) || [null, ''])[1];
-  return { city: place.name, temp: Math.round(cur.temperature_2m), desc, isDay: !!cur.is_day };
+  const code = WEATHER_CODES.find((w) => w[0].includes(cur.weather_code)) || [null, '', ''];
+  return { city: place.name, temp: Math.round(cur.temperature_2m), desc: code[1], descEn: code[2], isDay: !!cur.is_day };
 }
 
 async function testKey() {
