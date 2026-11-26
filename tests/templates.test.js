@@ -7,7 +7,7 @@ const { contentSlice, core } = require('./helpers');
 const C = core();
 const pick = (a) => a[0];
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-const code = contentSlice('  function spokenTitle(', '  function templateLine(') + contentSlice('  // Phrases toutes faites en anglais', '  function b64ToBuffer(') + contentSlice('  function timeParts(', '  function trendOf(');
+const code = contentSlice('\nfunction spokenTitle(', '\nfunction templateLine(') + contentSlice('\n// Phrases toutes faites en anglais', '\nfunction b64ToBuffer(') + contentSlice('\nfunction timeParts(', '\nfunction trendOf(');
 const api = new Function('C', 'pick', 'cap', code + '; return { spokenTitle, templateLineEn, templateDuoEn, timeParts };')(C, pick, cap);
 
 test('heure à l’anglaise', () => {

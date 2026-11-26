@@ -25,10 +25,12 @@ const known = (s) => DICT[s] !== undefined || DICT[s.trim()] !== undefined;
 // (« Mood DJ », « Volume ») ne sont pas signalés.
 const FRENCH = /[éèàçùâêîôûëïœ]|\b(le|la|les|de|des|du|un|une|et|ou|en|ne|pour|avec|sur|dans|pas|au|aux|ton|ta|tes)\b/i;
 
-// 1. Textes du panneau (content.js) : toast('…'), h('tag', {…}, '…'), title / placeholder / aria-label.
+// 1. Textes du panneau (mdj-*.js, content.js) : toast('…'), h('tag', {…}, '…'), title / placeholder / aria-label.
 const unquote = (q) => q.slice(1, -1).replace(/\\(['"\\])/g, '$1');
 const RE_JS = /(?:toast\(|\bh\('[a-z0-9]+',\s*(?:\{[^{}]*\}|null),\s*|(?:\btitle|\bplaceholder|'aria-label'):\s*)('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*")/g;
-for (const f of ['content.js', 'popup.js', 'options.js']) {
+// Le panneau est réparti entre les fichiers mdj-*.js et content.js.
+const PANEL_FILES = fs.readdirSync(DIR).filter((f) => /^mdj-.*\.js$/.test(f)).sort().concat(['content.js', 'popup.js', 'options.js']);
+for (const f of PANEL_FILES) {
   const src = read(f);
   const seen = new Set();
   let m;

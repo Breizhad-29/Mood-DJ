@@ -1,5 +1,27 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.32.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.33.0
 ============================================
+
+2.33.0 : LE CODE DU PANNEAU RANGÉ EN PLUSIEURS FICHIERS
+Rien ne change à l'usage : le code est identique, ligne pour ligne, mais
+l'ancien content.js (7 200 lignes) est réparti en fichiers thématiques,
+chargés dans l'ordre par le manifest :
+- mdj-etat.js : état, réglages, journal technique, sauvegarde ;
+- mdj-services.js : pont avec YouTube Music, appels à l'IA, son,
+  recherche, J'aime, artistes similaires ;
+- mdj-animateurs.js : personnalités, mémoire, Jeff & Laeti, profils,
+  choix des animateurs, univers de la station, puissance de l'IA ;
+- mdj-sources.js : anecdotes, Wikipédia, catalogue personnel, réserve ;
+- mdj-moteur.js : file d'attente, choix des titres, liste noire ;
+- mdj-radio.js : rythme, programme, jeux, phrases toutes faites, grille,
+  dédicaces ;
+- mdj-annonces.js : invité, préparation et diffusion des annonces, voix ;
+- mdj-lecture.js : déroulement de l'émission, changement d'ambiance,
+  historique ;
+- mdj-ui.js, mdj-ui-onglets.js, mdj-ui-reglages.js : l'interface ;
+- content.js : le démarrage.
+Un test vérifie à chaque envoi que les fichiers se chargent dans le bon
+ordre. Après la mise à jour, recharge bien l'extension dans
+chrome://extensions : Chrome doit relire le manifest.
 
 2.32.0 : MOINS CHER, PLUS LÉGER, ET DES TESTS
 - Cache des consignes (Claude) : la partie fixe de ce qu'on envoie à l'IA

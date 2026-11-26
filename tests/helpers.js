@@ -38,13 +38,19 @@ function loadBackground(options) {
   return ctx;
 }
 
-// Extrait une suite de fonctions de content.js (entre deux repères) pour les tester seules.
+// Fichiers du panneau, dans l'ordre du manifest (ils partagent la même portée).
+function contentFiles() {
+  const m = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.json'), 'utf8'));
+  const cs = m.content_scripts.find((c) => c.js.includes('content.js'));
+  return cs.js;
+}
+// Extrait une suite de fonctions du panneau (entre deux repères) pour les tester seules.
 function contentSlice(from, to) {
-  const src = fs.readFileSync(path.join(DIR, 'content.js'), 'utf8');
+  const src = contentFiles().map((f) => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n');
   const i = src.indexOf(from);
   const j = src.indexOf(to, i);
-  if (i < 0 || j < 0) throw new Error('repère introuvable dans content.js : ' + from);
+  if (i < 0 || j < 0) throw new Error('repère introuvable dans le panneau : ' + from);
   return src.slice(i, j);
 }
 
-module.exports = { DIR, loadBackground, contentSlice, core: () => require(path.join(DIR, 'core.js')) };
+module.exports = { DIR, loadBackground, contentSlice, contentFiles, core: () => require(path.join(DIR, 'core.js')) };
