@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.31.1';
+  const VERSION = '2.32.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -117,8 +117,11 @@
       dbgDirty = true;
     } catch (e) { /* ignore */ }
   }
-  setInterval(() => { if (dbgDirty) { dbgDirty = false; store({ debugLog: dbgBuf.slice(-DEBUG_MAX) }); } }, 4000);
+  // Le journal (jusqu'à 4 000 lignes, près d'1 Mo) est réécrit en entier à chaque enregistrement : une fois
+  // toutes les 30 s suffit, plus à la fermeture de la page. L'export lit le journal en mémoire, toujours à jour.
+  setInterval(() => { if (dbgDirty) { dbgDirty = false; store({ debugLog: dbgBuf.slice(-DEBUG_MAX) }); } }, 30000);
   window.addEventListener('pagehide', () => { if (dbgDirty) store({ debugLog: dbgBuf.slice(-DEBUG_MAX) }); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && dbgDirty) { dbgDirty = false; store({ debugLog: dbgBuf.slice(-DEBUG_MAX) }); } });
   window.addEventListener('error', (e) => dlog('erreur', (e.message || 'erreur') + (e.filename ? ' @' + String(e.filename).split('/').pop() + ':' + e.lineno : '')));
   window.addEventListener('unhandledrejection', (e) => dlog('erreur', 'promesse rejetée : ' + ((e.reason && e.reason.message) || String(e.reason))));
   function snapshot() {
@@ -924,14 +927,10 @@
         power: aiPower()
       }), aiTimeout(25000));
       if (session !== s || !r) return;
-      const items = await call('search', r.artist + ' ' + r.title, true).catch(() => null);
+      // Même rapprochement que pour le catalogue : version studio préférée, live, karaoké et remix écartés.
+      const items = await call('search', r.title + ' ' + r.artist, true).catch(() => null);
       if (session !== s) return;
-      const want = C.norm(r.artist);
-      const it = (items || []).find((x) => {
-        if (!x || !x.videoId || SKIP_VERSION.test(x.title || '')) return false;
-        const a = C.norm(firstArtist(x) || '');
-        return a && want && (a === want || a.includes(want) || want.includes(a));
-      });
+      const it = C.bestMatch({ artist: r.artist, title: r.title }, items || [], false);
       if (!it) { dlog('annonce', 'choix de ' + name + ' introuvable', { artiste: r.artist, titre: r.title }); return; }
       const t = trackFromItem(it, { energy: r.energy || 3 });
       if (C.isBanned(bannedSet(), t.artist) || s.usedKeys.has(t.key)) { dlog('annonce', 'choix de ' + name + ' écarté (liste noire ou déjà passé)', { titre: t.title }); return; }
@@ -1174,6 +1173,9 @@
         ids.sort((a, b) => artistCache.pages[a].at - artistCache.pages[b].at);
         for (const id of ids.slice(0, ids.length - 1500)) delete artistCache.pages[id];
       }
+      // Les noms d'artistes (nom → identifiant) n'étaient jamais élagués : on garde les 3 000 derniers.
+      const names = Object.keys(artistCache.names);
+      if (names.length > 3000) for (const k of names.slice(0, names.length - 3000)) delete artistCache.names[k];
       store({ artistCache });
     }, 3000);
   }
@@ -3426,6 +3428,7 @@
         // Lignes cachées du jeu (question posée, vraie réponse) : jamais lues à l'antenne.
         const cut = typeof text === 'string' ? text.indexOf('\n@@MDJ@@') : -1;
         if (cut >= 0) { try { hidden = JSON.parse(text.slice(cut + 8)) || {}; } catch (e) { hidden = {}; } text = text.slice(0, cut); }
+        if (hidden.cache) dlog('api', 'cache des consignes', { lus: hidden.cache.lus, ecrits: hidden.cache.ecrits, hors_cache: hidden.cache.autres });
         // Mémoire des animateurs : gardée avec l'annonce, et retenue seulement si elle passe à l'antenne
         // (une annonce refaite ou un exemple des Réglages ne laisse aucun faux souvenir).
         if (!s.demo) {

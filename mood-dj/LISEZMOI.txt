@@ -1,5 +1,26 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.31.1
+MOOD DJ POUR YOUTUBE MUSIC — version 2.32.0
 ============================================
+
+2.32.0 : MOINS CHER, PLUS LÉGER, ET DES TESTS
+- Cache des consignes (Claude) : la partie fixe de ce qu'on envoie à l'IA
+  (identité, langue, fiches des animateurs, relation du duo, règles) est
+  maintenant identique d'une annonce à l'autre et mise en cache par
+  l'API. Relue dans les 5 minutes, elle coûte environ dix fois moins
+  cher. Ce qui change à chaque fois (émotions, souvenirs, titres) vient
+  après. Le journal technique note « cache des consignes » avec le nombre
+  de mots-jetons relus depuis le cache. Avec une fiche courte, la partie
+  fixe peut être trop petite pour être mise en cache : rien ne change
+  alors.
+- Journal technique : il était réécrit en entier (jusqu'à 1 Mo) toutes
+  les 4 secondes ; c'est maintenant toutes les 30 secondes, et dès que
+  l'onglet est caché ou fermé. L'export reste complet.
+- Le cache des noms d'artistes est limité à 3 000 entrées.
+- Choix des animateurs : le titre est retrouvé sur YouTube Music avec le
+  même rapprochement que le catalogue (version studio préférée).
+- Tests automatiques (dossier tests du dépôt, sur GitHub à chaque envoi) :
+  consignes et cache, lignes cachées jamais lues, réglages par modèle,
+  garde-fou de dépenses, choix des animateurs, rapprochement YouTube
+  Music, liste noire, phrases en anglais.
 
 2.31.1 : CORRECTIFS APRÈS L'ANALYSE DU CODE
 - Le choix des animateurs a toujours son annonce : celui qui l'a choisi le

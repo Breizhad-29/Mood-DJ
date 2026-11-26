@@ -35,7 +35,7 @@ Les clés restent dans le navigateur et ne sont envoyées qu'à leur service.
 - [`mood-dj/legal.html`](mood-dj/legal.html) : mentions légales, confidentialité, sources et crédits.
 - En anglais : [`mood-dj/GUIDE-EN.md`](mood-dj/GUIDE-EN.md) (guide par fonction) et [`mood-dj/legal.en.html`](mood-dj/legal.en.html) (mentions légales).
 
-À chaque envoi sur GitHub, un contrôle automatique (onglet **Actions**) vérifie que la traduction anglaise suit : textes de l'interface, mentions légales, guide. À la main : `node tools/check-i18n.js`.
+À chaque envoi sur GitHub, des contrôles automatiques (onglet **Actions**) vérifient que la traduction anglaise suit (textes de l'interface, mentions légales, guide) et font tourner les tests. À la main : `node tools/check-i18n.js` et `node --test tests/*.test.js`.
 
 ## Licence
 

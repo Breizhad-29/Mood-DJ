@@ -409,7 +409,7 @@ function radioLangRule(lang) {
 }
 
 // Personnalité d'un animateur (fiche stable) et ce qu'il a déjà raconté de lui à l'antenne.
-function personaLines(label, name, persona, memories, city, story) {
+function personaLines(label, name, persona, city, story) {
   const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
   const out = [];
   // label vide : l'animateur parle seul (« ta personnalité »).
@@ -420,6 +420,12 @@ function personaLines(label, name, persona, memories, city, story) {
   const hist = String(story || '').replace(/\s+/g, ' ').slice(0, 2000).trim();
   if (hist) out.push((label ? 'HISTOIRE DE ' + label : 'TON HISTOIRE') + " (son passé, ce qui l'a construit, ce qu'il garde pour lui ; à distiller rarement, une allusion à la fois, et un secret reste un secret) : " + hist);
   if (q(city, 60)) out.push((label ? label + ' habite' : 'Tu habites') + ' à ' + q(city, 60) + ", près de chez l'auditeur : à citer de temps en temps, en passant, comme on dit d'où l'on vient (« chez moi, à " + q(city, 60) + "… »), sans en faire un sujet et sans inventer de détail vérifiable (ni adresse, ni commerce, ni voisin nommé).");
+  return out;
+}
+// Ce qu'un animateur a déjà raconté de lui : change d'une annonce à l'autre, donc hors de la partie en cache.
+function memLines(label, memories) {
+  const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+  const out = [];
   const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-12);
   if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
   return out;
@@ -499,11 +505,16 @@ async function writeAnnouncement(p) {
   const power = p.power === 'eco' || p.power === 'max' ? p.power : 'normal';
   const pz = p.persona || {};
   const memoryOn = power !== 'eco' && p.kind !== 'outro';
-  const system = [
+  // Partie fixe des consignes (identité, langue, fiches, relation du duo, règles) : identique d'une annonce à
+  // l'autre, elle est mise en cache par l'API Claude et relue bien moins cher. La partie variable vient après.
+  const cohostName = String(p.cohost || 'Sam').slice(0, 40);
+  const duoB = !!(p.duo && pz.b);
+  const stable = [
     'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale personnelle diffusée sur YouTube Music. Ton style : " + style + '.',
     radioLangRule(p.lang),
-    ...personaLines(p.duo ? 'A' : '', host, pz.a, power === 'eco' ? [] : pz.memA, pz.cityA, pz.storyA),
-    emotionRules(p),
+    ...personaLines(p.duo ? 'A' : '', host, pz.a, pz.cityA, pz.storyA),
+    ...(duoB ? personaLines('B', cohostName, pz.b, pz.cityB, pz.storyB) : []),
+    ...(duoB && String(pz.relation || '').trim() ? ['LEUR RELATION (la bible du duo, à respecter, mais à faire vivre par petites touches, jamais à réciter) :\n' + String(pz.relation).slice(0, 4000).trim()] : []),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
       "N'ajoute aucun détail qui n'est pas dans la fiche (nationalité, origine, date, chiffre) : même pour une blague, une personne réelle garde sa vraie nationalité.",
@@ -511,6 +522,12 @@ async function writeAnnouncement(p) {
     "Ne dis jamais que tu n'as pas d'anecdote, pas d'information ou que tu ne connais pas un artiste ou un morceau : parle alors du style, du thème ou de l'ambiance. Ne présente jamais un titre ou un artiste comme nouveau, une découverte, inconnu de l'auditeur, ni comme proche ou cousin d'un autre artiste.",
     'Réponds uniquement avec le texte à dire.'
   ].join('\n');
+  const variable = [
+    emotionRules(p),
+    ...memLines(p.duo ? 'A' : '', power === 'eco' ? [] : pz.memA),
+    ...(duoB ? memLines('B', power === 'eco' ? [] : pz.memB) : [])
+  ].filter(Boolean).join('\n');
+  const system = [{ type: 'text', text: stable, cache_control: { type: 'ephemeral' } }].concat(variable ? [{ type: 'text', text: variable }] : []);
   const rule = KIND_RULES[p.kind] || KIND_RULES.talkover;
   // En duo, la longueur est fixée par le format duo (nombre de répliques) : on retire celle du solo.
   // Longueurs revues après le journal du 24/11 : des pauses de 44 à 54 s et une « culture courte »
@@ -552,11 +569,6 @@ async function writeAnnouncement(p) {
       "Bannis les formules creuses d'animateur : « Absolument ! », « Tout à fait ! », « Exactement ! », « Tu as raison », « Excellente question », « Quelle transition », les compliments de l'un à l'autre, et le prénom de l'autre en tête de chaque réplique. Une vanne ne s'explique jamais.\n" +
       "Exemple du ton recherché (ne le recopie pas, n'en reprends ni les idées ni les mots) :\n" +
       "A: Je préviens, celle-là, je la chante dans ma voiture tous les matins.\nB: Ah, c'est donc toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Bref ! La suite, c'est…");
-    lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB, pz.cityB, pz.b ? pz.storyB : ''));
-    // Relation du duo (sa « bible ») : comment ils se parlent, qui mène, running gags, garde-fous.
-    if (pz.b && String(pz.relation || '').trim()) {
-      lines.push('LEUR RELATION (la bible du duo, à respecter, mais à faire vivre par petites touches, jamais à réciter) :\n' + String(pz.relation).slice(0, 4000).trim());
-    }
   }
   // Univers de la station (lore) : envoyé seulement quand Mood DJ a tiré une référence pour cette intervention.
   const lore = p.lore && String(p.lore.text || '').trim() && power !== 'eco' ? p.lore : null;
@@ -767,7 +779,10 @@ async function writeAnnouncement(p) {
   if (mem && mem.souvenirs.length) hidden.souvenirs = mem.souvenirs.slice(0, 2);
   if (mem && mem.suivi) hidden.suivi = mem.suivi;
   if (mem && lore && mem.lore.length) hidden.lore = mem.lore.slice(0, 1);
-  return out + (hidden.question || hidden.answer || hidden.souvenirs || hidden.suivi || hidden.lore ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
+  // Mots-jetons lus depuis le cache des consignes (Claude) : pour le journal technique.
+  const u = data.usage || {};
+  if (u.cache_read_input_tokens || u.cache_creation_input_tokens) hidden.cache = { lus: u.cache_read_input_tokens || 0, ecrits: u.cache_creation_input_tokens || 0, autres: u.input_tokens || 0 };
+  return out + (hidden.question || hidden.answer || hidden.souvenirs || hidden.suivi || hidden.lore || hidden.cache ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
 }
 // Lignes « QUESTION : » et « RÉPONSE : » du jeu : retirées du texte lu, gardées pour la suite.
 function splitHidden(raw) {
@@ -1639,7 +1654,7 @@ function geminiTextBody(body, withThinking, thinkingLevel) {
     generationConfig: { maxOutputTokens: Math.min(32000, (Number(body.max_tokens) || 1000) * 2 + 2000) }
   };
   if (withThinking) out.generationConfig.thinkingConfig = { thinkingLevel: thinkingLevel || 'low' };
-  if (body.system) out.systemInstruction = { parts: [{ text: String(body.system) }] };
+  if (body.system) out.systemInstruction = { parts: [{ text: Array.isArray(body.system) ? body.system.map((b) => (b && b.text) || '').join('\n') : String(body.system) }] };
   if (Array.isArray(body.tools) && body.tools.length) {
     out.tools = [{ functionDeclarations: body.tools.map((t) => ({ name: t.name, description: t.description || '', parameters: toGeminiSchema(t.input_schema) })) }];
     const tc = body.tool_choice;
