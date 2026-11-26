@@ -415,13 +415,15 @@ function personaLines(label, name, persona, memories) {
   if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
   return out;
 }
-// Lignes « SOUVENIR A : », « SOUVENIR B : » et « À SUIVRE : » : la mémoire des animateurs, jamais lue.
+// Lignes « SOUVENIR A : », « SOUVENIR B : », « À SUIVRE : » et « LORE : » : la mémoire des
+// animateurs et de l'univers de la station, jamais lue.
 function splitMemory(raw) {
-  const mem = { souvenirs: [], suivi: '' };
-  const spoken = String(raw || '').replace(/^[ \t]*(?:[AB]\s*:\s*)?[«"*]*\s*(SOUVENIR\s*([AB])|[ÀA] SUIVRE)\s*[»"*]*\s*:\s*(.+)$/gm, (m, k, who, v) => {
+  const mem = { souvenirs: [], suivi: '', lore: [] };
+  const spoken = String(raw || '').replace(/^[ \t]*(?:[AB]\s*:\s*)?[«"*]*\s*(SOUVENIR\s*([AB])|[ÀA] SUIVRE|LORE)\s*[»"*]*\s*:\s*(.+)$/gm, (m, k, who, v) => {
     const t = v.replace(/[«»"*]/g, '').trim().slice(0, 200);
     if (t && who) mem.souvenirs.push({ who, text: t });
-    else if (t && !who) mem.suivi = t;
+    else if (t && k === 'LORE') mem.lore.push(t);
+    else if (t) mem.suivi = t;
     return '';
   });
   return { spoken: spoken.replace(/\n{2,}/g, '\n').trim(), mem };
@@ -490,6 +492,16 @@ async function writeAnnouncement(p) {
       "A: Je préviens, celle-là, je la chante dans ma voiture tous les matins.\nB: Ah, c'est donc toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Bref ! La suite, c'est…");
     lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB));
   }
+  // Univers de la station (lore) : envoyé seulement quand Mood DJ a tiré une référence pour cette intervention.
+  const lore = p.lore && String(p.lore.text || '').trim() && power !== 'eco' ? p.lore : null;
+  if (lore) {
+    const q = (x, n) => String(x || '').replace(/[«»"]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+    const facts = (Array.isArray(lore.memories) ? lore.memories : []).map((m) => q(m, 200)).filter(Boolean).slice(-10);
+    lines.push("L'UNIVERS DE LA STATION (le « lore » de l'émission, que les auditeurs fidèles connaissent) : " + q(lore.text, 1500) +
+      (facts.length ? "\nCe qui s'est déjà passé à l'antenne dans cet univers (reste cohérent) :\n- " + facts.join('\n- ') : '') +
+      "\nCette fois, glisse UNE référence à cet univers (un personnage, un objet du studio, une légende, " + (p.duo ? 'leur histoire commune' : 'ton histoire avec ton coanimateur, absent aujourd\'hui') + " ou l'intrigue en cours), en passant, comme une blague entre habitués : une réplique ou une demi-phrase, jamais une explication ni un résumé. " +
+      "Tu peux faire avancer un tout petit peu l'intrigue en cours. Ne contredis jamais cet univers, et la musique reste le sujet principal.");
+  }
   if (pz.thread && power !== 'eco' && p.kind !== 'intro') {
     lines.push("SUJET LAISSÉ EN SUSPENS à l'intervention précédente : « " + String(pz.thread).replace(/[«»"\n]/g, ' ').slice(0, 200) + " ». Reprends-le en passant si c'est naturel (« bon, pour revenir à… »), sinon laisse tomber.");
   }
@@ -503,6 +515,7 @@ async function writeAnnouncement(p) {
     lines.push('MÉMOIRE DES ANIMATEURS (lignes cachées, jamais lues à l\'antenne) : après le texte, tu peux ajouter, chacune sur sa propre ligne : ' +
       (p.duo ? "« SOUVENIR A : … » ou « SOUVENIR B : … » si un animateur vient de révéler un nouveau détail sur lui-même (un goût, une manie, un souvenir, un bout de sa vie), en une courte phrase à la troisième personne ; et « À SUIVRE : … » si leur conversation laisse un sujet à reprendre à la prochaine intervention. "
         : "« SOUVENIR A : … » si tu viens de révéler un nouveau détail sur toi-même (un goût, une manie, un souvenir), en une courte phrase à la troisième personne. ") +
+      (lore ? "« LORE : … » si tu viens d'inventer un fait nouveau dans l'univers de la station (un incident au studio, un nouveau personnage, l'intrigue qui avance), en une courte phrase. " : '') +
       "Au plus une ligne de chaque sorte, et aucune s'il n'y a rien de neuf. Ces lignes n'entrent pas dans le nombre de mots.");
   }
   // Émission de la grille : son nom (et le ton du réveil).
@@ -667,7 +680,8 @@ async function writeAnnouncement(p) {
   const out = p.duo ? text.split('\n').map(clean).filter(Boolean).join('\n') : clean(text.replace(/\s+/g, ' '));
   if (mem && mem.souvenirs.length) hidden.souvenirs = mem.souvenirs.slice(0, 2);
   if (mem && mem.suivi) hidden.suivi = mem.suivi;
-  return out + (hidden.question || hidden.answer || hidden.souvenirs || hidden.suivi ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
+  if (mem && lore && mem.lore.length) hidden.lore = mem.lore.slice(0, 1);
+  return out + (hidden.question || hidden.answer || hidden.souvenirs || hidden.suivi || hidden.lore ? '\n@@MDJ@@' + JSON.stringify(hidden) : '');
 }
 // Lignes « QUESTION : » et « RÉPONSE : » du jeu : retirées du texte lu, gardées pour la suite.
 function splitHidden(raw) {

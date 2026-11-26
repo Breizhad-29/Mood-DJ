@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.27.0.
+Up to date with version 2.28.0.
 
 ---
 
@@ -169,6 +169,15 @@ With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a
 - When a host reveals something new about themselves on air ("I saw them live in 1998, in the rain"), Mood DJ remembers it, and the hosts refer back to it in later shows, like an old running joke. **Forget memories** clears them.
 - In a duo, a topic left hanging at one interlude can come back at the next one.
 - In **Economy** mode (see API keys › AI power), memories are neither recalled nor saved.
+
+### The station's universe
+
+With a Claude or Gemini key, Settings › Hosts, voices, languages › **The station’s universe** gives the hosts a small world of their own: where the station broadcasts from (a top-floor studio with a lift that never works, a houseboat…), an object of the studio, characters you never hear (the grumbling sound engineer, the station manager who texts during the show, the studio cat), a station legend, the hosts' shared story and an ongoing plot.
+
+- It is drawn at random the first time; rewrite it as you like, or click **New universe**.
+- **Amount**: **Never**, **Subtle** (default, about one segment in seven), **Regular** (about one in three) or **Very present** (often, even over intros). Never twice in a row, and the music stays the main topic.
+- What the hosts make up on air (a studio mishap, the plot moving on) is kept and stays consistent from show to show. **Forget events** clears it.
+- Not used in **Economy** mode.
 
 ### Announcements
 

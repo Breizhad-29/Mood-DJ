@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.27.0';
+  const VERSION = '2.28.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -40,7 +40,7 @@
     hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
     voiceEngine: 'systeme',
     geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: ''
+    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret'
   };
   const DEFAULT_SEL = {
     style: 'rock', sub: 'all', moment: 'route', energy: 3, mood: null, era: 'all', prompt: '',
@@ -228,7 +228,8 @@
     savedAmb = Array.isArray(d.savedAmbiances) ? d.savedAmbiances.filter((a) => a && a.name && a.sel) : [];
     wikiCache = d.wikiCache && typeof d.wikiCache === 'object' ? d.wikiCache : {};
     toldCache = d.toldCache && typeof d.toldCache === 'object' ? d.toldCache : {};
-    hostMemory = d.hostMemory && typeof d.hostMemory === 'object' ? { A: Array.isArray(d.hostMemory.A) ? d.hostMemory.A : [], B: Array.isArray(d.hostMemory.B) ? d.hostMemory.B : [] } : { A: [], B: [] };
+    const hm = d.hostMemory && typeof d.hostMemory === 'object' ? d.hostMemory : {};
+    hostMemory = { A: Array.isArray(hm.A) ? hm.A : [], B: Array.isArray(hm.B) ? hm.B : [], L: Array.isArray(hm.L) ? hm.L : [] };
     learned = Array.isArray(d.learnedCat) ? d.learnedCat : [];
     artistCache = d.artistCache && d.artistCache.pages ? d.artistCache : { names: {}, pages: {} };
     if (Array.isArray(d.debugLog)) dbgBuf = d.debugLog.slice(-DEBUG_MAX);
@@ -699,17 +700,82 @@
     if (!settings.cohostPersona) { settings.cohostPersona = makePersona(1, pair, settings.hostPersona); changed = true; }
     if (changed) saveSettings();
   }
-  let hostMemory = { A: [], B: [] };
+  let hostMemory = { A: [], B: [], L: [] };
   const saveMemory = debounce(() => store({ hostMemory }), 800);
+  // who : 'A' ou 'B' (souvenirs d'un animateur), 'L' (ce qui s'est passé dans l'univers de la station).
   function rememberSelf(who, text) {
     const t = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
-    if (!t || (who !== 'A' && who !== 'B')) return;
+    if (!t || (who !== 'A' && who !== 'B' && who !== 'L')) return;
     const key = t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim();
     const list = hostMemory[who] || [];
     if (list.some((m) => m.t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim() === key)) return;
     hostMemory[who] = list.concat([{ t, at: Date.now() }]).slice(-30);
     saveMemory();
     dlog('annonce', 'souvenir retenu (' + who + ')', { texte: t });
+  }
+  // ------------------------------------------------ univers de la station (lore)
+  // Un petit monde autour des animateurs : le studio, des personnages qu'on n'entend jamais, une
+  // légende, leur histoire commune et une intrigue en cours. Tiré au sort, puis modifiable.
+  const LORE_POOLS = {
+    fr: {
+      studio: ['un studio au dernier étage d’un vieil immeuble, avec un ascenseur en panne une semaine sur deux', 'un studio installé dans une ancienne boulangerie, où ça sent encore le pain le matin',
+        'un studio au sous-sol, sans fenêtre, que tout le monde appelle « le bunker »', 'un studio au-dessus d’un bar à karaoké, qu’on entend parfois à travers le plancher',
+        'une péniche amarrée sur le fleuve, qui tangue quand un bateau passe'],
+      objet: ['une machine à café qui ne marche que si on la tape du plat de la main', 'un fauteuil qui grince au moindre mouvement', 'une plante verte baptisée Bernadette, qui survit à tout',
+        'un vieux juke-box qui ne joue qu’un seul disque', 'une cloche qu’on fait sonner pour chaque anniversaire d’auditeur'],
+      perso: ['Gégé, le technicien, qu’on n’entend jamais mais qui râle derrière la vitre', 'Madame Paule, la directrice, qui écoute tout et envoie des textos pendant l’émission',
+        'Pixel, le chat du studio, qui marche sur la console', 'Nono, le stagiaire éternel, là depuis six ans', 'le livreur de pizzas du jeudi, devenu un auditeur fidèle'],
+      legende: ['la grande coupure de courant de l’hiver dernier, où l’émission a continué à la lampe de poche', 'le jour où le même titre est passé trois fois de suite sans que personne ne s’en rende compte',
+        'l’émission spéciale faite en pyjama', 'la fois où un auditeur a appelé pour une demande en mariage, au mauvais numéro', 'l’inondation du studio, et la console sauvée avec un parapluie'],
+      histoire: ['{A} et {B} se sont rencontrés dans un karaoké, en se disputant le micro pour la même chanson', '{B} a décroché sa place après avoir envoyé à {A} une démo de vingt minutes, dont quatorze de silence',
+        '{A} et {B} ont été colocataires pendant deux ans, et ne sont toujours pas d’accord sur la vaisselle', '{A} a formé {B} à ses débuts, et {B} ne rate jamais une occasion de faire mieux',
+        '{A} et {B} ont perdu un pari il y a trois ans et doivent encore un dîner à toute l’équipe'],
+      intrigue: ['la station prépare un déménagement, et personne ne sait encore où', 'un concours de karaoké entre animateurs aura lieu à la fin du mois',
+        'la direction a promis une surprise pour l’anniversaire de la station', 'quelqu’un vole les biscuits du studio, et l’enquête piétine', 'le studio attend une nouvelle console depuis des semaines'],
+      fmt: (x) => 'La station émet depuis ' + x.studio + ', avec ' + x.objet + '. On y croise ' + x.perso1 + ', et ' + x.perso2 + '. Légende de la station : ' + x.legende + '. Leur histoire : ' + x.histoire + '. En ce moment : ' + x.intrigue + '.'
+    },
+    en: {
+      studio: ['a studio on the top floor of an old building, with a lift that breaks down every other week', 'a studio in a former bakery, where it still smells of bread in the morning',
+        'a windowless basement studio that everyone calls "the bunker"', 'a studio above a karaoke bar, which can sometimes be heard through the floor', 'a houseboat moored on the river, which rocks whenever a boat goes by'],
+      objet: ['a coffee machine that only works if you slap it', 'a chair that creaks at the slightest move', 'a houseplant called Bernadette, which survives everything',
+        'an old jukebox that only plays one record', 'a bell rung for every listener’s birthday'],
+      perso: ['Gary, the sound engineer, never heard on air but always grumbling behind the glass', 'Mrs Pauline, the station manager, who listens to everything and texts during the show',
+        'Pixel, the studio cat, who walks across the mixing desk', 'Noah, the eternal intern, there for six years', 'the Thursday pizza delivery guy, now a loyal listener'],
+      legende: ['the great power cut last winter, when the show went on by torchlight', 'the day the same track played three times in a row without anyone noticing',
+        'the special show done in pyjamas', 'the time a listener called in to propose, on the wrong number', 'the studio flood, and the mixing desk saved with an umbrella'],
+      histoire: ['{A} and {B} met at a karaoke night, fighting over the mic for the same song', '{B} got the job after sending {A} a twenty-minute demo, fourteen minutes of it silence',
+        '{A} and {B} shared a flat for two years and still disagree about the washing-up', '{A} trained {B} at the start, and {B} never misses a chance to do better',
+        '{A} and {B} lost a bet three years ago and still owe the whole team a dinner'],
+      intrigue: ['the station is preparing to move, and nobody knows where yet', 'a karaoke contest between the hosts is coming at the end of the month',
+        'the management has promised a surprise for the station’s birthday', 'someone keeps stealing the studio biscuits, and the investigation is going nowhere', 'the studio has been waiting weeks for a new mixing desk'],
+      fmt: (x) => 'The station broadcasts from ' + x.studio + ', with ' + x.objet + '. Regulars include ' + x.perso1 + ', and ' + x.perso2 + '. Station legend: ' + x.legende + '. Their story: ' + x.histoire + '. Right now: ' + x.intrigue + '.'
+    }
+  };
+  function makeLore() {
+    const P = LORE_POOLS[uiIsEnglish() ? 'en' : 'fr'];
+    const persos = P.perso.slice().sort(() => Math.random() - 0.5);
+    const names = (t) => t.replace(/\{A\}/g, (settings.hostName || 'Alex').trim() || 'Alex').replace(/\{B\}/g, (settings.cohostName || 'Sam').trim() || 'Sam');
+    return P.fmt({ studio: pick(P.studio), objet: pick(P.objet), perso1: persos[0], perso2: persos[1], legende: pick(P.legende), histoire: names(pick(P.histoire)), intrigue: pick(P.intrigue) });
+  }
+  function ensureLore() {
+    if (!settings.stationLore) { settings.stationLore = makeLore(); saveSettings(); }
+  }
+  const LORE_CHANCE = { discret: 0.15, regulier: 0.3, fort: 0.5 };
+  const loreLevel = () => (LORE_CHANCE[settings.loreLevel] || settings.loreLevel === 'off' ? settings.loreLevel : 'discret');
+  // Une référence à l'univers pour cette intervention ? Tirée au sort selon le dosage, jamais deux fois de
+  // suite, plus souvent à l'ouverture, et par-dessus une intro seulement en « Très présent ».
+  function lorePayload(s, kind) {
+    const lvl = loreLevel();
+    if (lvl === 'off' || aiPower() === 'eco') return null;
+    const v = s && s.variety ? s.variety : {};
+    let chance = LORE_CHANCE[lvl];
+    if (kind === 'intro' || kind === 'outro') chance = Math.min(1, chance * 2);
+    if (kind === 'talkover' && lvl !== 'fort') chance = 0;
+    const go = !v.loreLast && Math.random() < chance;
+    v.loreLast = go;
+    if (!go) return null;
+    ensureLore();
+    return { text: settings.stationLore, memories: (hostMemory.L || []).slice(-10).map((m) => m.t) };
   }
   const aiPower = () => (settings.aiPower === 'eco' || settings.aiPower === 'max' ? settings.aiPower : 'normal');
   // Délai laissé à l'IA : la pleine puissance réfléchit plus longtemps (l'annonce est préparée à l'avance).
@@ -2677,7 +2743,7 @@
         kind: 'outro', host, style: settings.hostStyle, listener: (settings.listenerName || '').trim(), time: tp.time, partOfDay: tp.part, lang: radioLang(),
         sayTime: false, duo, turns: duo ? 4 : 0, cohost, cohostStyle: settings.cohostStyle, hostGender: g.host, cohostGender: g.cohost,
         tags: useGemini(), emotion: emotionFor(s, 'outro', null, null, {}), sfx: false, sing: false, recent: (s.lastLines || []).slice(-4),
-        show: s.show ? { name: s.show.name } : null, power: aiPower(), persona: personaPayload(duo, false, null),
+        show: s.show ? { name: s.show.name } : null, power: aiPower(), persona: personaPayload(duo, false, null), lore: lorePayload(s, 'outro'),
         recap: { count: played.length, minutes: Math.max(1, Math.round((s.playedSec || 0) / 60)), artists, highlights,
           guests: (s.guestList || []).map((x) => x.name + ' (' + x.role + ')'), dedics: (s.dedicList || []).length, score: s.score || null,
           hostName: host, cohostName: cohost, next: nx ? { name: nx.e.name, when: whenText(nx.at) } : null }
@@ -3051,7 +3117,7 @@
           dedic: dedic ? { to: dedic.to, msg: dedic.msg, from: dedic.from || c.listener, request: dedic.request } : null,
           guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost } : null,
           tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
-          power: aiPower(), persona: personaPayload(duo, gTalks, s)
+          power: aiPower(), persona: personaPayload(duo, gTalks, s), lore: s.demo ? null : lorePayload(s, kind)
         }), aiTimeout(12000));
         textInfo = 'Claude (' + secs(Date.now() - t0) + ')';
         // Lignes cachées du jeu (question posée, vraie réponse) : jamais lues à l'antenne.
@@ -3060,6 +3126,7 @@
         // Mémoire des animateurs : ce qu'ils ont révélé d'eux-mêmes, et le sujet à reprendre.
         if (Array.isArray(hidden.souvenirs)) for (const m of hidden.souvenirs) if (m && (m.who === 'A' || (m.who === 'B' && !gTalks))) rememberSelf(m.who, m.text);
         if (hidden.suivi && duo && s.variety) s.variety.thread = String(hidden.suivi).slice(0, 200);
+        if (Array.isArray(hidden.lore)) for (const t of hidden.lore) rememberSelf('L', t);
         fromClaude = !!text;
       } catch (e) { text = ''; textInfo = 'phrases toutes faites (Claude : ' + e.message + ')'; }
     } else if (!hasKey) {
@@ -6445,6 +6512,34 @@
         aiPower() === 'eco' ? h('div', { class: 'muted' }, 'En mode Économe, les souvenirs ne sont ni rappelés ni enregistrés.')
           : h('div', { class: 'muted' }, n ? 'Souvenirs gardés : ' + n : 'Pas encore de souvenir : ils se créent au fil des émissions.'));
     };
+    let loreCard = null;
+    if (hasKey) {
+      ensureLore();
+      const nL = (hostMemory.L || []).length;
+      loreCard = h('div', { class: 'card' },
+        h('h2', { class: 'label white' }, 'L’univers de la station'),
+        h('div', { class: 'muted' }, 'Le studio, des personnages qu’on n’entend jamais, une légende, l’histoire des animateurs et une intrigue en cours. Les animateurs y font allusion de temps en temps, comme des habitués.'),
+        h('textarea', {
+          class: 'input', id: 'mdj-lore', rows: '6', maxlength: '1500', spellcheck: 'true', value: settings.stationLore || '', 'aria-label': 'L’univers de la station',
+          style: { height: 'auto', minHeight: '150px', padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' },
+          onchange: (e) => { settings.stationLore = e.target.value.trim(); saveSettings(); }
+        }),
+        h('div', { class: 'muted' }, 'Tu peux tout réécrire : c’est toi l’auteur de cet univers.'),
+        h('div', { class: 'label' }, 'Dosage'),
+        seg([['off', 'Jamais'], ['discret', 'Discret'], ['regulier', 'Régulier'], ['fort', 'Très présent']], loreLevel(), (id) => { settings.loreLevel = id; saveSettings(); render(); }, 'Dosage de l’univers'),
+        h('div', { class: 'muted' }, aiPower() === 'eco' ? 'En mode Économe, l’univers de la station n’est pas utilisé.'
+          : { off: 'Les animateurs n’en parlent jamais.', discret: 'Une allusion de temps en temps, environ une intervention sur sept.', regulier: 'Une allusion environ une intervention sur trois.', fort: 'Souvent, même par-dessus les intros : la station devient un personnage.' }[loreLevel()]),
+        h('div', { class: 'btns' },
+          h('button', {
+            class: 'btn small', type: 'button',
+            onclick: () => { settings.stationLore = makeLore(); hostMemory.L = []; saveMemory(); saveSettings(); render(); }
+          }, 'Nouvel univers'),
+          h('button', {
+            class: 'btn small', type: 'button', disabled: !nL,
+            onclick: () => { hostMemory.L = []; saveMemory(); toast('Événements oubliés.'); render(); }
+          }, 'Oublier les événements')),
+        h('div', { class: 'muted' }, nL ? 'Événements retenus : ' + nL : 'Ce que les animateurs inventent à l’antenne (un incident au studio, l’intrigue qui avance) sera retenu ici.'));
+    }
     const hostCard = h('div', { class: 'card' },
       h('h2', { class: 'label white' }, 'Animateurs'),
       subhead(hg === 'femme' ? 'Animatrice principale' : 'Animateur principal', 'Parle seul, ou mène le duo.'),
@@ -6698,7 +6793,7 @@
       versionLine);
 
     if (!isFull()) {
-      append(body, [langCard, keysView, voiceCard, hostCard, radioCards, gridCard(), lectureCard, banCard, likesCard, catCard, logCard, backupCard(), aboutCard]);
+      append(body, [langCard, keysView, voiceCard, hostCard, loreCard, radioCards, gridCard(), lectureCard, banCard, likesCard, catCard, logCard, backupCard(), aboutCard]);
       return [body];
     }
     // Pleine page : un menu à gauche, et seulement les réglages de la rubrique choisie à droite.
@@ -6707,8 +6802,8 @@
         () => cols(radioCards[0], radioCards[1])],
       ['grille', 'Grille des émissions', 'Émissions programmées, réveil',
         () => cols(gridCard())],
-      ['animateurs', 'Animateurs, voix, langues', 'Prénoms, styles, voix, duo, langues',
-        () => cols(hostCard, coCard, [langCard, voiceCard])],
+      ['animateurs', 'Animateurs, voix, langues', 'Prénoms, styles, voix, duo, univers, langues',
+        () => cols(hostCard, coCard, [loreCard, langCard, voiceCard])],
       ['cles', 'Clés API', 'Claude, Gemini, sources et concerts', () => keysView],
       ['lecture', 'Lecture et bibliothèque', "Priorité, liste noire, J'aime, catalogue",
         () => cols([lectureCard, banCard], [likesCard, catCard])],

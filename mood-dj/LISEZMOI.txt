@@ -1,5 +1,25 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.27.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.28.0
 ============================================
+
+2.28.0 : L'UNIVERS DE LA STATION
+- Réglages › Animateurs, voix, langues › « L'univers de la station »
+  (avec une clé Claude ou Gemini) : le petit monde des animateurs. D'où
+  émet la station (un dernier étage sans ascenseur, une péniche…), un
+  objet du studio (la machine à café qu'il faut taper), des personnages
+  qu'on n'entend jamais (Gégé le technicien, la directrice qui envoie des
+  textos, le chat du studio), une légende de la station, l'histoire
+  commune des deux animateurs et une intrigue en cours.
+- Tiré au sort la première fois ; tu peux tout réécrire, ou cliquer sur
+  « Nouvel univers ».
+- Dosage : Jamais, Discret (par défaut, environ une intervention sur
+  sept), Régulier (une sur trois) ou Très présent (souvent, même par-dessus
+  les intros). Jamais deux fois de suite, et la musique reste le sujet.
+- Ce que les animateurs inventent à l'antenne (un incident au studio,
+  l'intrigue qui avance) est retenu et reste cohérent d'une émission à
+  l'autre. « Oublier les événements » efface tout. C'est dans la
+  sauvegarde.
+- Pas utilisé en mode Économe. Mentions légales : l'univers de la station
+  fait partie de ce qui est envoyé à l'IA qui écrit les textes.
 
 2.27.0 : DES ANIMATEURS PLUS VIVANTS, ET LA PUISSANCE DE L'IA AU CHOIX
 - Personnalité des animateurs (Réglages › Animateurs, voix, langues,
