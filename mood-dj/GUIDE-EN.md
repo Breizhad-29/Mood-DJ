@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.28.0.
+Up to date with version 2.29.0.
 
 ---
 
@@ -169,6 +169,14 @@ With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a
 - When a host reveals something new about themselves on air ("I saw them live in 1998, in the rain"), Mood DJ remembers it, and the hosts refer back to it in later shows, like an old running joke. **Forget memories** clears them.
 - In a duo, a topic left hanging at one interlude can come back at the next one.
 - In **Economy** mode (see API keys › AI power), memories are neither recalled nor saved.
+
+### The Jeff & Laeti duo, relationship and voice direction
+
+- **Load the Jeff & Laeti duo** (top of the Hosts card, with a Claude or Gemini key): a former camera operator who *watches* the music and a former sound engineer who *listens* to it. One click fills in their names, styles, personalities, their relationship, the station's universe and their voice direction. **Undo** in the message restores your previous settings. Everything stays editable.
+- **Duo relationship** (co-host card): the duo's "bible", sent to the AI with every dialogue: how they talk, who teases whom, who leads when, their running gags, what they must never do. Optional, for any duo.
+- **Voice direction (Gemini)**, for each host: a short note added to the voice style (e.g. "measured pace, a beat before the punchline").
+- **The hosts' towns**: when you give your city (for the weather), Mood DJ asks the AI once for two real towns within about 50 km, one for each host. They mention it in passing ("back home in…"). The towns stay the same as long as you stay in the same country.
+- The AI also knows whether you are in **Discovery** or **My likes** mode, so the right host can lead.
 
 ### The station's universe
 

@@ -406,11 +406,14 @@ function radioLangRule(lang) {
 }
 
 // Personnalité d'un animateur (fiche stable) et ce qu'il a déjà raconté de lui à l'antenne.
-function personaLines(label, name, persona, memories) {
+function personaLines(label, name, persona, memories, city) {
   const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
   const out = [];
   // label vide : l'animateur parle seul (« ta personnalité »).
-  if (q(persona, 600)) out.push((label ? 'PERSONNALITÉ DE ' + label + ' (' + q(name, 40) + ')' : 'TA PERSONNALITÉ') + ' : ' + q(persona, 600) + " À faire sentir par petites touches (un goût, une manie, un souvenir), jamais tout à la fois et jamais récité comme une fiche.");
+  // La fiche garde ses guillemets (les tics de langage y sont cités).
+  const fiche = String(persona || '').replace(/\s+/g, ' ').slice(0, 1600).trim();
+  if (fiche) out.push((label ? 'PERSONNALITÉ DE ' + label + ' (' + q(name, 40) + ')' : 'TA PERSONNALITÉ') + ' : ' + fiche + " À faire sentir par petites touches (un goût, une manie, un souvenir), jamais tout à la fois et jamais récité comme une fiche.");
+  if (q(city, 60)) out.push((label ? label + ' habite' : 'Tu habites') + ' à ' + q(city, 60) + ", près de chez l'auditeur : à citer de temps en temps, en passant, comme on dit d'où l'on vient (« chez moi, à " + q(city, 60) + "… »), sans en faire un sujet et sans inventer de détail vérifiable (ni adresse, ni commerce, ni voisin nommé).");
   const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-12);
   if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
   return out;
@@ -429,6 +432,24 @@ function splitMemory(raw) {
   return { spoken: spoken.replace(/\n{2,}/g, '\n').trim(), mem };
 }
 
+// Villes des animateurs : deux villes réelles à moins de 50 km environ de celle de l'auditeur.
+async function hostCities(p) {
+  const city = String(p.city || '').replace(/[«»"\n]/g, ' ').slice(0, 80).trim();
+  if (!city) throw new Error('Aucune ville indiquée.');
+  const data = await callText({
+    max_tokens: 300,
+    messages: [{ role: 'user', content: "Ville de l'auditeur : « " + city + " ». Donne son pays, puis deux autres villes ou villages réels, différents l'un de l'autre et de cette ville, situés à moins de 50 km environ. " +
+      'Réponds uniquement avec ce JSON, sans rien autour : {"pays": "…", "villeA": "…", "villeB": "…"}' }]
+  }, 'claude-haiku-5-5');
+  const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ');
+  const m = raw.match(/\{[\s\S]*\}/);
+  let j = null;
+  try { j = m ? JSON.parse(m[0]) : null; } catch (e) { j = null; }
+  const clean = (x) => String(x || '').replace(/[«»"\n{}<>]/g, ' ').replace(/\s+/g, ' ').slice(0, 60).trim();
+  if (!j || !clean(j.villeA) || !clean(j.villeB)) throw new Error("L'IA n'a pas proposé de villes.");
+  return { country: clean(j.pays), a: clean(j.villeA), b: clean(j.villeB) };
+}
+
 async function writeAnnouncement(p) {
   const host = (p.host || 'Alex').slice(0, 40);
   const style = HOST_STYLES[p.style] || HOST_STYLES.chaleureux;
@@ -440,7 +461,7 @@ async function writeAnnouncement(p) {
   const system = [
     'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale personnelle diffusée sur YouTube Music. Ton style : " + style + '.',
     radioLangRule(p.lang),
-    ...personaLines(p.duo ? 'A' : '', host, pz.a, power === 'eco' ? [] : pz.memA),
+    ...personaLines(p.duo ? 'A' : '', host, pz.a, power === 'eco' ? [] : pz.memA, pz.cityA),
     emotionRules(p),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
@@ -490,7 +511,11 @@ async function writeAnnouncement(p) {
       "Bannis les formules creuses d'animateur : « Absolument ! », « Tout à fait ! », « Exactement ! », « Tu as raison », « Excellente question », « Quelle transition », les compliments de l'un à l'autre, et le prénom de l'autre en tête de chaque réplique. Une vanne ne s'explique jamais.\n" +
       "Exemple du ton recherché (ne le recopie pas, n'en reprends ni les idées ni les mots) :\n" +
       "A: Je préviens, celle-là, je la chante dans ma voiture tous les matins.\nB: Ah, c'est donc toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Bref ! La suite, c'est…");
-    lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB));
+    lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB, pz.cityB));
+    // Relation du duo (sa « bible ») : comment ils se parlent, qui mène, running gags, garde-fous.
+    if (pz.b && String(pz.relation || '').trim()) {
+      lines.push('LEUR RELATION (la bible du duo, à respecter, mais à faire vivre par petites touches, jamais à réciter) :\n' + String(pz.relation).slice(0, 4000).trim());
+    }
   }
   // Univers de la station (lore) : envoyé seulement quand Mood DJ a tiré une référence pour cette intervention.
   const lore = p.lore && String(p.lore.text || '').trim() && power !== 'eco' ? p.lore : null;
@@ -502,6 +527,8 @@ async function writeAnnouncement(p) {
       "\nCette fois, glisse UNE référence à cet univers (un personnage, un objet du studio, une légende, " + (p.duo ? 'leur histoire commune' : 'ton histoire avec ton coanimateur, absent aujourd\'hui') + " ou l'intrigue en cours), en passant, comme une blague entre habitués : une réplique ou une demi-phrase, jamais une explication ni un résumé. " +
       "Tu peux faire avancer un tout petit peu l'intrigue en cours. Ne contredis jamais cet univers, et la musique reste le sujet principal.");
   }
+  if (p.listenMode === 'decouverte') lines.push("MODE D'ÉCOUTE : Découverte (des titres que l'auditeur ne connaît pas encore).");
+  else if (p.listenMode === 'jaime') lines.push("MODE D'ÉCOUTE : Mes J'aime (les titres que l'auditeur a aimés).");
   if (pz.thread && power !== 'eco' && p.kind !== 'intro') {
     lines.push("SUJET LAISSÉ EN SUSPENS à l'intervention précédente : « " + String(pz.thread).replace(/[«»"\n]/g, ' ').slice(0, 200) + " ». Reprends-le en passant si c'est naturel (« bon, pour revenir à… »), sinon laisse tomber.");
   }
@@ -1737,7 +1764,7 @@ async function paidLimit(kind) {
   if (cap > 0) return cap;
   return (POWER_LIMITS[s.aiPower] || PAID_LIMITS)[kind];
 }
-const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
+const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', hostcities: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
 let paidLog = null;
 async function paidGuard(action) {
   const kind = PAID_ACTIONS[action];
@@ -1779,6 +1806,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 function runAction(msg) {
   return msg.action === 'tracks' ? proposeTracks(msg.payload || {})
     : msg.action === 'announce' ? writeAnnouncement(msg.payload || {})
+      : msg.action === 'hostcities' ? hostCities(msg.payload || {})
       : msg.action === 'classify' ? classifyTracks(msg.payload || {})
         : msg.action === 'weather' ? getWeather(msg.payload || {})
           : msg.action === 'wiki' ? songFacts(msg.payload || {})

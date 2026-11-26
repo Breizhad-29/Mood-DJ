@@ -1,5 +1,28 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.28.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.29.0
 ============================================
+
+2.29.0 : LE DUO JEFF & LAETI
+- Bouton « Charger le duo Jeff & Laeti » en haut de la carte Animateurs
+  (avec une clé Claude ou Gemini), d'après la bible des animateurs : Jeff,
+  ancien cadreur, regarde la musique ; Laeti, ancienne ingénieure du son,
+  l'écoute. Un clic remplit les prénoms, les styles, les deux
+  personnalités (tics, manies, réactions, secrets), leur relation,
+  l'univers de la station (la régie mobile, la playlist du retour, la
+  cheffe, Anna) et la direction de leurs voix. « Annuler » dans le message
+  remet tes réglages d'avant. Tout reste modifiable.
+- Nouveau champ « Relation du duo » (carte du coanimateur) : la bible du
+  duo, envoyée à l'IA à chaque dialogue (comment ils se parlent, qui
+  taquine qui, qui mène quand, running gags, garde-fous). Facultatif, pour
+  n'importe quel duo.
+- « Direction de la voix (Gemini) » pour chaque animateur : une courte
+  indication ajoutée au style de la voix.
+- Villes des animateurs : quand tu donnes ta ville (pour la météo), l'IA
+  tire une fois deux villes réelles à moins de 50 km environ, une pour
+  chacun. Ils la citent en passant (« chez moi, à… »). Elles restent les
+  mêmes tant que tu restes dans le même pays.
+- L'IA sait si tu écoutes en mode Découverte ou Mes J'aime : c'est utile
+  pour savoir qui mène.
+- Les fiches acceptent maintenant des textes plus longs (1 600 signes).
 
 2.28.0 : L'UNIVERS DE LA STATION
 - Réglages › Animateurs, voix, langues › « L'univers de la station »
