@@ -38,9 +38,12 @@ function adaptForModel(body, model) {
   return b;
 }
 
+// Seuls ces modèles sont envoyés à l'API (un réglage importé ou abîmé ne peut pas en imposer un autre).
+const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
 async function callClaude(body, forceModel) {
   const { apiKey, model: chosen } = await getSettings();
-  const model = forceModel || chosen;
+  const wanted = forceModel || chosen;
+  const model = CLAUDE_MODELS.includes(wanted) ? wanted : DEFAULT_MODEL;
   body = adaptForModel(body, model);
   if (!apiKey) throw new Error('Aucune clé API enregistrée (onglet Réglages).');
   const res = await fetch(API_URL, {
@@ -411,7 +414,7 @@ function personaLines(label, name, persona, memories, city, story) {
   const out = [];
   // label vide : l'animateur parle seul (« ta personnalité »).
   // La fiche garde ses guillemets (les tics de langage y sont cités).
-  const fiche = String(persona || '').replace(/\s+/g, ' ').slice(0, 1600).trim();
+  const fiche = String(persona || '').replace(/\s+/g, ' ').slice(0, 2500).trim();
   if (fiche) out.push((label ? 'PERSONNALITÉ DE ' + label + ' (' + q(name, 40) + ')' : 'TA PERSONNALITÉ') + ' : ' + fiche + " À faire sentir par petites touches (un goût, une manie, un souvenir), jamais tout à la fois et jamais récité comme une fiche.");
   // Histoire personnelle (lore de l'animateur) : son passé, ce qu'il cache.
   const hist = String(story || '').replace(/\s+/g, ' ').slice(0, 2000).trim();
@@ -465,7 +468,7 @@ async function hostPick(p) {
       ? "Ce titre est amené par l'univers de la station : l'intrigue en cours, un personnage, une légende ou un événement récent (voir plus bas). Le lien doit sauter aux yeux une fois raconté."
       : 'C’est ton coup de cœur : un titre qui te ressemble, d’après ta personnalité ci-dessous.'
   ];
-  if (q(p.persona, 1600)) lines.push('TA PERSONNALITÉ : ' + q(p.persona, 1600));
+  if (q(p.persona, 2500)) lines.push('TA PERSONNALITÉ : ' + q(p.persona, 2500));
   if (q(p.story, 1200)) lines.push('TON HISTOIRE : ' + q(p.story, 1200));
   const mem = (Array.isArray(p.memories) ? p.memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-8);
   if (mem.length) lines.push('Ce que tu as déjà raconté de toi à l’antenne :\n- ' + mem.join('\n- '));
@@ -577,7 +580,7 @@ async function writeAnnouncement(p) {
   }
   if (p.hostPickAfter) {
     const k = p.hostPickAfter;
-    lines.push("Le titre qu'on vient d'écouter était le choix de " + pickWho(k) + (p.duo ? " : l'autre peut rendre son verdict (conquis, pas convaincu, une vanne ou une concession), et " + pickWho(k) + ' défendre son choix en une ligne.' : ' : dis en une demi-phrase si ça a fait son effet.'));
+    lines.push((k.earlier ? 'Un titre passé un peu plus tôt (« ' + pq(k.earlier, 150) + ' ») était' : "Le titre qu'on vient d'écouter était") + ' le choix de ' + pickWho(k) + (p.duo ? " : l'autre peut rendre son verdict (conquis, pas convaincu, une vanne ou une concession), et " + pickWho(k) + ' défendre son choix en une ligne.' : ' : dis en une demi-phrase si ça a fait son effet.'));
   }
   if (p.hostPickTease) {
     const k = p.hostPickTease;
@@ -1817,27 +1820,37 @@ async function paidLimit(kind) {
   let s = {};
   try { s = (await chrome.storage.local.get(['settings'])).settings || {}; } catch (e) { /* ignore */ }
   const cap = Number(s.aiCap);
-  if (cap > 0) return cap;
+  if (cap > 0) return Math.min(500, Math.round(cap));
   return (POWER_LIMITS[s.aiPower] || PAID_LIMITS)[kind];
 }
+// Plafond sur 24 heures glissantes, en plus du plafond par heure : huit heures au plafond, au plus.
+const DAY_FACTOR = 8;
 const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', hostcities: 'texte', hostpick: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
 let paidLog = null;
+let paidLoad = null;
 async function paidGuard(action) {
   const kind = PAID_ACTIONS[action];
   if (!kind) return;
-  if (!paidLog) {
-    try { paidLog = (await chrome.storage.session.get('paidLog')).paidLog || {}; } catch (e) { paidLog = {}; }
-  }
-  const now = Date.now();
-  const list = (paidLog[kind] || []).filter((t) => now - t < 3600000);
+  // Tout ce qui attend se fait d'abord ; ensuite, vérifier et compter se font d'un seul tenant, sans
+  // attente entre les deux : deux appels simultanés ne peuvent plus passer sur le même compte.
+  if (!paidLoad) paidLoad = chrome.storage.session.get('paidLog').then((d) => d.paidLog || {}).catch(() => ({}));
+  const loaded = await paidLoad;
+  if (!paidLog) paidLog = loaded;
   const limit = await paidLimit(kind);
-  if (list.length >= limit) {
-    const wait = Math.ceil((list[0] + 3600000 - now) / 60000);
-    throw new Error('Garde-fou de dépenses : ' + limit + ' appels ' + (kind === 'texte' ? 'pour les textes (Claude ou Gemini)' : 'pour les voix Gemini') +
-      " en une heure, c'est le maximum. Nouvel essai possible dans " + wait + ' min.');
+  const now = Date.now();
+  const day = (paidLog[kind] || []).filter((t) => now - t < 86400000);
+  const hour = day.filter((t) => now - t < 3600000);
+  const what = kind === 'texte' ? 'pour les textes (Claude ou Gemini)' : 'pour les voix Gemini';
+  if (hour.length >= limit) {
+    const wait = Math.ceil((hour[0] + 3600000 - now) / 60000);
+    throw new Error('Garde-fou de dépenses : ' + limit + ' appels ' + what + " en une heure, c'est le maximum. Nouvel essai possible dans " + wait + ' min.');
   }
-  list.push(now);
-  paidLog[kind] = list;
+  if (day.length >= limit * DAY_FACTOR) {
+    const wait = Math.ceil((day[0] + 86400000 - now) / 3600000);
+    throw new Error('Garde-fou de dépenses : ' + (limit * DAY_FACTOR) + ' appels ' + what + " en 24 heures, c'est le maximum. Nouvel essai possible dans " + wait + ' h.');
+  }
+  day.push(now);
+  paidLog[kind] = day;
   try { await chrome.storage.session.set({ paidLog }); } catch (e) { /* ignore */ }
 }
 

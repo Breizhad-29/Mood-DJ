@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.31.0';
+  const VERSION = '2.31.1';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -196,6 +196,14 @@
       if (!j || j.format !== 'mood-dj-sauvegarde' || !j.donnees || typeof j.donnees !== 'object') throw new Error("ce fichier n'est pas une sauvegarde Mood DJ");
       const obj = {};
       for (const k of BACKUP_KEYS) if (j.donnees[k] !== undefined) obj[k] = j.donnees[k];
+      // Réglages : un réglage connu garde son type (un fichier modifié ne peut pas y glisser n'importe quoi).
+      if (obj.settings && typeof obj.settings === 'object') {
+        for (const k of Object.keys(obj.settings)) {
+          const def = DEFAULT_SETTINGS[k];
+          if (def === undefined || def === null) continue;
+          if (Array.isArray(def) ? !Array.isArray(obj.settings[k]) : typeof obj.settings[k] !== typeof def) delete obj.settings[k];
+        }
+      } else delete obj.settings;
       if (!Object.keys(obj).length) throw new Error('la sauvegarde est vide');
       importing = true;
       await chrome.storage.local.set(obj);
@@ -228,10 +236,10 @@
     savedAmb = Array.isArray(d.savedAmbiances) ? d.savedAmbiances.filter((a) => a && a.name && a.sel) : [];
     wikiCache = d.wikiCache && typeof d.wikiCache === 'object' ? d.wikiCache : {};
     toldCache = d.toldCache && typeof d.toldCache === 'object' ? d.toldCache : {};
-    hostProfiles = Array.isArray(d.hostProfiles) ? d.hostProfiles.filter((x) => x && x.name) : [];
-    loreProfiles = Array.isArray(d.loreProfiles) ? d.loreProfiles.filter((x) => x && x.name) : [];
+    hostProfiles = Array.isArray(d.hostProfiles) ? d.hostProfiles.filter((x) => x && typeof x.name === 'string' && x.name).map((x) => Object.assign(x, { memories: cleanMemories(x.memories) })) : [];
+    loreProfiles = Array.isArray(d.loreProfiles) ? d.loreProfiles.filter((x) => x && typeof x.name === 'string' && x.name).map((x) => Object.assign(x, { events: cleanMemories(x.events) })) : [];
     const hm = d.hostMemory && typeof d.hostMemory === 'object' ? d.hostMemory : {};
-    hostMemory = { A: Array.isArray(hm.A) ? hm.A : [], B: Array.isArray(hm.B) ? hm.B : [], L: Array.isArray(hm.L) ? hm.L : [] };
+    hostMemory = { A: cleanMemories(hm.A), B: cleanMemories(hm.B), L: cleanMemories(hm.L) };
     learned = Array.isArray(d.learnedCat) ? d.learnedCat : [];
     artistCache = d.artistCache && d.artistCache.pages ? d.artistCache : { names: {}, pages: {} };
     if (Array.isArray(d.debugLog)) dbgBuf = d.debugLog.slice(-DEBUG_MAX);
@@ -743,15 +751,10 @@
       'Hors antenne, trois figures reviennent : la cheffe, la journaliste de l’équipe, leur ancienne patronne, qu’on n’entend jamais (Jeff la taquinait : « T’as une sale mine, cheffe » ; ils en parlent avec respect et un peu de crainte) ; Anna, la cheffe lumière, la troisième du trio, calme, rare, redoutable, qu’ils invoquent quand il faut un arbitre ; et l’auditeur, le nouveau « chef », qui choisit l’ambiance.'
   };
   function applyPreset(preset) {
-    const keys = Object.keys(preset);
-    const before = { settings: {}, memory: JSON.parse(JSON.stringify(hostMemory)) };
-    for (const k of keys) before.settings[k] = settings[k];
-    Object.assign(settings, preset);
-    hostMemory = { A: [], B: [], L: [] };
-    saveMemory();
-    saveSettings();
-    render();
-    toast('Duo Jeff & Laeti chargé.', { label: 'Annuler', fn: () => { Object.assign(settings, before.settings); hostMemory = before.memory; saveMemory(); saveSettings(); render(); } }, 12000);
+    withUndo('Duo Jeff & Laeti chargé.', () => {
+      Object.assign(settings, preset);
+      hostMemory = { A: [], B: [], L: [] };
+    });
   }
   // ------------------------------------------- inverser, « Mes animateurs », « Mes univers »
   // Chaque animateur occupe une place (A = principal, B = coanimateur) ; ces réglages vont ensemble.
@@ -769,10 +772,19 @@
   function withUndo(msg, change) {
     const before = { settings: clone(settings), memory: clone(hostMemory) };
     change();
+    // Seuls les réglages et les mémoires touchés par ce changement seront remis : un autre réglage modifié
+    // entre-temps (puissance, volume…) n'est pas défait.
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const keys = Object.keys(Object.assign({}, before.settings, settings)).filter((k) => !same(before.settings[k], settings[k]));
+    const slots = ['A', 'B', 'L'].filter((k) => !same(before.memory[k], hostMemory[k]));
     saveMemory();
     saveSettings();
     render();
-    toast(msg, { label: 'Annuler', fn: () => { Object.assign(settings, before.settings); hostMemory = before.memory; saveMemory(); saveSettings(); render(); } }, 12000);
+    toast(msg, { label: 'Annuler', fn: () => {
+      for (const k of keys) settings[k] = before.settings[k];
+      for (const k of slots) hostMemory[k] = before.memory[k];
+      saveMemory(); saveSettings(); render();
+    } }, 12000);
   }
   function swapHosts() {
     withUndo('Animateurs inversés.', () => {
@@ -906,7 +918,7 @@
       const r = await withTimeout(claude('hostpick', {
         kind, name, persona: settings[S.persona] || '', story: settings[S.story] || '',
         memories: (hostMemory[who] || []).slice(-8).map((m) => m.t),
-        lore: kind === 'lore' ? { text: settings.stationLore, memories: (hostMemory.L || []).slice(-8).map((m) => m.t) } : null,
+        lore: kind === 'lore' ? { text: loreNames(settings.stationLore), memories: (hostMemory.L || []).slice(-8).map((m) => m.t) } : null,
         ambiance: plainLabel(s.sel), styles: styleText(s.sel), energy: ref.energy || 3,
         avoid: (s.played || []).slice(-30).concat(s.queue).map((t) => t.artist + ' – ' + t.title),
         power: aiPower()
@@ -923,7 +935,7 @@
       if (!it) { dlog('annonce', 'choix de ' + name + ' introuvable', { artiste: r.artist, titre: r.title }); return; }
       const t = trackFromItem(it, { energy: r.energy || 3 });
       if (C.isBanned(bannedSet(), t.artist) || s.usedKeys.has(t.key)) { dlog('annonce', 'choix de ' + name + ' écarté (liste noire ou déjà passé)', { titre: t.title }); return; }
-      const target = Object.assign({}, t, { id: uid(), pick: { who, name, kind, why: r.why || '', teased: false } });
+      const target = Object.assign({}, t, { id: uid(), pick: { who, name, kind, why: r.why || '', title: t.title + ' de ' + t.artist, teased: false, discussed: false } });
       s.usedKeys.add(target.key);
       s.queue.splice(Math.min(lockedCount(s), s.queue.length), 0, target);
       s.picks.last = who;
@@ -937,38 +949,48 @@
     }
   }
   // Ce que l'annonce doit savoir des choix des animateurs (le titre suivant, le précédent, un à venir).
+  // Les références (refs) ne sont marquées « faites » que quand l'annonce passe vraiment (sayIt).
   function pickPayload(s, prev, next, duo, guestTalks) {
     const ok = (k) => k && !(k.who === 'B' && (!duo || guestTalks));
-    const view = (k) => ({ who: k.who, name: k.name, kind: k.kind, why: k.why });
+    const view = (k, extra) => Object.assign({ who: k.who, name: k.name, kind: k.kind, why: k.why }, extra || {});
     const now = next && ok(next.pick) ? view(next.pick) : null;
-    const after = prev && ok(prev.pick) ? view(prev.pick) : null;
-    let tease = null;
+    // Après : le titre qu'on vient d'écouter, ou un choix passé plus tôt dont personne n'a encore reparlé.
+    let afterRef = prev && ok(prev.pick) && !prev.pick.discussed ? prev.pick : null;
+    if (!afterRef && s && s.pickPending && ok(s.pickPending) && !s.pickPending.discussed) afterRef = s.pickPending;
+    const after = afterRef ? view(afterRef, afterRef === (prev && prev.pick) ? {} : { earlier: afterRef.title || '' }) : null;
+    let teaseRef = null;
     if (!now && s && s.queue) {
       const later = s.queue.find((t) => t !== next && t.pick && !t.pick.teased && ok(t.pick));
-      if (later && Math.random() < 0.7) { later.pick.teased = true; tease = view(later.pick); }
+      if (later && Math.random() < 0.7) teaseRef = later.pick;
     }
-    return { hostPick: now, hostPickAfter: after, hostPickTease: tease };
+    return { view: { hostPick: now, hostPickAfter: after, hostPickTease: teaseRef ? view(teaseRef) : null }, refs: { after: afterRef, tease: teaseRef } };
   }
   // Villes des animateurs : tirées une fois près de la ville de l'auditeur (moins de 50 km environ),
   // gardées tant que l'auditeur reste dans le même pays.
   let citiesBusy = false;
+  let citiesFail = { city: '', at: 0 };
   function hostCityPair() {
     const city = (settings.weatherCity || '').trim();
     if (!city || !hasKey) return { a: '', b: '' };
     const hc = settings.hostCities;
     if (hc && hc.city === city) return { a: hc.a, b: hc.b };
-    if (!citiesBusy) {
+    const failedLately = citiesFail.city === city && Date.now() - citiesFail.at < 6 * 3600e3;
+    if (!citiesBusy && !failedLately) {
       citiesBusy = true;
       claude('hostcities', { city }).then((r) => {
+        // Réponse tardive pour une ville qui a changé entre-temps : on l'ignore.
+        if ((settings.weatherCity || '').trim() !== city) return;
         const same = hc && hc.country && r.country && hc.country.toLowerCase() === r.country.toLowerCase();
         settings.hostCities = same ? Object.assign({}, hc, { city }) : { city, country: r.country, a: r.a, b: r.b };
         saveSettings();
         dlog('annonce', 'villes des animateurs', settings.hostCities);
-      }).catch((e) => dlog('annonce', 'villes des animateurs : ' + e.message)).finally(() => { citiesBusy = false; });
+      }).catch((e) => { citiesFail = { city, at: Date.now() }; dlog('annonce', 'villes des animateurs : ' + e.message + ' (nouvel essai dans 6 h)'); }).finally(() => { citiesBusy = false; });
     }
     return hc && hc.a ? { a: hc.a, b: hc.b } : { a: '', b: '' };
   }
   let hostMemory = { A: [], B: [], L: [] };
+  // Une entrée de mémoire abîmée (sauvegarde, profil) ne doit jamais casser une annonce.
+  const cleanMemories = (list) => (Array.isArray(list) ? list.filter((m) => m && typeof m.t === 'string' && m.t.trim()).slice(-30) : []);
   const saveMemory = debounce(() => store({ hostMemory }), 800);
   // who : 'A' ou 'B' (souvenirs d'un animateur), 'L' (ce qui s'est passé dans l'univers de la station).
   function rememberSelf(who, text) {
@@ -1022,9 +1044,10 @@
   function makeLore() {
     const P = LORE_POOLS[uiIsEnglish() ? 'en' : 'fr'];
     const persos = P.perso.slice().sort(() => Math.random() - 0.5);
-    const names = (t) => t.replace(/\{A\}/g, (settings.hostName || 'Alex').trim() || 'Alex').replace(/\{B\}/g, (settings.cohostName || 'Sam').trim() || 'Sam');
-    return P.fmt({ studio: pick(P.studio), objet: pick(P.objet), perso1: persos[0], perso2: persos[1], legende: pick(P.legende), histoire: names(pick(P.histoire)), intrigue: pick(P.intrigue) });
+    // Les prénoms restent {A} et {B} : ils suivent les animateurs (renommés, inversés, rechargés).
+    return P.fmt({ studio: pick(P.studio), objet: pick(P.objet), perso1: persos[0], perso2: persos[1], legende: pick(P.legende), histoire: pick(P.histoire), intrigue: pick(P.intrigue) });
   }
+  const loreNames = (t) => String(t || '').replace(/\{A\}/g, (settings.hostName || 'Alex').trim() || 'Alex').replace(/\{B\}/g, (settings.cohostName || 'Sam').trim() || 'Sam');
   function ensureLore() {
     if (!settings.stationLore) { settings.stationLore = makeLore(); saveSettings(); }
   }
@@ -1043,7 +1066,7 @@
     v.loreLast = go;
     if (!go) return null;
     ensureLore();
-    return { text: settings.stationLore, memories: (hostMemory.L || []).slice(-10).map((m) => m.t) };
+    return { text: loreNames(settings.stationLore), memories: (hostMemory.L || []).slice(-10).map((m) => m.t) };
   }
   const aiPower = () => (settings.aiPower === 'eco' || settings.aiPower === 'max' ? settings.aiPower : 'normal');
   // Délai laissé à l'IA : la pleine puissance réfléchit plus longtemps (l'annonce est préparée à l'avance).
@@ -1054,7 +1077,6 @@
     ensurePersonas();
     const mem = (who) => (aiPower() === 'eco' ? [] : (hostMemory[who] || []).slice(-12).map((m) => m.t));
     const thread = s && s.variety && s.variety.thread ? s.variety.thread : '';
-    if (s && s.variety) s.variety.thread = '';
     const cities = hostCityPair();
     const withB = duo && !guestTalks;
     return { a: settings.hostPersona, memA: mem('A'), cityA: cities.a, storyA: settings.hostLore || '', b: withB ? settings.cohostPersona : '', memB: withB ? mem('B') : [], cityB: withB ? cities.b : '',
@@ -2279,10 +2301,10 @@
     dlog('annonce', 'programme', { titres: list.map((x) => x.title + ' — ' + x.artist), suivant_sur: programmeMax(s) + ' titres' });
   }
 
-  // Un titre avec une dédicace a toujours son annonce, même si aucune n'était prévue.
+  // Un titre avec une dédicace, ou choisi par un animateur, a toujours son annonce, même si aucune n'était prévue.
   function announceKind(s, idx, reason, peek, nextTrack) {
     const k = announceKindBase(s, idx, reason, peek, nextTrack);
-    if (!k && settings.radio && idx > 0 && nextTrack && nextTrack.dedic) return 'talkover';
+    if (!k && settings.radio && idx > 0 && nextTrack && (nextTrack.dedic || (nextTrack.pick && settings.claudeAnnounce && hasKey))) return 'talkover';
     return k;
   }
   function announceKindBase(s, idx, reason, peek, nextTrack) {
@@ -3024,7 +3046,7 @@
           hostName: host, cohostName: cohost, next: nx ? { name: nx.e.name, when: whenText(nx.at) } : null }
       }), aiTimeout(15000));
     } catch (e) { dlog('annonce', 'bilan : ' + e.message); return; }
-    if (!text) return;
+    if (!text || session !== s) return;
     const turns = takeMarks(parseTurns(String(text).split('\n@@MDJ@@')[0], duo)).turns;
     const plain = stripTags(turns.map((x) => x.text).join(' '));
     let audio = null;
@@ -3036,7 +3058,9 @@
         audio = b64ToBuffer(r.b64);
       } catch (e) { dlog('annonce', 'bilan, voix : ' + e.message); }
     }
+    if (session !== s) return;
     if (settings.jingles) await jingle(s, 2);
+    if (session !== s) return;
     if (settings.radioBed) callSafe('bedStart', 0.45, kitOpts());
     await sayIt({ text: plain, audio, engine: audio ? 'Gemini' : '', s, kind: 'outro', info: 'bilan de ' + played.length + ' titres' + (nx ? ', prochaine émission annoncée' : '') });
     if (settings.radioBed) callSafe('bedStop', 2);
@@ -3373,6 +3397,8 @@
     let fromClaude = false;
     let textInfo = 'phrases toutes faites';
     const t0 = Date.now();
+    const picks = live && !s.demo ? pickPayload(s, prev, next, duo, gTalks) : null;
+    let memory = null;
     if (live) {
       try {
         text = await withTimeout(claude('announce', {
@@ -3394,16 +3420,21 @@
           tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
           power: aiPower(), persona: personaPayload(duo, gTalks, s), lore: s.demo ? null : lorePayload(s, kind),
           listenMode: s.discover ? 'decouverte' : s.source === 'likes' ? 'jaime' : '',
-          ...(s.demo ? {} : pickPayload(s, prev, next, duo, gTalks))
+          ...(picks ? picks.view : {})
         }), aiTimeout(12000));
         textInfo = 'Claude (' + secs(Date.now() - t0) + ')';
         // Lignes cachées du jeu (question posée, vraie réponse) : jamais lues à l'antenne.
         const cut = typeof text === 'string' ? text.indexOf('\n@@MDJ@@') : -1;
         if (cut >= 0) { try { hidden = JSON.parse(text.slice(cut + 8)) || {}; } catch (e) { hidden = {}; } text = text.slice(0, cut); }
-        // Mémoire des animateurs : ce qu'ils ont révélé d'eux-mêmes, et le sujet à reprendre.
-        if (Array.isArray(hidden.souvenirs)) for (const m of hidden.souvenirs) if (m && (m.who === 'A' || (m.who === 'B' && !gTalks))) rememberSelf(m.who, m.text);
-        if (hidden.suivi && duo && s.variety) s.variety.thread = String(hidden.suivi).slice(0, 200);
-        if (Array.isArray(hidden.lore)) for (const t of hidden.lore) rememberSelf('L', t);
+        // Mémoire des animateurs : gardée avec l'annonce, et retenue seulement si elle passe à l'antenne
+        // (une annonce refaite ou un exemple des Réglages ne laisse aucun faux souvenir).
+        if (!s.demo) {
+          memory = {
+            souvenirs: (Array.isArray(hidden.souvenirs) ? hidden.souvenirs : []).filter((m) => m && (m.who === 'A' || (m.who === 'B' && !gTalks))),
+            lore: Array.isArray(hidden.lore) ? hidden.lore : [],
+            thread: duo ? String(hidden.suivi || '').slice(0, 200) : null
+          };
+        }
         fromClaude = !!text;
       } catch (e) { text = ''; textInfo = 'phrases toutes faites (Claude : ' + e.message + ')'; }
     } else if (!hasKey) {
@@ -3471,7 +3502,8 @@
     return { text: plain, audio, engine, s, kind, role: plan.role, saysTime: !!(plan.sayTime || plan.sayWeather), info: 'texte : ' + textInfo + ' · ' + voiceInfo + (useGemini() ? ' · émotions ' + (EMO_NAMES[emo] || emo) + (emotionSetting() === 'auto' ? ' (auto)' : '') : ''),
       hook, hookAnswered: hookAnswer ? hookAnswer.id : null, scoreAfter: (hookAnswer && hookAnswer.score) || (express && express.score) || null,
       express, rubrique: fromClaude && rub ? rub.name : '', sting: fromClaude && gTalks && gPhase === 'arrivee' ? 'invite' : fromClaude && rub ? rub.sting : '',
-      guestPhase: fromClaude ? gPhase : '', guestName: guest ? guest.name : '', sfx, dedic };
+      guestPhase: fromClaude ? gPhase : '', guestName: guest ? guest.name : '', sfx, dedic,
+      memory: fromClaude ? memory : null, pickRefs: fromClaude && picks ? picks.refs : null };
   }
 
   async function getAnnouncement(s, kind, prev, next) {
@@ -3503,6 +3535,16 @@
       ann.dedic.done = true;
       s.dedicList = (s.dedicList || []).concat([{ to: ann.dedic.to, msg: ann.dedic.msg, request: ann.dedic.request }]);
       dlog('annonce', (ann.dedic.request ? 'demande' : 'dédicace') + ' lue', { pour: ann.dedic.to });
+    }
+    // Mémoire et choix des animateurs : retenus maintenant que l'annonce passe vraiment.
+    if (s && !s.demo && ann.memory) {
+      for (const m of ann.memory.souvenirs) rememberSelf(m.who, m.text);
+      for (const t of ann.memory.lore) rememberSelf('L', t);
+      if (ann.memory.thread !== null && s.variety) s.variety.thread = ann.memory.thread;
+    }
+    if (s && !s.demo && ann.pickRefs) {
+      if (ann.pickRefs.tease) ann.pickRefs.tease.teased = true;
+      if (ann.pickRefs.after) { ann.pickRefs.after.discussed = true; if (s.pickPending === ann.pickRefs.after) s.pickPending = null; }
     }
     if (s && ann.hook) {
       s.hook = Object.assign({}, ann.hook, { said: ann.text.slice(0, 600) });
@@ -3934,6 +3976,8 @@
     track.fadeInAt = Date.now();
     const kind = track.announceKind;
     dlog('piste', 'démarrée', { intervention: kind || 'aucune', fondu: fade, montee: fadeIn, etat: snapshot() });
+    // Un choix d'animateur qui passe : on pourra en reparler à la prochaine intervention.
+    if (track.pick && !track.pick.discussed) s.pickPending = track.pick;
     maybePlanPick(s);
     if (kind === 'fadevoice') {
       const fv = s.fadeVoice;
@@ -3959,9 +4003,11 @@
         callSafe('fadeTo', 0.28, 0.8);
         const annP = getAnnouncement(s, kind, prev, track);
         if (kind === 'intro' && settings.jingles) await jingle(s, 0);
-        const ann = await annP;
+        // Sur un titre déjà lancé, la musique baissée n'attend pas plus de 15 s : sinon, pas d'annonce.
+        const ann = kind === 'talkover' ? await Promise.race([annP, sleep(15000).then(() => null)]) : await annP;
         if (session !== s || s.current !== track) return;
-        await sayIt(ann);
+        if (!ann) { dlog('annonce', 'annonce pas prête après 15 s : titre lancé sans elle'); radioLog(s, 'Annonce trop longue à préparer : titre lancé sans elle.'); }
+        else await sayIt(ann);
       } finally {
         s.announcing = false;
       }
@@ -4123,6 +4169,15 @@
     if (reason !== 'stop') await callSafe('pause');
     // Fin normale d'une sélection (durée atteinte, minuterie) : les animateurs font le bilan.
     if (reason === 'fin' || reason === 'timer') await playRecap(s).catch((e) => dlog('annonce', 'bilan raté : ' + e.message));
+    // Une nouvelle émission a démarré pendant le bilan : on clôt l'ancienne sans toucher au lecteur.
+    if (session !== s) {
+      if (s.current) { s.playedSec += s.current.lastTime || 0; s.played.push(s.current); remember(s.current); s.current = null; }
+      s.status = 'ended';
+      s.endedReason = reason;
+      recordShow(s);
+      dlog('session', 'bilan interrompu par une nouvelle émission');
+      return;
+    }
     try { window.speechSynthesis.cancel(); } catch (e) { /* ignore */ }
     await callSafe('fadeTo', 1, reason === 'stop' ? 0.8 : 0);
     await callSafe('setRate', 1);
@@ -6777,7 +6832,7 @@
       return h('div', { class: 'section', style: { gap: '6px' } },
         h('label', { class: 'label', for: id }, 'Personnalité'),
         h('textarea', {
-          class: 'input', id, rows: '4', maxlength: '1600', spellcheck: 'true', value: settings[key] || '',
+          class: 'input', id, rows: '4', maxlength: '2500', spellcheck: 'true', value: settings[key] || '',
           style: { height: 'auto', minHeight: '104px', padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' },
           onchange: (e) => { settings[key] = e.target.value.trim(); saveSettings(); }
         }),
@@ -6824,7 +6879,7 @@
           style: { height: 'auto', minHeight: '150px', padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' },
           onchange: (e) => { settings.stationLore = e.target.value.trim(); saveSettings(); }
         }),
-        h('div', { class: 'muted' }, 'Tu peux tout réécrire : c’est toi l’auteur de cet univers.'),
+        h('div', { class: 'muted' }, 'Tu peux tout réécrire : c’est toi l’auteur de cet univers. {A} et {B} sont remplacés par les prénoms des animateurs.'),
         h('div', { class: 'label' }, 'Dosage'),
         seg([['off', 'Jamais'], ['discret', 'Discret'], ['regulier', 'Régulier'], ['fort', 'Très présent']], loreLevel(), (id) => { settings.loreLevel = id; saveSettings(); render(); }, 'Dosage de l’univers'),
         h('div', { class: 'muted' }, aiPower() === 'eco' ? 'En mode Économe, l’univers de la station n’est pas utilisé.'

@@ -1,5 +1,33 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.31.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.31.1
 ============================================
+
+2.31.1 : CORRECTIFS APRÈS L'ANALYSE DU CODE
+- Le choix des animateurs a toujours son annonce : celui qui l'a choisi le
+  lance vraiment, et s'il n'y a pas d'intervention juste après, l'autre en
+  reparle à la suivante.
+- Les souvenirs, les événements de l'univers et le sujet laissé en suspens
+  ne sont retenus que si l'annonce passe vraiment à l'antenne (plus de
+  faux souvenirs après un titre passé ou une annonce refaite), et jamais
+  par les exemples des Réglages.
+- La fiche de Laeti n'est plus coupée : les fiches acceptent 2 500 signes.
+- L'univers tiré au sort écrit {A} et {B} à la place des prénoms : il suit
+  les animateurs quand on les renomme, les inverse ou les recharge.
+- « Annuler » ne défait plus que le changement qu'il annonce, pas un autre
+  réglage modifié entre-temps.
+- Villes des animateurs : après un échec, pas de nouvel essai payant avant
+  6 heures ; une réponse arrivée après un changement de ville est ignorée.
+- Un souvenir abîmé (sauvegarde, profil) ne désactive plus les annonces.
+- Bilan de fin : si une nouvelle émission démarre pendant sa préparation,
+  il est abandonné et ne dérègle plus la nouvelle émission.
+- Annonce en début de titre : la musique baissée n'attend plus que 15
+  secondes au plus ; au-delà, le titre est lancé sans annonce.
+- Garde-fou de dépenses : des appels simultanés ne peuvent plus dépasser le
+  plafond ; nouveau plafond sur 24 heures (huit fois le plafond horaire) ;
+  un plafond importé est borné à 500 par heure.
+- Seuls les modèles Claude connus sont envoyés à l'API, et une sauvegarde
+  importée ne peut plus changer le type d'un réglage.
+- Mentions légales : le journal technique contient tes réglages (prénom,
+  ville, fiches des animateurs), à relire avant de l'envoyer.
 
 2.31.0 : LE CHOIX DES ANIMATEURS
 - Réglages › Animateurs, voix, langues › « Le choix des animateurs » :
