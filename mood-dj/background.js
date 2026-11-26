@@ -406,13 +406,16 @@ function radioLangRule(lang) {
 }
 
 // Personnalité d'un animateur (fiche stable) et ce qu'il a déjà raconté de lui à l'antenne.
-function personaLines(label, name, persona, memories, city) {
+function personaLines(label, name, persona, memories, city, story) {
   const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
   const out = [];
   // label vide : l'animateur parle seul (« ta personnalité »).
   // La fiche garde ses guillemets (les tics de langage y sont cités).
   const fiche = String(persona || '').replace(/\s+/g, ' ').slice(0, 1600).trim();
   if (fiche) out.push((label ? 'PERSONNALITÉ DE ' + label + ' (' + q(name, 40) + ')' : 'TA PERSONNALITÉ') + ' : ' + fiche + " À faire sentir par petites touches (un goût, une manie, un souvenir), jamais tout à la fois et jamais récité comme une fiche.");
+  // Histoire personnelle (lore de l'animateur) : son passé, ce qu'il cache.
+  const hist = String(story || '').replace(/\s+/g, ' ').slice(0, 2000).trim();
+  if (hist) out.push((label ? 'HISTOIRE DE ' + label : 'TON HISTOIRE') + " (son passé, ce qui l'a construit, ce qu'il garde pour lui ; à distiller rarement, une allusion à la fois, et un secret reste un secret) : " + hist);
   if (q(city, 60)) out.push((label ? label + ' habite' : 'Tu habites') + ' à ' + q(city, 60) + ", près de chez l'auditeur : à citer de temps en temps, en passant, comme on dit d'où l'on vient (« chez moi, à " + q(city, 60) + "… »), sans en faire un sujet et sans inventer de détail vérifiable (ni adresse, ni commerce, ni voisin nommé).");
   const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-12);
   if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
@@ -461,7 +464,7 @@ async function writeAnnouncement(p) {
   const system = [
     'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale personnelle diffusée sur YouTube Music. Ton style : " + style + '.',
     radioLangRule(p.lang),
-    ...personaLines(p.duo ? 'A' : '', host, pz.a, power === 'eco' ? [] : pz.memA, pz.cityA),
+    ...personaLines(p.duo ? 'A' : '', host, pz.a, power === 'eco' ? [] : pz.memA, pz.cityA, pz.storyA),
     emotionRules(p),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
@@ -511,7 +514,7 @@ async function writeAnnouncement(p) {
       "Bannis les formules creuses d'animateur : « Absolument ! », « Tout à fait ! », « Exactement ! », « Tu as raison », « Excellente question », « Quelle transition », les compliments de l'un à l'autre, et le prénom de l'autre en tête de chaque réplique. Une vanne ne s'explique jamais.\n" +
       "Exemple du ton recherché (ne le recopie pas, n'en reprends ni les idées ni les mots) :\n" +
       "A: Je préviens, celle-là, je la chante dans ma voiture tous les matins.\nB: Ah, c'est donc toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Bref ! La suite, c'est…");
-    lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB, pz.cityB));
+    lines.push(...personaLines('B', cohost, pz.b, power === 'eco' ? [] : pz.memB, pz.cityB, pz.b ? pz.storyB : ''));
     // Relation du duo (sa « bible ») : comment ils se parlent, qui mène, running gags, garde-fous.
     if (pz.b && String(pz.relation || '').trim()) {
       lines.push('LEUR RELATION (la bible du duo, à respecter, mais à faire vivre par petites touches, jamais à réciter) :\n' + String(pz.relation).slice(0, 4000).trim());

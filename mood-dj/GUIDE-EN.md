@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.29.0.
+Up to date with version 2.30.0.
 
 ---
 
@@ -177,6 +177,14 @@ With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a
 - **Voice direction (Gemini)**, for each host: a short note added to the voice style (e.g. "measured pace, a beat before the punchline").
 - **The hosts' towns**: when you give your city (for the weather), Mood DJ asks the AI once for two real towns within about 50 km, one for each host. They mention it in passing ("back home in…"). The towns stay the same as long as you stay in the same country.
 - The AI also knows whether you are in **Discovery** or **My likes** mode, so the right host can lead.
+
+### Swapping, saving and loading hosts and universes
+
+- **Swap the hosts** (top of the Hosts card, in a duo): the co-host becomes the main host and vice versa, with their names, genders, styles, profiles, stories, voices and memories. **Undo** in the message puts things back.
+- **Their story** (each host): their personal lore — past, path, secrets. The AI alludes to it rarely and never gives a secret away.
+- **My hosts** (each host): **Save this host** keeps their name, gender, style, personality, story, voice direction, Gemini voice and memories. Later, pick them in the list and click **Load** to put them in this seat — main host or co-host. Jeff and Laeti are always in the list as presets.
+- **My universes** (station's universe card): **Save this universe** keeps the universe, the duo relationship, the amount and the events kept, under a name you choose. **Load** brings it back; **Delete** removes one of yours (presets stay).
+- All of this is included in the backup.
 
 ### The station's universe
 

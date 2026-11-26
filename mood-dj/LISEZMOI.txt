@@ -1,5 +1,26 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.29.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.30.0
 ============================================
+
+2.30.0 : INVERSER, ENREGISTRER ET RECHARGER LES ANIMATEURS ET LES UNIVERS
+- « Inverser les animateurs » (en haut de la carte Animateurs, en duo) :
+  le coanimateur devient l'animateur principal, et inversement, avec
+  prénoms, genres, styles, fiches, histoires, voix et souvenirs.
+  « Annuler » dans le message remet tout comme avant.
+- « Son histoire », pour chaque animateur : son lore personnel (passé,
+  parcours, secrets). L'IA y fait allusion rarement et ne trahit jamais
+  un secret. Dans le duo Jeff & Laeti, leurs parcours et ce qu'ils
+  cachent y sont maintenant rangés.
+- « Mes animateurs », pour chaque animateur : « Enregistrer cet
+  animateur » garde son prénom, son genre, son style, sa personnalité,
+  son histoire, la direction et la voix Gemini, et ses souvenirs. Plus
+  tard, on le choisit dans la liste et « Charger » le met à cette place
+  (principal ou coanimateur). Jeff et Laeti y sont toujours, en
+  préréglages.
+- « Mes univers » (carte de l'univers de la station) : « Enregistrer cet
+  univers » garde l'univers, la relation du duo, le dosage et les
+  événements retenus, sous le nom de ton choix. « Charger » le remet,
+  « Supprimer » efface un des tiens (les préréglages restent).
+- Tout cela est dans la sauvegarde.
 
 2.29.0 : LE DUO JEFF & LAETI
 - Bouton « Charger le duo Jeff & Laeti » en haut de la carte Animateurs

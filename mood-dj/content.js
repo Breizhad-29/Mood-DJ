@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.29.0';
+  const VERSION = '2.30.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -40,7 +40,7 @@
     hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
     voiceEngine: 'systeme',
     geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null
+    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: ''
   };
   const DEFAULT_SEL = {
     style: 'rock', sub: 'all', moment: 'route', energy: 3, mood: null, era: 'all', prompt: '',
@@ -170,7 +170,7 @@
   // Exporter : un fichier avec les réglages, les J'aime classés, les découvertes et les mémoires des
   // animateurs (jamais les clés API ni le journal). Importer : le même fichier, dans l'extension ou
   // dans l'application. C'est aussi le passage de l'extension Chrome vers l'application.
-  const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory'];
+  const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles'];
   async function exportData() {
     try {
       const all = await chrome.storage.local.get(BACKUP_KEYS);
@@ -219,7 +219,7 @@
   }
 
   async function loadAll() {
-    const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory']);
+    const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles']);
     showHistory = Array.isArray(d.showHistory) ? d.showHistory.filter((x) => x && x.id && Array.isArray(x.tracks)) : [];
     hasSetlist = !!d.setlistfmKey;
     hasTicketmaster = !!d.ticketmasterKey;
@@ -228,6 +228,8 @@
     savedAmb = Array.isArray(d.savedAmbiances) ? d.savedAmbiances.filter((a) => a && a.name && a.sel) : [];
     wikiCache = d.wikiCache && typeof d.wikiCache === 'object' ? d.wikiCache : {};
     toldCache = d.toldCache && typeof d.toldCache === 'object' ? d.toldCache : {};
+    hostProfiles = Array.isArray(d.hostProfiles) ? d.hostProfiles.filter((x) => x && x.name) : [];
+    loreProfiles = Array.isArray(d.loreProfiles) ? d.loreProfiles.filter((x) => x && x.name) : [];
     const hm = d.hostMemory && typeof d.hostMemory === 'object' ? d.hostMemory : {};
     hostMemory = { A: Array.isArray(hm.A) ? hm.A : [], B: Array.isArray(hm.B) ? hm.B : [], L: Array.isArray(hm.L) ? hm.L : [] };
     learned = Array.isArray(d.learnedCat) ? d.learnedCat : [];
@@ -712,14 +714,16 @@
       'Le calme du cadreur : il voit tout, ne s’emballe jamais, sang-froid total, et il vous le fait payer d’une vanne. Humour décalé, jamais déplacé ; détendu mais très professionnel ; une lucidité intense derrière la décontraction. Geek assumé : science-fiction, vieux pulps d’extraterrestres, jeux vidéo. ' +
       'Goûts : la musique qui fait des images. B.O. de films et de jeux vidéo, synthés des années 80, synthwave, tout ce qui sonne comme un générique. Il juge un morceau à une seule question : « Ça me fait un film ? ». Il parle de musique avec des mots d’image (plan-séquence, travelling, contre-jour, générique de fin). ' +
       'Manies : le chewing-gum en continu, le casque sur une oreille. Réactions : une surprise, il ne bouge pas puis lâche un mot sec ; un morceau qu’il adore, il le sous-estime exprès ; Laeti émue, il se tait ou dit une phrase simple, jamais de vanne ; pris en défaut : « Hum. Ouais. Bref. ». Il ne rit jamais de ses propres blagues. ' +
-      'Tics (un par intervention au plus) : « Oki-doki » pour valider et enchaîner ; « Bordel… » à voix basse sur un drop énorme (rare) ; « C’est cadeau. Service public. » faussement modeste ; son plus gros compliment : « Pas mal. ». Il appelle l’auditeur « chef », le titre qu’il donnait à son ancienne patronne (« Ambiance demandée, chef. »), accordé si l’on connaît le genre de l’auditeur. ' +
+      'Tics (un par intervention au plus) : « Oki-doki » pour valider et enchaîner ; « Bordel… » à voix basse sur un drop énorme (rare) ; « C’est cadeau. Service public. » faussement modeste ; son plus gros compliment : « Pas mal. ». Il appelle l’auditeur « chef », le titre qu’il donnait à son ancienne patronne (« Ambiance demandée, chef. »), accordé si l’on connaît le genre de l’auditeur. ',
+    hostLore: 'Parcours : cadreur instinctif, il sait filmer dans l’urgence, sans préparation. Il gérait le matériel de l’équipe : optiques, stabilisateurs, cartes mémoire. Il se débrouille en son et en lumière, assez pour savoir quoi emporter, moins bien que Laeti et Anna, dont c’est le métier. ' +
       'Ce qu’il cache : « l’accoutrement », une tenue qu’il garde chez lui et dont il refuse de parler. Il panique et change de sujet dès qu’on l’évoque. Il ne sera jamais révélé.',
     cohostPersona: 'Laeti (nom complet Laeticia, qu’elle n’aime pas ; Jeff l’appelle « Laet’ » dans la complicité ou l’agacement tendre, et « la tigresse » pour la taquiner, parce qu’elle fond sur les ragots). Fin de vingtaine, rousse. Ancienne ingénieure du son, preneuse de son : elle écoute la musique. ' +
       'Énergie spontanée, sourires francs, grande vivacité d’esprit ; un humour discret et mordant sous l’enthousiasme ; rigoureuse, jamais rigide ; hypersensible sous ses airs détendus ; aventureuse (elle a sauté de falaises) ; curieuse jusqu’à la chasse : une info gênante sur Jeff, et elle ne lâche plus. Elle écoute les sons comme des récits vivants. ' +
       'Goûts : la musique qui fait exister une pièce. Les voix à nu, les prises live, les respirations laissées au mixage, les imperfections qui prouvent que c’est vrai. Elle défend le morceau bizarre et le groupe que personne ne connaît, et déteste les masters écrasés (« ils l’ont passé au rouleau compresseur »). ' +
       'Manies : le mug brûlant, thé ou café (elle sous-estime toujours combien elle en a bu), le casque autour du cou, le sweat trop grand ; elle fredonne parfois un air que personne ne connaît, venu d’un rêve. ' +
       'Réactions : le corps et l’exclamation d’abord, la réflexion ensuite ; un détail sonore, elle coupe tout le monde ; une ballade qui la touche, une phrase puis elle laisse jouer ; gênée, elle le dit (« Génial… je sais plus où me mettre ») ; elle rit facilement, souvent la première. ' +
-      'Tics (un par intervention au plus) : « Whoa ! » (rare) ; « Attends, attends… » pour arrêter tout le monde sur un détail sonore ; « ’Chier… » en juron doux ; « Présente ! » ; « Ça sent le dossier très lourd » quand elle flaire un ragot sur Jeff ; « Jean-François » pour le piquer (rare). Elle appelle l’auditeur par son prénom s’il est connu. ' +
+      'Tics (un par intervention au plus) : « Whoa ! » (rare) ; « Attends, attends… » pour arrêter tout le monde sur un détail sonore ; « ’Chier… » en juron doux ; « Présente ! » ; « Ça sent le dossier très lourd » quand elle flaire un ragot sur Jeff ; « Jean-François » pour le piquer (rare). Elle appelle l’auditeur par son prénom s’il est connu. ',
+    cohostLore: 'Parcours : elle sait extraire un souffle ou un chuchotement d’un enregistrement bruité. Elle maîtrise le live, les presets et le post-traitement, sur un laptop blindé de logiciels. Dans l’équipe, c’est elle qui gardait l’équilibre : un métronome humain. ' +
       'Ce qu’elle garde pour elle : un jour, sur un tournage, elle a enregistré une voix dans un moment trop intime, et ne l’a jamais diffusée. Elle n’en parle jamais, et Jeff ne pose jamais la question. C’est pour ça qu’elle sait quand couper un micro, et quand laisser finir une chanson.',
     duoRelation: 'Jeff regarde la musique, Laeti l’écoute : dans un morceau, il voit un film, un clip, une référence ; elle entend une voix, une respiration, la pièce où on l’a enregistré. L’écart : il est froid et sous-estime, elle est chaude et s’emballe. L’accord : quand l’un est vraiment touché, l’autre se tait. Jeff gagne les petites manches, Laeti les grandes.\n' +
       'Comment ils se parlent : tutoiement, phrases courtes, ils se coupent la parole comme des collègues de tournage. Laeti parle la première et en dit trop ; Jeff laisse un blanc, puis place la chute. Respect du métier de l’autre : sur le son, Jeff s’efface (« Elle a raison, c’est son métier ») ; sur l’image et les références, c’est Laeti qui s’efface. Ils se comprennent sans mots, et partagent le même geste venu de deux métiers : le casque sur une oreille. Asymétrie tendre : Jeff ne demande jamais à Laeti l’enregistrement qu’elle garde ; Laeti ne lâchera jamais l’accoutrement, c’est sa façon de l’aimer.\n' +
@@ -745,6 +749,131 @@
     saveSettings();
     render();
     toast('Duo Jeff & Laeti chargé.', { label: 'Annuler', fn: () => { Object.assign(settings, before.settings); hostMemory = before.memory; saveMemory(); saveSettings(); render(); } }, 12000);
+  }
+  // ------------------------------------------- inverser, « Mes animateurs », « Mes univers »
+  // Chaque animateur occupe une place (A = principal, B = coanimateur) ; ces réglages vont ensemble.
+  const SLOT = {
+    A: { name: 'hostName', gender: 'voiceGender', style: 'hostStyle', persona: 'hostPersona', story: 'hostLore', voiceNote: 'hostVoiceNote', gvoice: 'geminiVoice', def: 'Alex' },
+    B: { name: 'cohostName', gender: 'cohostGender', style: 'cohostStyle', persona: 'cohostPersona', story: 'cohostLore', voiceNote: 'cohostVoiceNote', gvoice: 'geminiVoiceB', def: 'Sam' }
+  };
+  let hostProfiles = [];
+  let loreProfiles = [];
+  const builtinHosts = () => [
+    { name: 'Jeff', builtin: true, gender: 'homme', style: PRESET_JEFF_LAETI.hostStyle, persona: PRESET_JEFF_LAETI.hostPersona, story: PRESET_JEFF_LAETI.hostLore, voiceNote: PRESET_JEFF_LAETI.hostVoiceNote },
+    { name: 'Laeti', builtin: true, gender: 'femme', style: PRESET_JEFF_LAETI.cohostStyle, persona: PRESET_JEFF_LAETI.cohostPersona, story: PRESET_JEFF_LAETI.cohostLore, voiceNote: PRESET_JEFF_LAETI.cohostVoiceNote }];
+  const builtinLores = () => [{ name: 'La régie mobile (Jeff & Laeti)', builtin: true, lore: PRESET_JEFF_LAETI.stationLore, relation: PRESET_JEFF_LAETI.duoRelation }];
+  // Change quelque chose, puis propose « Annuler » (réglages et mémoire d'avant).
+  function withUndo(msg, change) {
+    const before = { settings: clone(settings), memory: clone(hostMemory) };
+    change();
+    saveMemory();
+    saveSettings();
+    render();
+    toast(msg, { label: 'Annuler', fn: () => { Object.assign(settings, before.settings); hostMemory = before.memory; saveMemory(); saveSettings(); render(); } }, 12000);
+  }
+  function swapHosts() {
+    withUndo('Animateurs inversés.', () => {
+      const gA = hostGenderUi();
+      const gB = settings.duo ? cohostGenderUi() : cohostGenderOf(gA);
+      for (const k of ['name', 'style', 'persona', 'story', 'voiceNote', 'gvoice']) {
+        const a = settings[SLOT.A[k]];
+        settings[SLOT.A[k]] = settings[SLOT.B[k]];
+        settings[SLOT.B[k]] = a;
+      }
+      settings.hostName = settings.hostName || 'Alex';
+      settings.cohostName = settings.cohostName || 'Sam';
+      settings.voiceGender = gB;
+      settings.cohostGender = gA;
+      settings.voiceURI = '';
+      if (settings.hostCities) settings.hostCities = Object.assign({}, settings.hostCities, { a: settings.hostCities.b, b: settings.hostCities.a });
+      const m = hostMemory.A;
+      hostMemory.A = hostMemory.B;
+      hostMemory.B = m;
+    });
+  }
+  function saveHostProfile(who) {
+    const S = SLOT[who];
+    const name = (settings[S.name] || S.def).trim();
+    const entry = {
+      name, gender: who === 'A' ? hostGenderUi() : (settings.duo ? cohostGenderUi() : cohostGenderOf(hostGenderUi())), style: settings[S.style] || '',
+      persona: settings[S.persona] || '', story: settings[S.story] || '', voiceNote: settings[S.voiceNote] || '', gvoice: settings[S.gvoice] || '',
+      memories: clone((hostMemory[who] || []).slice(-30)), at: Date.now()
+    };
+    const i = hostProfiles.findIndex((x) => x.name.toLowerCase() === name.toLowerCase());
+    if (i >= 0) hostProfiles[i] = entry;
+    else {
+      if (hostProfiles.length >= 40) { toast('40 animateurs au plus : supprimes-en un avant d’en ajouter.'); return; }
+      hostProfiles.push(entry);
+    }
+    store({ hostProfiles });
+    toast((i >= 0 ? 'Animateur mis à jour : ' : 'Animateur enregistré : ') + name);
+    render();
+  }
+  function loadHostProfile(who, prof) {
+    const S = SLOT[who];
+    withUndo(prof.name + (who === 'A' ? ' devient l’animateur principal.' : ' devient le coanimateur.'), () => {
+      settings[S.name] = prof.name;
+      if (prof.gender === 'homme' || prof.gender === 'femme') settings[S.gender] = prof.gender;
+      if (prof.style) settings[S.style] = prof.style;
+      settings[S.persona] = prof.persona || '';
+      settings[S.story] = prof.story || '';
+      settings[S.voiceNote] = prof.voiceNote || '';
+      settings[S.gvoice] = prof.gvoice || '';
+      if (who === 'A') settings.voiceURI = '';
+      hostMemory[who] = clone(prof.memories || []);
+    });
+  }
+  function deleteHostProfile(prof) {
+    hostProfiles = hostProfiles.filter((x) => x !== prof);
+    store({ hostProfiles });
+    toast('Animateur supprimé : ' + prof.name);
+    render();
+  }
+  function saveLoreProfile() {
+    const def = loreProfiles.length ? 'Univers ' + (loreProfiles.length + 1) : 'Mon univers';
+    let name = '';
+    try { name = window.prompt(tr('Nom de cet univers :'), def); } catch (e) { name = def; }
+    name = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+    if (!name) return;
+    const entry = { name, lore: settings.stationLore || '', relation: settings.duoRelation || '', level: loreLevel(), events: clone((hostMemory.L || []).slice(-30)), at: Date.now() };
+    const i = loreProfiles.findIndex((x) => x.name.toLowerCase() === name.toLowerCase());
+    if (i >= 0) loreProfiles[i] = entry;
+    else {
+      if (loreProfiles.length >= 40) { toast('40 univers au plus : supprimes-en un avant d’en ajouter.'); return; }
+      loreProfiles.push(entry);
+    }
+    store({ loreProfiles });
+    toast((i >= 0 ? 'Univers mis à jour : ' : 'Univers enregistré : ') + name);
+    render();
+  }
+  function loadLoreProfile(prof) {
+    withUndo('Univers chargé : ' + prof.name, () => {
+      settings.stationLore = prof.lore || '';
+      if (prof.relation !== undefined) settings.duoRelation = prof.relation || '';
+      if (prof.level) settings.loreLevel = prof.level;
+      hostMemory.L = clone(prof.events || []);
+    });
+  }
+  function deleteLoreProfile(prof) {
+    loreProfiles = loreProfiles.filter((x) => x !== prof);
+    store({ loreProfiles });
+    toast('Univers supprimé : ' + prof.name);
+    render();
+  }
+  // Liste « Mes animateurs » ou « Mes univers » : choisir, charger, supprimer (les préréglages restent).
+  function profilePicker(id, label, mine, builtins, onLoad, onDelete, saveBtn) {
+    const all = mine.map((p, i) => ({ key: 'u' + i, p })).concat(builtins.map((p, i) => ({ key: 'b' + i, p })));
+    const sel = h('select', { class: 'select', id, 'aria-label': label },
+      h('option', { value: '' }, label + '…'),
+      all.map((x) => h('option', { value: x.key }, x.p.builtin ? x.p.name + ' · ' + tr('préréglage') : x.p.name)));
+    const chosen = () => (all.find((x) => x.key === sel.value) || {}).p;
+    const del = h('button', { class: 'btn small', type: 'button', disabled: true, onclick: () => { const p = chosen(); if (p && !p.builtin) onDelete(p); } }, 'Supprimer');
+    sel.addEventListener('change', () => { const p = chosen(); del.disabled = !p || !!p.builtin; });
+    return h('div', { class: 'section', style: { gap: '6px' } },
+      h('label', { class: 'label', for: id }, label),
+      h('div', { class: 'voicepick' }, sel,
+        h('button', { class: 'btn small', type: 'button', onclick: () => { const p = chosen(); if (p) onLoad(p); else toast('Choisis d’abord dans la liste.'); } }, 'Charger')),
+      h('div', { class: 'btns' }, saveBtn || null, del));
   }
   // Villes des animateurs : tirées une fois près de la ville de l'auditeur (moins de 50 km environ),
   // gardées tant que l'auditeur reste dans le même pays.
@@ -854,7 +983,8 @@
     if (s && s.variety) s.variety.thread = '';
     const cities = hostCityPair();
     const withB = duo && !guestTalks;
-    return { a: settings.hostPersona, memA: mem('A'), cityA: cities.a, b: withB ? settings.cohostPersona : '', memB: withB ? mem('B') : [], cityB: withB ? cities.b : '',
+    return { a: settings.hostPersona, memA: mem('A'), cityA: cities.a, storyA: settings.hostLore || '', b: withB ? settings.cohostPersona : '', memB: withB ? mem('B') : [], cityB: withB ? cities.b : '',
+      storyB: withB ? settings.cohostLore || '' : '',
       relation: withB ? settings.duoRelation || '' : '', thread: duo ? thread : '' };
   }
 
@@ -6581,6 +6711,14 @@
             class: 'btn small', type: 'button', disabled: !n,
             onclick: () => { hostMemory[who] = []; saveMemory(); toast('Souvenirs oubliés.'); render(); }
           }, 'Oublier ses souvenirs')),
+        h('label', { class: 'label', for: id + '-story' }, 'Son histoire'),
+        h('textarea', {
+          class: 'input', id: id + '-story', rows: '3', maxlength: '2000', spellcheck: 'true', value: settings[SLOT[who].story] || '',
+          placeholder: 'Son passé, son parcours, ce qu’il ou elle garde pour soi…',
+          style: { height: 'auto', minHeight: '80px', padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4' },
+          onchange: (e) => { settings[SLOT[who].story] = e.target.value.trim(); saveSettings(); }
+        }),
+        h('div', { class: 'muted' }, 'Facultatif : son lore personnel. L’IA y fait allusion rarement, et ne trahit jamais un secret.'),
         engine === 'gemini' ? h('div', { class: 'section', style: { gap: '6px' } },
           h('label', { class: 'label', for: id + '-voice' }, 'Direction de la voix (Gemini)'),
           h('input', {
@@ -6589,7 +6727,10 @@
             onchange: (e) => { settings[who === 'A' ? 'hostVoiceNote' : 'cohostVoiceNote'] = e.target.value.trim(); saveSettings(); }
           })) : null,
         aiPower() === 'eco' ? h('div', { class: 'muted' }, 'En mode Économe, les souvenirs ne sont ni rappelés ni enregistrés.')
-          : h('div', { class: 'muted' }, n ? 'Souvenirs gardés : ' + n : 'Pas encore de souvenir : ils se créent au fil des émissions.'));
+          : h('div', { class: 'muted' }, n ? 'Souvenirs gardés : ' + n : 'Pas encore de souvenir : ils se créent au fil des émissions.'),
+        profilePicker('mdj-prof-' + who, 'Mes animateurs', hostProfiles, builtinHosts(), (p) => loadHostProfile(who, p), deleteHostProfile,
+          h('button', { class: 'btn small', type: 'button', onclick: () => saveHostProfile(who) }, 'Enregistrer cet animateur')),
+        h('div', { class: 'muted' }, 'Enregistre sa fiche, son histoire, sa voix et ses souvenirs, pour le reprendre plus tard ici ou à l’autre place.'));
     };
     let loreCard = null;
     if (hasKey) {
@@ -6617,10 +6758,14 @@
             class: 'btn small', type: 'button', disabled: !nL,
             onclick: () => { hostMemory.L = []; saveMemory(); toast('Événements oubliés.'); render(); }
           }, 'Oublier les événements')),
-        h('div', { class: 'muted' }, nL ? 'Événements retenus : ' + nL : 'Ce que les animateurs inventent à l’antenne (un incident au studio, l’intrigue qui avance) sera retenu ici.'));
+        h('div', { class: 'muted' }, nL ? 'Événements retenus : ' + nL : 'Ce que les animateurs inventent à l’antenne (un incident au studio, l’intrigue qui avance) sera retenu ici.'),
+        profilePicker('mdj-lore-prof', 'Mes univers', loreProfiles, builtinLores(), loadLoreProfile, deleteLoreProfile,
+          h('button', { class: 'btn small', type: 'button', onclick: saveLoreProfile }, 'Enregistrer cet univers')),
+        h('div', { class: 'muted' }, 'Enregistre l’univers, la relation du duo, le dosage et les événements retenus.'));
     }
     const presetRow = hasKey ? h('div', { class: 'section', style: { gap: '6px' } },
-      h('div', { class: 'btns' }, h('button', { class: 'btn small', type: 'button', onclick: () => applyPreset(PRESET_JEFF_LAETI) }, 'Charger le duo Jeff & Laeti')),
+      h('div', { class: 'btns' }, h('button', { class: 'btn small', type: 'button', onclick: () => applyPreset(PRESET_JEFF_LAETI) }, 'Charger le duo Jeff & Laeti'),
+        settings.duo ? h('button', { class: 'btn small', type: 'button', onclick: swapHosts, title: 'Le coanimateur devient l’animateur principal, et inversement' }, 'Inverser les animateurs') : null),
       h('div', { class: 'muted' }, 'Un ancien cadreur qui regarde la musique et une ancienne ingénieure du son qui l’écoute : fiches, relation, univers et voix d’un coup. Tout reste modifiable, et « Annuler » remet tes réglages.')) : null;
     const hostCard = h('div', { class: 'card' },
       h('h2', { class: 'label white' }, 'Animateurs'),
