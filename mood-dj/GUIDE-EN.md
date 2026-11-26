@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.30.1.
+Up to date with version 2.31.0.
 
 ---
 
@@ -185,6 +185,15 @@ With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a
 - **My hosts** (each host): **Save this host** keeps their name, gender, style, personality, story, voice direction, Gemini voice and memories. Later, pick them in the list and click **Load** to put them in this seat — main host or co-host. Jeff and Laeti are always in the list as presets.
 - **My universes** (station's universe card): **Save this universe** keeps the universe, the duo relationship, the amount and the events kept, under a name you choose. **Load** brings it back; **Delete** removes one of yours (presets stay).
 - All of this is included in the backup.
+
+### The hosts' picks
+
+Settings › Hosts, voices, languages › **The hosts' picks**: **Never**, **Rare** (default, about one track in six) or **Often** (about one in four).
+
+- Now and then, a host picks a track themselves: a personal favourite matching their personality, or a track brought in by the station's universe (the ongoing plot, a character, a legend).
+- The track always fits your mood (style, energy), is checked on YouTube Music, respects your blocklist and is never one already played. It is slotted in after the locked tracks and shows up in **Up next** marked "pick by …" — you can remove it.
+- The hosts make the most of it: a teaser beforehand ("I've saved you something for later…"), the host who chose it introduces it with their story, and after it the other one gives a verdict.
+- One extra AI call per pick. Not used in **Economy** mode, nor without an AI key.
 
 ### The station's universe
 

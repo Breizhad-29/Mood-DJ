@@ -11,7 +11,7 @@
   const WHERE = IN_APP ? 'sur cet ordinateur' : 'dans ce navigateur';
   const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
   const LOOKAHEAD = 5;
-  const VERSION = '2.30.1';
+  const VERSION = '2.31.0';
   // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
   // titres des styles ajoutés par l'IA (applyStyleSet).
   const BASE_CATALOG = CATALOG.slice();
@@ -40,7 +40,7 @@
     hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
     voiceEngine: 'systeme',
     geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: ''
+    anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare'
   };
   const DEFAULT_SEL = {
     style: 'rock', sub: 'all', moment: 'route', energy: 3, mood: null, era: 'all', prompt: '',
@@ -877,6 +877,77 @@
       h('div', { class: 'voicepick' }, sel,
         h('button', { class: 'btn small', type: 'button', onclick: () => { const p = chosen(); if (p) onLoad(p); else toast('Choisis d’abord dans la liste.'); } }, 'Charger')),
       h('div', { class: 'btns' }, saveBtn || null, del));
+  }
+  // ------------------------------------------- le choix des animateurs
+  // De temps en temps, un animateur choisit lui-même un titre (son coup de cœur, ou un titre amené par
+  // l'univers de la station). Il est vérifié sur YouTube Music, glissé après les titres verrouillés, et
+  // les annonces le font attendre, le lancent puis en reparlent.
+  const PICK_EVERY = { rare: 6, souvent: 4 };
+  const picksLevel = () => (PICK_EVERY[settings.hostPicks] || settings.hostPicks === 'off' ? settings.hostPicks : 'rare');
+  let pickBusy = false;
+  async function maybePlanPick(s) {
+    const lvl = picksLevel();
+    if (lvl === 'off' || !hasKey || !settings.radio || !settings.claudeAnnounce || aiPower() === 'eco' || pickBusy) return;
+    if (!s || s !== session || s.status !== 'playing' || !s.queue) return;
+    s.picks = s.picks || { since: 0, n: 0, last: '' };
+    s.picks.since++;
+    if (s.picks.since < PICK_EVERY[lvl] || s.queue.some((t) => t.pick)) return;
+    const duo = useGemini() && settings.duo;
+    const who = duo && s.picks.last === 'A' ? 'B' : 'A';
+    const S = SLOT[who];
+    const name = (settings[S.name] || S.def).trim();
+    const loreOn = loreLevel() !== 'off' && (settings.stationLore || '').trim();
+    const kind = loreOn && Math.random() < 0.35 ? 'lore' : 'coeur';
+    pickBusy = true;
+    s.picks.since = 0;
+    try {
+      ensurePersonas();
+      const ref = s.queue[Math.min(lockedCount(s), s.queue.length - 1)] || s.current || {};
+      const r = await withTimeout(claude('hostpick', {
+        kind, name, persona: settings[S.persona] || '', story: settings[S.story] || '',
+        memories: (hostMemory[who] || []).slice(-8).map((m) => m.t),
+        lore: kind === 'lore' ? { text: settings.stationLore, memories: (hostMemory.L || []).slice(-8).map((m) => m.t) } : null,
+        ambiance: plainLabel(s.sel), styles: styleText(s.sel), energy: ref.energy || 3,
+        avoid: (s.played || []).slice(-30).concat(s.queue).map((t) => t.artist + ' – ' + t.title),
+        power: aiPower()
+      }), aiTimeout(25000));
+      if (session !== s || !r) return;
+      const items = await call('search', r.artist + ' ' + r.title, true).catch(() => null);
+      if (session !== s) return;
+      const want = C.norm(r.artist);
+      const it = (items || []).find((x) => {
+        if (!x || !x.videoId || SKIP_VERSION.test(x.title || '')) return false;
+        const a = C.norm(firstArtist(x) || '');
+        return a && want && (a === want || a.includes(want) || want.includes(a));
+      });
+      if (!it) { dlog('annonce', 'choix de ' + name + ' introuvable', { artiste: r.artist, titre: r.title }); return; }
+      const t = trackFromItem(it, { energy: r.energy || 3 });
+      if (C.isBanned(bannedSet(), t.artist) || s.usedKeys.has(t.key)) { dlog('annonce', 'choix de ' + name + ' écarté (liste noire ou déjà passé)', { titre: t.title }); return; }
+      const target = Object.assign({}, t, { id: uid(), pick: { who, name, kind, why: r.why || '', teased: false } });
+      s.usedKeys.add(target.key);
+      s.queue.splice(Math.min(lockedCount(s), s.queue.length), 0, target);
+      s.picks.last = who;
+      s.picks.n++;
+      dlog('annonce', 'choix de ' + name, { titre: t.title + ' — ' + t.artist, sorte: kind === 'lore' ? 'univers' : 'coup de cœur', pourquoi: r.why });
+      render();
+    } catch (e) {
+      dlog('annonce', 'choix de ' + name + ' : ' + e.message);
+    } finally {
+      pickBusy = false;
+    }
+  }
+  // Ce que l'annonce doit savoir des choix des animateurs (le titre suivant, le précédent, un à venir).
+  function pickPayload(s, prev, next, duo, guestTalks) {
+    const ok = (k) => k && !(k.who === 'B' && (!duo || guestTalks));
+    const view = (k) => ({ who: k.who, name: k.name, kind: k.kind, why: k.why });
+    const now = next && ok(next.pick) ? view(next.pick) : null;
+    const after = prev && ok(prev.pick) ? view(prev.pick) : null;
+    let tease = null;
+    if (!now && s && s.queue) {
+      const later = s.queue.find((t) => t !== next && t.pick && !t.pick.teased && ok(t.pick));
+      if (later && Math.random() < 0.7) { later.pick.teased = true; tease = view(later.pick); }
+    }
+    return { hostPick: now, hostPickAfter: after, hostPickTease: tease };
   }
   // Villes des animateurs : tirées une fois près de la ville de l'auditeur (moins de 50 km environ),
   // gardées tant que l'auditeur reste dans le même pays.
@@ -3322,7 +3393,8 @@
           guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost } : null,
           tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
           power: aiPower(), persona: personaPayload(duo, gTalks, s), lore: s.demo ? null : lorePayload(s, kind),
-          listenMode: s.discover ? 'decouverte' : s.source === 'likes' ? 'jaime' : ''
+          listenMode: s.discover ? 'decouverte' : s.source === 'likes' ? 'jaime' : '',
+          ...(s.demo ? {} : pickPayload(s, prev, next, duo, gTalks))
         }), aiTimeout(12000));
         textInfo = 'Claude (' + secs(Date.now() - t0) + ')';
         // Lignes cachées du jeu (question posée, vraie réponse) : jamais lues à l'antenne.
@@ -3862,6 +3934,7 @@
     track.fadeInAt = Date.now();
     const kind = track.announceKind;
     dlog('piste', 'démarrée', { intervention: kind || 'aucune', fondu: fade, montee: fadeIn, etat: snapshot() });
+    maybePlanPick(s);
     if (kind === 'fadevoice') {
       const fv = s.fadeVoice;
       s.announcing = true;
@@ -6084,7 +6157,8 @@
           h('span', { class: 'qa' }, t.artist, i < lockN && s.status !== 'ended' ? h('span', { class: 'qlock', title: programmeOn() ? 'Verrouillé : ce titre est annoncé au programme, il ne changera pas' : 'Verrouillé : ce titre ne changera pas, son annonce est déjà prête' }, ' · verrouillé') : null,
             changeFor(s, t) && (i === 0 || !changeFor(s, s.queue[i - 1])) ? h('span', { class: 'qlock', title: "L'animateur annoncera la nouvelle ambiance sur ce titre" }, ' · nouvelle ambiance') : null,
             s.mix && t.simFrom ? h('span', { class: 'qlock', title: 'Découverte : artiste proche de ' + t.simFrom }, ' · découverte') : null,
-            t.dedic && !t.dedic.done ? h('span', { class: 'qlock', title: (t.dedic.to ? 'Pour ' + t.dedic.to : '') }, t.request ? ' · demande' : ' · dédicace') : null)),
+            t.dedic && !t.dedic.done ? h('span', { class: 'qlock', title: (t.dedic.to ? 'Pour ' + t.dedic.to : '') }, t.request ? ' · demande' : ' · dédicace') : null,
+            t.pick ? h('span', { class: 'qlock', title: t.pick.why || '' }, ' · choix de ' + t.pick.name) : null)),
         energyBars(t.energy),
         s.status === 'ended' ? null : h('button', {
           class: 'x', type: 'button', 'aria-label': 'Retirer ' + t.title,
@@ -6773,6 +6847,13 @@
       h('div', { class: 'btns' }, h('button', { class: 'btn small', type: 'button', onclick: () => applyPreset(PRESET_JEFF_LAETI) }, 'Charger le duo Jeff & Laeti'),
         settings.duo ? h('button', { class: 'btn small', type: 'button', onclick: swapHosts, title: 'Le coanimateur devient l’animateur principal, et inversement' }, 'Inverser les animateurs') : null),
       h('div', { class: 'muted' }, 'Un ancien cadreur qui regarde la musique et une ancienne ingénieure du son qui l’écoute : fiches, relation, univers et voix d’un coup. Tout reste modifiable, et « Annuler » remet tes réglages.')) : null;
+    const pickCard = hasKey ? h('div', { class: 'card' },
+      h('h2', { class: 'label white' }, 'Le choix des animateurs'),
+      h('div', { class: 'muted' }, 'De temps en temps, un animateur choisit lui-même un titre : son coup de cœur, ou un titre amené par l’univers de la station. Il le fait attendre, le lance avec son histoire, et l’autre donne son verdict.'),
+      seg([['off', 'Jamais'], ['rare', 'Rare'], ['souvent', 'Souvent']], picksLevel(), (id) => { settings.hostPicks = id; saveSettings(); render(); }, 'Le choix des animateurs'),
+      h('div', { class: 'muted' }, aiPower() === 'eco' ? 'En mode Économe, les animateurs ne choisissent pas de titres.'
+        : { off: 'Seule ta sélection choisit les titres.', rare: 'Environ un titre sur six, toujours dans ton ambiance.', souvent: 'Environ un titre sur quatre, toujours dans ton ambiance.' }[picksLevel()]),
+      h('div', { class: 'muted' }, 'Le titre est vérifié sur YouTube Music, respecte ta liste noire et apparaît dans « À suivre » avec la mention « choix de … » : tu peux le retirer. Un appel d’IA de plus par titre choisi.')) : null;
     const hostCard = h('div', { class: 'card' },
       h('h2', { class: 'label white' }, 'Animateurs'),
       presetRow,
@@ -7036,7 +7117,7 @@
       versionLine);
 
     if (!isFull()) {
-      append(body, [langCard, keysView, voiceCard, hostCard, loreCard, radioCards, gridCard(), lectureCard, banCard, likesCard, catCard, logCard, backupCard(), aboutCard]);
+      append(body, [langCard, keysView, voiceCard, hostCard, loreCard, pickCard, radioCards, gridCard(), lectureCard, banCard, likesCard, catCard, logCard, backupCard(), aboutCard]);
       return [body];
     }
     // Pleine page : un menu à gauche, et seulement les réglages de la rubrique choisie à droite.
@@ -7046,7 +7127,7 @@
       ['grille', 'Grille des émissions', 'Émissions programmées, réveil',
         () => cols(gridCard())],
       ['animateurs', 'Animateurs, voix, langues', 'Prénoms, styles, voix, duo, univers, langues',
-        () => cols(hostCard, coCard, [loreCard, langCard, voiceCard])],
+        () => cols(hostCard, coCard, [loreCard, pickCard, langCard, voiceCard])],
       ['cles', 'Clés API', 'Claude, Gemini, sources et concerts', () => keysView],
       ['lecture', 'Lecture et bibliothèque', "Priorité, liste noire, J'aime, catalogue",
         () => cols([lectureCard, banCard], [likesCard, catCard])],

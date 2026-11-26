@@ -1,5 +1,22 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.30.1
+MOOD DJ POUR YOUTUBE MUSIC — version 2.31.0
 ============================================
+
+2.31.0 : LE CHOIX DES ANIMATEURS
+- Réglages › Animateurs, voix, langues › « Le choix des animateurs » :
+  Jamais, Rare (par défaut, environ un titre sur six) ou Souvent (un sur
+  quatre). De temps en temps, un animateur choisit lui-même un titre :
+  son coup de cœur, d'après sa personnalité, ou un titre amené par
+  l'univers de la station (l'intrigue en cours, un personnage, une
+  légende). En duo, ils choisissent chacun leur tour.
+- Le titre reste dans ton ambiance (style, énergie), est vérifié sur
+  YouTube Music, respecte ta liste noire et n'est jamais un titre déjà
+  passé. Il se glisse après les titres verrouillés et apparaît dans
+  « À suivre » avec la mention « choix de … » : tu peux le retirer.
+- Les animateurs en profitent : ils le font attendre avant (« tout à
+  l'heure, je vous ai gardé quelque chose… »), celui qui l'a choisi le
+  lance avec son histoire, et après, l'autre rend son verdict.
+- Un appel d'IA de plus par titre choisi. Pas en mode Économe, ni sans
+  clé d'IA.
 
 2.30.1 : correctif. Un long dialogue en duo (plus d'une minute de voix
 Gemini, fréquent en Pleine puissance) était cru perdu au bout de

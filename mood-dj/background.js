@@ -453,6 +453,41 @@ async function hostCities(p) {
   return { country: clean(j.pays), a: clean(j.villeA), b: clean(j.villeB) };
 }
 
+// Le choix d'un animateur : un titre qu'il a envie de passer, parce qu'il a quelque chose à en dire
+// (son coup de cœur, ou un titre amené par l'univers de la station).
+async function hostPick(p) {
+  const q = (x, n) => String(x || '').replace(/\s+/g, ' ').slice(0, n).trim();
+  const power = p.power === 'max' ? 'max' : 'normal';
+  const name = q(p.name, 40) || 'Alex';
+  const lines = [
+    'Tu es ' + name + ", l'un des animateurs de Mood DJ, une radio musicale personnelle. Tu choisis UN titre à passer bientôt dans l'émission, parce que tu as quelque chose de personnel à en dire.",
+    p.kind === 'lore'
+      ? "Ce titre est amené par l'univers de la station : l'intrigue en cours, un personnage, une légende ou un événement récent (voir plus bas). Le lien doit sauter aux yeux une fois raconté."
+      : 'C’est ton coup de cœur : un titre qui te ressemble, d’après ta personnalité ci-dessous.'
+  ];
+  if (q(p.persona, 1600)) lines.push('TA PERSONNALITÉ : ' + q(p.persona, 1600));
+  if (q(p.story, 1200)) lines.push('TON HISTOIRE : ' + q(p.story, 1200));
+  const mem = (Array.isArray(p.memories) ? p.memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-8);
+  if (mem.length) lines.push('Ce que tu as déjà raconté de toi à l’antenne :\n- ' + mem.join('\n- '));
+  if (p.lore && q(p.lore.text, 1500)) {
+    const ev = (Array.isArray(p.lore.memories) ? p.lore.memories : []).map((m) => q(m, 200)).filter(Boolean).slice(-8);
+    lines.push("L'UNIVERS DE LA STATION : " + q(p.lore.text, 1500) + (ev.length ? '\nÉvénements récents :\n- ' + ev.join('\n- ') : ''));
+  }
+  lines.push('CONTRAINTES : le titre doit coller à l’ambiance en cours, « ' + q(p.ambiance, 200) + ' » (styles : ' + q(p.styles, 200) + '), avec une énergie autour de ' + (Number(p.energy) || 3) + ' sur 5. ' +
+    'Un vrai titre qui existe en version studio sur YouTube Music ; pas de live, de remix ni de karaoké. ' +
+    (Array.isArray(p.avoid) && p.avoid.length ? 'Pas un de ceux-ci, ni un titre de ces artistes (déjà passés ou prévus) : ' + p.avoid.slice(-40).map((x) => q(x, 120)).join(' ; ') + '. ' : ''));
+  lines.push('Réponds uniquement avec ce JSON, sans rien autour : {"artiste": "…", "titre": "…", "energie": 1 à 5, "pourquoi": "en une phrase, à la première personne, ce que tu vas raconter pour l\'amener : un ressenti, un souvenir de ta vie, un lien avec l\'univers ; aucun fait inventé sur l\'artiste"}');
+  const data = await callText({ max_tokens: 600, messages: [{ role: 'user', content: lines.join('\n') }] },
+    power === 'max' ? OPUS_MODEL : undefined, power === 'max' ? { geminiModel: 'gemini-4-argon', thinkingLevel: 'medium' } : undefined);
+  const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ');
+  const m = raw.match(/\{[\s\S]*\}/);
+  let j = null;
+  try { j = m ? JSON.parse(m[0]) : null; } catch (e) { j = null; }
+  const clean = (x, n) => String(x || '').replace(/[\n{}<>]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
+  if (!j || !clean(j.artiste, 80) || !clean(j.titre, 120)) throw new Error("L'IA n'a pas proposé de titre.");
+  return { artist: clean(j.artiste, 80), title: clean(j.titre, 120), energy: Math.max(1, Math.min(5, Math.round(Number(j.energie) || 3))), why: clean(j.pourquoi, 300) };
+}
+
 async function writeAnnouncement(p) {
   const host = (p.host || 'Alex').slice(0, 40);
   const style = HOST_STYLES[p.style] || HOST_STYLES.chaleureux;
@@ -529,6 +564,24 @@ async function writeAnnouncement(p) {
       (facts.length ? "\nCe qui s'est déjà passé à l'antenne dans cet univers (reste cohérent) :\n- " + facts.join('\n- ') : '') +
       "\nCette fois, glisse UNE référence à cet univers (un personnage, un objet du studio, une légende, " + (p.duo ? 'leur histoire commune' : 'ton histoire avec ton coanimateur, absent aujourd\'hui') + " ou l'intrigue en cours), en passant, comme une blague entre habitués : une réplique ou une demi-phrase, jamais une explication ni un résumé. " +
       "Tu peux faire avancer un tout petit peu l'intrigue en cours. Ne contredis jamais cet univers, et la musique reste le sujet principal.");
+  }
+  // Le choix d'un animateur : il l'annonce lui-même, avant on le fait attendre, après on en reparle.
+  const pickWho = (x) => (x.who === 'B' && p.duo ? 'B (' + String(x.name || '').slice(0, 40) + ')' : p.duo ? 'A (' + String(x.name || '').slice(0, 40) + ')' : 'toi');
+  const pq = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').slice(0, n).trim();
+  if (p.hostPick) {
+    const k = p.hostPick;
+    lines.push('CHOIX DE ' + pickWho(k).toUpperCase() + " : le titre suivant n'a pas été tiré par le programme, " + (p.duo ? pickWho(k) + " l'a choisi" : 'tu l\'as choisi') +
+      (k.kind === 'lore' ? ", parce qu'il est amené par l'univers de la station" : ', c’est son coup de cœur') + (pq(k.why, 300) ? '. Ce qu’il y a à en dire : « ' + pq(k.why, 300) + ' »' : '') + '. ' +
+      (p.duo ? "C'est " + pickWho(k) + ' qui le lance, avec un vrai élan personnel, et l’autre réagit selon son caractère (adhère, doute, chambre, se laisse convaincre).' : 'Lance-le avec un vrai élan personnel.') +
+      ' Aucun fait inventé sur l’artiste.');
+  }
+  if (p.hostPickAfter) {
+    const k = p.hostPickAfter;
+    lines.push("Le titre qu'on vient d'écouter était le choix de " + pickWho(k) + (p.duo ? " : l'autre peut rendre son verdict (conquis, pas convaincu, une vanne ou une concession), et " + pickWho(k) + ' défendre son choix en une ligne.' : ' : dis en une demi-phrase si ça a fait son effet.'));
+  }
+  if (p.hostPickTease) {
+    const k = p.hostPickTease;
+    lines.push('À VENIR : ' + pickWho(k) + ' a choisi un titre qui passera un peu plus tard. Glisse une allusion (« tout à l’heure, je vous ai gardé quelque chose… ») sans le nommer, en une demi-phrase' + (p.duo ? ', et l’autre peut essayer de deviner ou se méfier.' : '.'));
   }
   if (p.listenMode === 'decouverte') lines.push("MODE D'ÉCOUTE : Découverte (des titres que l'auditeur ne connaît pas encore).");
   else if (p.listenMode === 'jaime') lines.push("MODE D'ÉCOUTE : Mes J'aime (les titres que l'auditeur a aimés).");
@@ -1767,7 +1820,7 @@ async function paidLimit(kind) {
   if (cap > 0) return cap;
   return (POWER_LIMITS[s.aiPower] || PAID_LIMITS)[kind];
 }
-const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', hostcities: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
+const PAID_ACTIONS = { tracks: 'texte', announce: 'texte', hostcities: 'texte', hostpick: 'texte', classify: 'texte', test: 'texte', testgeminitext: 'texte', newstyle: 'texte', 'gemini-tts': 'voix' };
 let paidLog = null;
 async function paidGuard(action) {
   const kind = PAID_ACTIONS[action];
@@ -1810,6 +1863,7 @@ function runAction(msg) {
   return msg.action === 'tracks' ? proposeTracks(msg.payload || {})
     : msg.action === 'announce' ? writeAnnouncement(msg.payload || {})
       : msg.action === 'hostcities' ? hostCities(msg.payload || {})
+      : msg.action === 'hostpick' ? hostPick(msg.payload || {})
       : msg.action === 'classify' ? classifyTracks(msg.payload || {})
         : msg.action === 'weather' ? getWeather(msg.payload || {})
           : msg.action === 'wiki' ? songFacts(msg.payload || {})
