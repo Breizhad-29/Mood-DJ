@@ -869,6 +869,7 @@ async function onTrackStarted(s, track) {
   dlog('piste', 'démarrée', { intervention: kind || 'aucune', fondu: fade, montee: fadeIn, etat: snapshot() });
   // Un choix d'animateur qui passe : on pourra en reparler à la prochaine intervention.
   if (track.pick && !track.pick.discussed) s.pickPending = track.pick;
+  logPickOutcome((s.played || [])[s.played.length - 1]);
   maybePlanPick(s);
   if (kind === 'fadevoice') {
     const fv = s.fadeVoice;

@@ -23,7 +23,9 @@ async function generateStyle() {
   const name = (v.name || '').trim();
   if (!name) { v.error = 'Donne un nom au style.'; render(); return; }
   if (C.STYLES.some((s) => s.label.toLowerCase() === name.toLowerCase())) { v.error = 'Ce style existe déjà.'; render(); return; }
-  v.busy = true; v.error = ''; v.draft = null; render();
+  v.busy = true; v.error = ''; v.draft = null; v.busyAt = Date.now(); render();
+  // Le bouton montre depuis combien de temps l'IA cherche (ça peut prendre une minute ou deux).
+  const tick = setInterval(() => { if (v.busy && tab === 'reglages') render(); }, 1000);
   try {
     const r = await claude('newstyle', { name, details: (v.details || '').trim(), count: Number(v.count) || 100 });
     if (!r || !r.tracks || r.tracks.length < 10) throw new Error("L'IA n'a trouvé que " + ((r && r.tracks && r.tracks.length) || 0) + ' titres : précise le style et réessaie.');
@@ -32,6 +34,7 @@ async function generateStyle() {
     v.error = e.message;
   } finally {
     v.busy = false;
+    clearInterval(tick);
     render();
   }
 }
@@ -92,7 +95,8 @@ function tabStyles() {
     h('div', { class: 'label' }, 'Nombre de titres'),
     seg([['60', '60'], ['100', '100'], ['120', '120']], String(v.count || 100), (id) => { v.count = Number(id); render(); }, 'Nombre de titres'),
     !hasKey ? h('div', { class: 'muted' }, 'Il faut une clé Claude ou Gemini (Réglages › Clés API).') : null,
-    h('div', { class: 'btns' }, h('button', { class: 'btn primary small', type: 'button', disabled: v.busy || !hasKey, onclick: generateStyle }, v.busy ? "L'IA cherche… (jusqu'à 2 min)" : "Créer avec l'IA")),
+    h('div', { class: 'btns' }, h('button', { class: 'btn primary small', type: 'button', disabled: v.busy || !hasKey, onclick: generateStyle }, v.busy ? "L'IA cherche… " + Math.round((Date.now() - (v.busyAt || Date.now())) / 1000) + ' s' : "Créer avec l'IA")),
+    v.busy ? h('div', { class: 'muted' }, 'Ça peut prendre une ou deux minutes : l’IA cherche de vrais titres, puis chacun est vérifié.') : null,
     v.error ? h('div', { class: 'muted', role: 'alert' }, v.error) : null,
     v.draft ? h('div', { class: 'card pendingamb' },
       h('div', { class: 'label white' }, '« ' + v.draft.name + ' » : ' + v.draft.tracks.length + ' titres'),

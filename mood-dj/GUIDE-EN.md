@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.33.1.
+Up to date with version 2.34.0.
 
 ---
 
@@ -418,6 +418,10 @@ Settings › API keys › **AI power**, for the hosts' scripts:
 - **Full power**: the most powerful model (Claude Opus 5.5 or Gemini 4 Argon) writes longer, more polished dialogues (except over track intros). Livelier, but more expensive (with Claude, about twice the price of Sonnet) and a little slower; announcements are prepared in advance, so you don't hear the difference.
 
 Claude Opus 5.5 can also be picked directly as the **Claude model**.
+
+### Today's usage
+
+Under the call cap, **Today’s usage (estimate)** shows the estimated cost of Claude since midnight (from Claude's public prices and the usage each answer reports, cache included) and the number of Gemini calls with the free and the paid key. Gemini paid calls are billed by Google at its own prices.
 
 ### Spending cap
 

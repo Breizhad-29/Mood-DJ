@@ -59,7 +59,20 @@ function engineTick(s) {
     const ended = ps.lastEnded && ps.lastEnded.id === cur.videoId && now - ps.lastEnded.at < 10000;
     const seekEnd = ps.lastSeek && ps.lastSeek.id === cur.videoId && now - ps.lastSeek.at < 10000 &&
       ps.lastSeek.dur && ps.lastSeek.dur - ps.lastSeek.to < 10;
-    if (ended || seekEnd || (s.lastRemaining !== null && s.lastRemaining <= 6)) { advance('ended'); return; }
+    const nearEnd = seekEnd || (s.lastRemaining !== null && s.lastRemaining <= 6);
+    if (ended && !nearEnd) {
+      // Une vraie fin arrive en fin de titre : une « fin » après moins de 15 s d'écoute d'un titre normal,
+      // ou plus de 4 fins en une minute, ne vient pas du lecteur (ou d'une page qui l'imite) : ignorée.
+      s.endedTimes = (s.endedTimes || []).filter((x) => now - x < 60000);
+      const tooSoon = now - (cur.fadeInAt || 0) < 15000 && (cur.duration || 999) > 40;
+      if (tooSoon || s.endedTimes.length >= 4) {
+        if (!s.endedIgnoredAt || now - s.endedIgnoredAt > 10000) dlog('piste', 'fin de titre suspecte ignorée', { titre: cur.title, apres_s: Math.round((now - (cur.fadeInAt || 0)) / 1000), fins_en_1_min: s.endedTimes.length });
+        s.endedIgnoredAt = now;
+        return;
+      }
+      s.endedTimes.push(now);
+    }
+    if (ended || nearEnd) { advance('ended'); return; }
     if (settings.priority !== false) {
       // Choisi par toi dans YouTube Music (clic ou touche sur la page) : il entre dans le mix.
       if (now - lastPageAction < 5000) { adoptGuest(s, cur); return; }

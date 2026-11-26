@@ -1,5 +1,28 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.33.1
+MOOD DJ POUR YOUTUBE MUSIC — version 2.34.0
 ============================================
+
+2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
+- Réponses structurées : quand l'IA doit choisir (sélection décrite en
+  toutes lettres, nouveau style, choix des animateurs, villes), sa
+  réponse suit maintenant un schéma JSON garanti par l'API (Claude et
+  Gemini). Avant, Sonnet et Opus 5.5 remplissaient le formulaire « presque
+  toujours ».
+- Choix des animateurs mieux informés : l'IA connaît l'énergie que la
+  courbe vise au moment où le titre passera, et ses choix précédents
+  (écoutés jusqu'au bout ou zappés). Un choix zappé, l'animateur
+  l'encaisse à l'antenne (mauvaise foi, fair-play ou autodérision).
+- Claude surchargé : un nouvel essai 2,5 s plus tard, avant de passer à
+  Gemini ou aux phrases toutes faites.
+- Réglages › Clés API › Puissance de l'IA : « Consommation du jour
+  (estimation) » : coût estimé de Claude depuis minuit, d'après ses
+  tarifs publics (cache compris), et nombre d'appels Gemini avec la clé
+  gratuite et la clé payante.
+- Sécurité : une « fin de titre » arrivée moins de 15 s après le début
+  d'un titre normal, ou plus de 4 fins en une minute, est ignorée (une
+  page qui imiterait le lecteur ne peut plus enchaîner les annonces).
+- Création d'un style : le bouton montre depuis combien de secondes l'IA
+  cherche, avec une explication.
+- 7 nouveaux tests (26 en tout).
 
 2.33.1 : l'application Windows n'existe plus ; le code qui lui servait
 est retiré (saisie des clés dans le panneau, clés chiffrées par Windows,

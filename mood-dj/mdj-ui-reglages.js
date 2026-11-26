@@ -166,6 +166,18 @@ function tabReglages() {
     normal: 'Le modèle choisi plus haut écrit les textes. Les animateurs ont leur personnalité et se souviennent de ce qu’ils racontent d’une émission à l’autre.',
     max: 'Le modèle le plus puissant (Claude Opus 5.5 ou Gemini 4 Argon) écrit des dialogues plus longs et plus travaillés, sauf par-dessus les intros. Plus vivant, mais plus cher (avec Claude, environ deux fois le prix de Sonnet) et un peu plus lent : l’annonce est préparée à l’avance.'
   };
+  // Consommation du jour : coût estimé de Claude, et nombre d'appels Gemini par clé.
+  const usageLine = () => {
+    const today = new Date();
+    const day = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
+    const u = aiUsage && aiUsage.day === day ? aiUsage : { claudeUsd: 0, claudeCalls: 0, geminiFree: 0, geminiPaid: 0 };
+    const usd = (u.claudeUsd || 0).toFixed(2);
+    return h('div', { class: 'section', style: { gap: '4px' } },
+      h('div', { class: 'label' }, 'Consommation du jour (estimation)'),
+      h('div', { class: 'muted' }, 'Claude', ' : ≈ ' + (uiIsEnglish() ? usd : usd.replace('.', ',')) + ' $ · ' + (u.claudeCalls || 0) + ' ', (u.claudeCalls || 0) > 1 ? 'appels' : 'appel'),
+      h('div', { class: 'muted' }, 'Gemini', ' : ' + (u.geminiFree || 0) + ' ', 'avec la clé gratuite', ' · ' + (u.geminiPaid || 0) + ' ', 'avec la clé payante'),
+      h('div', { class: 'muted' }, 'D’après les tarifs publics de Claude. Les appels Gemini avec la clé payante sont facturés par Google, à ses tarifs.'));
+  };
   const CAP_AUTO = { eco: 'Automatique : 40 textes et 60 voix par heure', normal: 'Automatique : 150 textes et 150 voix par heure', max: 'Automatique : 300 textes et 300 voix par heure' };
   const powerCard = h('div', { class: 'card' },
     h('h2', { class: 'label white' }, 'Puissance de l’IA'),
@@ -176,7 +188,8 @@ function tabReglages() {
     h('select', { class: 'select', id: 'mdj-aicap', onchange: (e) => { settings.aiCap = e.target.value; saveSettings(); render(); } },
       [['auto', CAP_AUTO[aiPower()]], ['20', '20 par heure'], ['40', '40 par heure'], ['80', '80 par heure'], ['150', '150 par heure'], ['300', '300 par heure']]
         .map((o) => h('option', { value: o[0], selected: String(settings.aiCap || 'auto') === o[0] }, o[1]))),
-    h('div', { class: 'muted' }, 'Compté à part pour les textes et pour les voix Gemini. Au-delà, Mood DJ n’appelle plus l’IA jusqu’à l’heure suivante et les animateurs passent aux phrases toutes faites. Ce plafond ne remplace pas une limite de dépenses fixée dans la console du service.'));
+    h('div', { class: 'muted' }, 'Compté à part pour les textes et pour les voix Gemini. Au-delà, Mood DJ n’appelle plus l’IA jusqu’à l’heure suivante et les animateurs passent aux phrases toutes faites. Ce plafond ne remplace pas une limite de dépenses fixée dans la console du service.'),
+    usageLine());
   const srcIntro = h('div', { class: 'muted' }, "Sources d'anecdotes en plus, facultatives : sans elles, les animateurs puisent déjà dans MusicBrainz, Wikidata, Deezer et Wikipédia.");
   const keysView = isFull()
     ? [keyParts[1], cols(card(keyParts[2]), card(keyParts[3]), card(keyParts[4])), cols(textCard, powerCard),

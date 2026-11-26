@@ -34,19 +34,72 @@ function adaptForModel(body, model) {
       else if (haiku55) b.thinking = { type: 'disabled' };
     }
   }
-  if ((sonnet55 || opus55) && b.tool_choice && (b.tool_choice.type === 'tool' || b.tool_choice.type === 'any')) b.tool_choice = { type: 'auto' };
+  if ((sonnet55 || opus55) && b.tool_choice && (b.tool_choice.type === 'tool' || b.tool_choice.type === 'any')) {
+    // Ces modèles refusent qu'on force un outil. Quand l'outil ne servait qu'à obtenir des données
+    // structurées, on demande une réponse JSON garantie conforme à son schéma (« structured outputs ») ;
+    // callClaude la remet ensuite sous forme d'appel d'outil, comme avant.
+    const tool = b.tool_choice.type === 'tool' && Array.isArray(b.tools) ? b.tools.find((t) => t.name === b.tool_choice.name) : null;
+    if (tool && tool.input_schema) {
+      b.output_config = Object.assign({}, b.output_config || {}, { format: { type: 'json_schema', schema: strictSchema(tool.input_schema) } });
+      const hint = 'Réponds uniquement avec un objet JSON conforme au schéma demandé. ' + (tool.description || '');
+      b.system = Array.isArray(b.system) ? b.system.concat([{ type: 'text', text: hint }]) : (b.system ? b.system + '\n' : '') + hint;
+      delete b.tools;
+      delete b.tool_choice;
+      Object.defineProperty(b, 'asTool', { value: tool.name, enumerable: false });
+    } else b.tool_choice = { type: 'auto' };
+  }
   return b;
+}
+// Schéma JSON accepté par les réponses structurées : objets fermés, sans bornes numériques ni de longueur.
+function strictSchema(s) {
+  if (Array.isArray(s)) return s.map(strictSchema);
+  if (!s || typeof s !== 'object') return s;
+  const o = {};
+  for (const k of Object.keys(s)) {
+    if (['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems', 'pattern'].includes(k)) continue;
+    o[k] = k === 'properties' ? Object.fromEntries(Object.entries(s.properties).map(([n, v]) => [n, strictSchema(v)])) : strictSchema(s[k]);
+  }
+  if (o.type === 'object') o.additionalProperties = false;
+  return o;
+}
+// Texte JSON d'une réponse structurée (avec ou sans balises de code) → objet, sinon null.
+function parseJsonText(t) {
+  const m = String(t || '').match(/\{[\s\S]*\}/);
+  try { return m ? JSON.parse(m[0]) : null; } catch (e) { return null; }
 }
 
 // Seuls ces modèles sont envoyés à l'API (un réglage importé ou abîmé ne peut pas en imposer un autre).
 const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
+// --------------------------------------------------- consommation du jour
+// Estimation en dollars des appels à Claude (tarifs par million de mots-jetons : entrée, sortie, lecture
+// du cache ; l'écriture en cache coûte 1,25 fois l'entrée), et nombre d'appels Gemini par clé.
+const CLAUDE_PRICES = { 'claude-sonnet-5-5': [2, 10, 0.1], 'claude-opus-5-5': [4, 20, 0.2], 'claude-haiku-5-5': [0.1, 0.5, 0.01] };
+let usageMem = null;
+let usageLoad = null;
+const usageDay = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+async function bumpUsage(fn) {
+  if (!usageLoad) usageLoad = chrome.storage.local.get('aiUsage').then((d) => d.aiUsage || null).catch(() => null);
+  const loaded = await usageLoad;
+  if (!usageMem) usageMem = loaded && loaded.day === usageDay() ? loaded : null;
+  if (!usageMem || usageMem.day !== usageDay()) usageMem = { day: usageDay(), claudeUsd: 0, claudeCalls: 0, geminiFree: 0, geminiPaid: 0 };
+  fn(usageMem);
+  try { await chrome.storage.local.set({ aiUsage: usageMem }); } catch (e) { /* ignore */ }
+}
+function recordClaudeUsage(model, u) {
+  const pr = CLAUDE_PRICES[Object.keys(CLAUDE_PRICES).find((k) => String(model || '').startsWith(k))] || CLAUDE_PRICES[DEFAULT_MODEL];
+  const x = u || {};
+  const usd = ((x.input_tokens || 0) * pr[0] + (x.cache_creation_input_tokens || 0) * pr[0] * 1.25 + (x.cache_read_input_tokens || 0) * pr[2] + (x.output_tokens || 0) * pr[1]) / 1e6;
+  bumpUsage((m) => { m.claudeUsd += usd; m.claudeCalls++; });
+}
+
 async function callClaude(body, forceModel) {
   const { apiKey, model: chosen } = await getSettings();
   const wanted = forceModel || chosen;
   const model = CLAUDE_MODELS.includes(wanted) ? wanted : DEFAULT_MODEL;
   body = adaptForModel(body, model);
+  const asTool = body.asTool;
   if (!apiKey) throw new Error('Aucune clé API enregistrée (onglet Réglages).');
-  const res = await fetch(API_URL, {
+  const send = () => fetch(API_URL, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -57,12 +110,25 @@ async function callClaude(body, forceModel) {
     },
     body: JSON.stringify(Object.assign({}, body, { model }))
   });
+  let res = await send();
+  // Claude surchargé ou en erreur passagère : un seul nouvel essai, 2,5 s plus tard, avant de passer la main.
+  if (res.status === 529 || res.status === 503 || res.status === 500) {
+    await new Promise((r) => setTimeout(r, 2500));
+    res = await send();
+  }
   let data = null;
   try { data = await res.json(); } catch (e) { /* ignore */ }
+  if (res.ok && data) recordClaudeUsage(data.model || model, data.usage);
+  if (res.ok && data && asTool) {
+    const txt = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+    const input = parseJsonText(txt);
+    if (input) data.content = [{ type: 'tool_use', name: asTool, input }];
+  }
   if (!res.ok) {
     const msg = (data && data.error && data.error.message) || ('HTTP ' + res.status);
     if (res.status === 401) throw new Error('Clé API refusée : vérifie-la dans les Réglages.');
     if (res.status === 429) throw new Error('Trop de demandes ou crédits épuisés : ' + msg);
+    if (res.status === 529) throw new Error('Claude est surchargé pour le moment : ' + msg);
     throw new Error('Claude : ' + msg);
   }
   return data;
@@ -444,6 +510,9 @@ function splitMemory(raw) {
   return { spoken: spoken.replace(/\n{2,}/g, '\n').trim(), mem };
 }
 
+// Réponses structurées (JSON garanti conforme) pour les villes et le choix des animateurs.
+const CITIES_SCHEMA = { type: 'object', properties: { pays: { type: 'string' }, villeA: { type: 'string' }, villeB: { type: 'string' } }, required: ['pays', 'villeA', 'villeB'], additionalProperties: false };
+const PICK_SCHEMA = { type: 'object', properties: { artiste: { type: 'string' }, titre: { type: 'string' }, energie: { type: 'integer' }, pourquoi: { type: 'string' } }, required: ['artiste', 'titre', 'energie', 'pourquoi'], additionalProperties: false };
 // Villes des animateurs : deux villes réelles à moins de 50 km environ de celle de l'auditeur.
 async function hostCities(p) {
   const city = String(p.city || '').replace(/[«»"\n]/g, ' ').slice(0, 80).trim();
@@ -451,7 +520,8 @@ async function hostCities(p) {
   const data = await callText({
     max_tokens: 300,
     messages: [{ role: 'user', content: "Ville de l'auditeur : « " + city + " ». Donne son pays, puis deux autres villes ou villages réels, différents l'un de l'autre et de cette ville, situés à moins de 50 km environ. " +
-      'Réponds uniquement avec ce JSON, sans rien autour : {"pays": "…", "villeA": "…", "villeB": "…"}' }]
+      'Réponds uniquement avec ce JSON, sans rien autour : {"pays": "…", "villeA": "…", "villeB": "…"}' }],
+    output_config: { format: { type: 'json_schema', schema: CITIES_SCHEMA } }
   }, 'claude-haiku-5-5');
   const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ');
   const m = raw.match(/\{[\s\S]*\}/);
@@ -478,6 +548,11 @@ async function hostPick(p) {
   if (q(p.story, 1200)) lines.push('TON HISTOIRE : ' + q(p.story, 1200));
   const mem = (Array.isArray(p.memories) ? p.memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-8);
   if (mem.length) lines.push('Ce que tu as déjà raconté de toi à l’antenne :\n- ' + mem.join('\n- '));
+  const past = (Array.isArray(p.history) ? p.history : []).filter((h) => h && h.title).slice(-6);
+  if (past.length) {
+    lines.push('Tes choix précédents et comment l’auditeur les a reçus (choisis dans la même veine que ceux qui ont plu, et change de piste après un zap) :\n- ' +
+      past.map((h) => '« ' + q(h.title, 120) + ' » : ' + (h.skipped ? 'zappé' : 'écouté jusqu’au bout')).join('\n- '));
+  }
   if (p.lore && q(p.lore.text, 1500)) {
     const ev = (Array.isArray(p.lore.memories) ? p.lore.memories : []).map((m) => q(m, 200)).filter(Boolean).slice(-8);
     lines.push("L'UNIVERS DE LA STATION : " + q(p.lore.text, 1500) + (ev.length ? '\nÉvénements récents :\n- ' + ev.join('\n- ') : ''));
@@ -486,7 +561,7 @@ async function hostPick(p) {
     'Un vrai titre qui existe en version studio sur YouTube Music ; pas de live, de remix ni de karaoké. ' +
     (Array.isArray(p.avoid) && p.avoid.length ? 'Pas un de ceux-ci, ni un titre de ces artistes (déjà passés ou prévus) : ' + p.avoid.slice(-40).map((x) => q(x, 120)).join(' ; ') + '. ' : ''));
   lines.push('Réponds uniquement avec ce JSON, sans rien autour : {"artiste": "…", "titre": "…", "energie": 1 à 5, "pourquoi": "en une phrase, à la première personne, ce que tu vas raconter pour l\'amener : un ressenti, un souvenir de ta vie, un lien avec l\'univers ; aucun fait inventé sur l\'artiste"}');
-  const data = await callText({ max_tokens: 600, messages: [{ role: 'user', content: lines.join('\n') }] },
+  const data = await callText({ max_tokens: 600, messages: [{ role: 'user', content: lines.join('\n') }], output_config: { format: { type: 'json_schema', schema: PICK_SCHEMA } } },
     power === 'max' ? OPUS_MODEL : undefined, power === 'max' ? { geminiModel: 'gemini-4-argon', thinkingLevel: 'medium' } : undefined);
   const raw = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(' ');
   const m = raw.match(/\{[\s\S]*\}/);
@@ -590,7 +665,11 @@ async function writeAnnouncement(p) {
       (p.duo ? "C'est " + pickWho(k) + ' qui le lance, avec un vrai élan personnel, et l’autre réagit selon son caractère (adhère, doute, chambre, se laisse convaincre).' : 'Lance-le avec un vrai élan personnel.') +
       ' Aucun fait inventé sur l’artiste.');
   }
-  if (p.hostPickAfter) {
+  if (p.hostPickAfter && p.hostPickAfter.skipped) {
+    const k = p.hostPickAfter;
+    lines.push((k.earlier ? 'Le titre choisi tout à l’heure par ' : 'Le titre qu’on vient de quitter était le choix de ') + pickWho(k) + (k.earlier ? ' (« ' + pq(k.earlier, 150) + ' »)' : '') +
+      ', et l’auditeur l’a zappé avant la fin. ' + (p.duo ? pickWho(k) + ' encaisse en une ligne (mauvaise foi, fair-play ou autodérision), et l’autre peut en profiter gentiment.' : 'Encaisse-le en une demi-phrase, avec humour.'));
+  } else if (p.hostPickAfter) {
     const k = p.hostPickAfter;
     lines.push((k.earlier ? 'Un titre passé un peu plus tôt (« ' + pq(k.earlier, 150) + ' ») était' : "Le titre qu'on vient d'écouter était") + ' le choix de ' + pickWho(k) + (p.duo ? " : l'autre peut rendre son verdict (conquis, pas convaincu, une vanne ou une concession), et " + pickWho(k) + ' défendre son choix en une ligne.' : ' : dis en une demi-phrase si ça a fait son effet.'));
   }
@@ -1534,6 +1613,7 @@ async function withGeminiKeys(fn) {
     try {
       const r = await fn(keys[i].key);
       if (r && typeof r === 'object') r.cle = keys[i].id + (keys[i].id === 'payante' && geminiKey ? ' (relais)' : '');
+      bumpUsage((m) => { if (keys[i].id === 'payante') m.geminiPaid++; else m.geminiFree++; });
       return r;
     } catch (e) {
       last = e;
@@ -1654,6 +1734,8 @@ function geminiTextBody(body, withThinking, thinkingLevel) {
     generationConfig: { maxOutputTokens: Math.min(32000, (Number(body.max_tokens) || 1000) * 2 + 2000) }
   };
   if (withThinking) out.generationConfig.thinkingConfig = { thinkingLevel: thinkingLevel || 'low' };
+  const fmt = body.output_config && body.output_config.format;
+  if (fmt && fmt.schema) { out.generationConfig.responseMimeType = 'application/json'; out.generationConfig.responseSchema = toGeminiSchema(fmt.schema); }
   if (body.system) out.systemInstruction = { parts: [{ text: Array.isArray(body.system) ? body.system.map((b) => (b && b.text) || '').join('\n') : String(body.system) }] };
   if (Array.isArray(body.tools) && body.tools.length) {
     out.tools = [{ functionDeclarations: body.tools.map((t) => ({ name: t.name, description: t.description || '', parameters: toGeminiSchema(t.input_schema) })) }];

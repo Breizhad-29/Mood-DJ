@@ -12,7 +12,7 @@ const C = MDJ_CORE;
 const WHERE = 'dans ce navigateur';
 const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
 const LOOKAHEAD = 5;
-const VERSION = '2.33.1';
+const VERSION = '2.34.0';
 // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
 // titres des styles ajoutés par l'IA (applyStyleSet).
 const BASE_CATALOG = CATALOG.slice();
@@ -174,7 +174,7 @@ function markProblem() {
 // Exporter : un fichier avec les réglages, les J'aime classés, les découvertes et les mémoires des
 // animateurs (jamais les clés API ni le journal). Importer : le même fichier, par exemple sur un autre
 // ordinateur.
-const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles'];
+const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog'];
 async function exportData() {
   try {
     const all = await chrome.storage.local.get(BACKUP_KEYS);
@@ -229,7 +229,7 @@ function backupCard() {
 }
 
 async function loadAll() {
-  const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles']);
+  const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog', 'aiUsage']);
   showHistory = Array.isArray(d.showHistory) ? d.showHistory.filter((x) => x && x.id && Array.isArray(x.tracks)) : [];
   hasSetlist = !!d.setlistfmKey;
   hasTicketmaster = !!d.ticketmasterKey;
@@ -242,6 +242,8 @@ async function loadAll() {
   loreProfiles = Array.isArray(d.loreProfiles) ? d.loreProfiles.filter((x) => x && typeof x.name === 'string' && x.name).map((x) => Object.assign(x, { events: cleanMemories(x.events) })) : [];
   const hm = d.hostMemory && typeof d.hostMemory === 'object' ? d.hostMemory : {};
   hostMemory = { A: cleanMemories(hm.A), B: cleanMemories(hm.B), L: cleanMemories(hm.L) };
+  pickLog = Array.isArray(d.pickLog) ? d.pickLog.filter((x) => x && typeof x.title === 'string').slice(-40) : [];
+  aiUsage = d.aiUsage && typeof d.aiUsage === 'object' ? d.aiUsage : null;
   learned = Array.isArray(d.learnedCat) ? d.learnedCat : [];
   artistCache = d.artistCache && d.artistCache.pages ? d.artistCache : { names: {}, pages: {} };
   if (Array.isArray(d.debugLog)) dbgBuf = d.debugLog.slice(-DEBUG_MAX);
@@ -327,6 +329,8 @@ const saveCache = debounce(() => {
 try {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.apiKey) { hasClaude = !!changes.apiKey.newValue; syncTextKey(); render(); }
+    // Consommation du jour, tenue par le service : affichée au prochain affichage des Réglages.
+    if (area === 'local' && changes.aiUsage) aiUsage = changes.aiUsage.newValue || null;
     if (area === 'local' && changes.geminiKey) { hasGemini1 = !!changes.geminiKey.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); render(); }
     if (area === 'local' && changes.lastfmKey) { hasLastfm = !!changes.lastfmKey.newValue; render(); }
     if (area === 'local' && changes.setlistfmKey) { hasSetlist = !!changes.setlistfmKey.newValue; render(); }

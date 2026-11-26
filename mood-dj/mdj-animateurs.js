@@ -262,12 +262,16 @@ async function maybePlanPick(s) {
   s.picks.since = 0;
   try {
     ensurePersonas();
-    const ref = s.queue[Math.min(lockedCount(s), s.queue.length - 1)] || s.current || {};
+    // Énergie que la courbe vise au moment où le titre choisi passera (après les titres verrouillés).
+    const slot = Math.min(lockedCount(s), s.queue.length);
+    const at = (s.playedSec || 0) + (s.current ? s.current.duration || 0 : 0) + sumDur(s.queue.slice(0, slot));
+    const aimEnergy = Math.round(C.targetEnergy(s.sel, posFromSec(s, at)));
     const r = await withTimeout(claude('hostpick', {
       kind, name, persona: settings[S.persona] || '', story: settings[S.story] || '',
       memories: (hostMemory[who] || []).slice(-8).map((m) => m.t),
       lore: kind === 'lore' ? { text: loreNames(settings.stationLore), memories: (hostMemory.L || []).slice(-8).map((m) => m.t) } : null,
-      ambiance: plainLabel(s.sel), styles: styleText(s.sel), energy: ref.energy || 3,
+      ambiance: plainLabel(s.sel), styles: styleText(s.sel), energy: aimEnergy || 3,
+      history: pickLog.filter((x) => x.who === who && x.name === name).slice(-6).map((x) => ({ title: x.title, skipped: !!x.skipped })),
       avoid: (s.played || []).slice(-30).concat(s.queue).map((t) => t.artist + ' – ' + t.title),
       power: aiPower()
     }), aiTimeout(25000));
@@ -292,6 +296,15 @@ async function maybePlanPick(s) {
     pickBusy = false;
   }
 }
+// Un choix d'animateur vient de finir (écouté ou zappé) : on le note pour ses prochains choix.
+function logPickOutcome(t) {
+  if (!t || !t.pick || t.pick.logged) return;
+  t.pick.logged = true;
+  t.pick.skipped = !!t.skipped;
+  pickLog = pickLog.concat([{ who: t.pick.who, name: t.pick.name, title: t.pick.title || (t.title + ' de ' + t.artist), skipped: !!t.skipped, at: Date.now() }]).slice(-40);
+  store({ pickLog });
+  dlog('annonce', 'choix de ' + t.pick.name + (t.skipped ? ' zappé' : ' écouté jusqu’au bout'), { titre: t.title });
+}
 // Ce que l'annonce doit savoir des choix des animateurs (le titre suivant, le précédent, un à venir).
 // Les références (refs) ne sont marquées « faites » que quand l'annonce passe vraiment (sayIt).
 function pickPayload(s, prev, next, duo, guestTalks) {
@@ -301,7 +314,7 @@ function pickPayload(s, prev, next, duo, guestTalks) {
   // Après : le titre qu'on vient d'écouter, ou un choix passé plus tôt dont personne n'a encore reparlé.
   let afterRef = prev && ok(prev.pick) && !prev.pick.discussed ? prev.pick : null;
   if (!afterRef && s && s.pickPending && ok(s.pickPending) && !s.pickPending.discussed) afterRef = s.pickPending;
-  const after = afterRef ? view(afterRef, afterRef === (prev && prev.pick) ? {} : { earlier: afterRef.title || '' }) : null;
+  const after = afterRef ? view(afterRef, Object.assign(afterRef === (prev && prev.pick) ? {} : { earlier: afterRef.title || '' }, { skipped: !!afterRef.skipped || !!(prev && prev.pick === afterRef && prev.skipped) })) : null;
   let teaseRef = null;
   if (!now && s && s.queue) {
     const later = s.queue.find((t) => t !== next && t.pick && !t.pick.teased && ok(t.pick));
@@ -333,6 +346,10 @@ function hostCityPair() {
   return hc && hc.a ? { a: hc.a, b: hc.b } : { a: '', b: '' };
 }
 let hostMemory = { A: [], B: [], L: [] };
+// Choix des animateurs déjà passés, et s'ils ont été écoutés jusqu'au bout ou zappés (40 derniers).
+let pickLog = [];
+// Consommation de l'IA du jour (estimation tenue par le service en arrière-plan).
+let aiUsage = null;
 // Une entrée de mémoire abîmée (sauvegarde, profil) ne doit jamais casser une annonce.
 const cleanMemories = (list) => (Array.isArray(list) ? list.filter((m) => m && typeof m.t === 'string' && m.t.trim()).slice(-30) : []);
 const saveMemory = debounce(() => store({ hostMemory }), 800);
