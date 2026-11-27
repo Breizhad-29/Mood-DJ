@@ -653,6 +653,14 @@ async function writeAnnouncement(p) {
   const PROG_LEN = { talkover: ' Pour ce programme, tu as droit à trois phrases, 55 mots au plus.', intro: ' Pour cet accueil et le programme, tu as droit à quatre phrases, 70 mots au plus.',
     interlude: ' Pour cette pause et le programme, tu as droit à quatre ou cinq phrases, 90 mots au plus.' };
   const isProg = Array.isArray(p.programme) && p.programme.length >= 2;
+  // Mode bavardage (2.37) : la conversation d'abord, puis le rappel des titres à venir (recall), ou du seul suivant.
+  const recall = !isProg && Array.isArray(p.upcoming) && p.upcoming.length >= 2;
+  // Le rappel prend environ huit mots par titre (premier essai réel : faute de place, l'IA ne donnait plus que le
+  // nom de l'artiste pour les derniers titres).
+  const recallWords = recall ? 8 * Math.min(4, p.upcoming.length) : 0;
+  const CHAT_LEN = { talkover: ' Pour ce moment de bavardage, tu as droit à deux ou trois phrases, 45 mots au plus.', interlude: '' };
+  const RECALL_LEN = { talkover: ' Pour ce bavardage et le rappel des titres, tu as droit à trois ou quatre phrases, ' + (40 + recallWords) + ' mots au plus.',
+    interlude: ' Pour ce bavardage et le rappel des titres, tu as droit à quatre ou cinq phrases, ' + (70 + recallWords) + ' mots au plus.' };
   const hookWords = p.hook ? 20 : 0;
   const answerWords = p.hookAnswer ? 25 : 0;
   const expressWords = p.express ? 15 : 0;
@@ -660,7 +668,9 @@ async function writeAnnouncement(p) {
   const longRule = p.role === 'chronique' && p.kind === 'interlude' ? LONG.chronique : LONG[p.kind] || '';
   const extra = hookWords + answerWords + expressWords;
   const lines = [isProg ? stripLen(rule) + (p.duo ? '' : PROG_LEN[p.kind] || PROG_LEN.talkover)
-    : p.duo || p.long ? stripLen(rule) + (p.long && !p.duo ? longRule : '') : rule];
+    : recall ? stripLen(rule) + (p.duo ? '' : RECALL_LEN[p.kind] || RECALL_LEN.talkover)
+      : p.duo || p.long ? stripLen(rule) + (p.long && !p.duo ? longRule : '')
+        : p.chatMode && CHAT_LEN[p.kind] ? stripLen(rule) + CHAT_LEN[p.kind] : rule];
   // Émission à deux, un seul au micro : la demande dit lequel, et « tu », c'est lui.
   if (solo) {
     const fem = (solo === 'B' ? p.cohostGender : p.hostGender) === 'femme';
@@ -673,6 +683,8 @@ async function writeAnnouncement(p) {
     const cstyle = HOST_STYLES[p.cohostStyle] || HOST_STYLES.decale;
     const n = Math.max(2, Math.min(power === 'max' ? 8 : power === 'eco' ? 3 : 6, Number(p.turns) || (p.kind === 'talkover' ? 2 : 4)));
     const words0 = (isProg ? ({ talkover: 75, intro: 85, interlude: 110 }[p.kind] || 80)
+      : recall ? ({ talkover: 55, interlude: 85 }[p.kind] || 60) + recallWords
+      : p.chatMode && !p.long && p.kind === 'talkover' ? 55
       : p.long ? (p.kind === 'talkover' ? (p.role === 'culture' ? 45 : 55) : p.role === 'chronique' ? Math.min(135, n * 24) : Math.min(115, n * 22)) : p.kind === 'talkover' ? 35 : Math.min(90, n * 20)) +
       hookWords + answerWords + expressWords;
     const words = Math.round(words0 * (power === 'max' && p.kind !== 'talkover' ? 1.35 : power === 'eco' ? 0.8 : 1));
@@ -828,12 +840,22 @@ async function writeAnnouncement(p) {
       lines.push('DÉPART DE L\'INVITÉ : dernière intervention de ' + gn + ' (B), ' + gr + '. Un dernier mot d\'expert sur le titre suivant, A ' + (fem ? 'la' : 'le') + ' remercie chaleureusement, et c\'est ' + gn + ' qui lance le titre suivant, comme on rend l\'antenne. ' + away + ' reviendra à la prochaine intervention.' + sure);
     }
   }
+  if (p.chatMode) {
+    lines.push(p.duo
+      ? "MODE BAVARDAGE : dans cette émission, les animateurs passent leur temps à déconner entre eux, comme deux amis au micro que les auditeurs surprennent en pleine conversation. Cette intervention n'est pas une annonce : c'est un moment à eux, vivant et drôle, sans ton d'animateur. La musique ne revient qu'à la fin, quand l'un des deux lance le titre ; l'heure, la météo ou le nom de la station, s'ils sont demandés, se disent à ce moment-là, jamais au milieu de la conversation."
+      : "MODE BAVARDAGE : dans cette émission, tu bavardes avec les auditeurs comme avec des amis. Cette intervention n'est pas une annonce : c'est une confidence ou une bêtise glissée entre deux disques, sans ton d'animateur. La musique ne revient qu'à la fin, quand tu lances le titre ; l'heure, la météo ou le nom de la station, s'ils sont demandés, se disent à ce moment-là.");
+  }
+  if (p.chatMode && p.pivot) lines.push('RETOUR À LA MUSIQUE, cette fois : ' + String(p.pivot).replace(/[«»"\n]/g, ' ').slice(0, 200).trim() + ". Pas de mot de liaison passe-partout pour y revenir (« Bref », « Allez », « Bon »).");
   if (p.angle) lines.push('ANGLE DE CETTE INTERVENTION : ' + p.angle);
   if (isProg) {
     const prog = p.programme.slice(0, 4).map((x, i) => (i + 1) + '. ' + String(x).slice(0, 160) + (i === 0 ? ' (il démarre tout de suite)' : '')).join(' ; ');
     lines.push('PROGRAMME DES PROCHAINES MINUTES, dans cet ordre : ' + prog + '. Annonce-les tous, titre et artiste, dans cet ordre, comme un vrai programme de radio : vivant, pas récité comme une liste. ' +
       (p.programmeCycle ? "Pas d'anecdote maintenant : les histoires viendront pendant les titres suivants (tu peux en teaser une, sans la raconter). " : "Un petit mot qui donne envie sur l'un d'eux, au plus. ") +
       'Termine en lançant clairement le premier.');
+  } else if (recall) {
+    const up = p.upcoming.slice(0, 4).map((x, i) => (i + 1) + '. ' + String(x).slice(0, 160) + (i === 0 ? ' (il démarre tout de suite)' : '')).join(' ; ');
+    lines.push('TITRES À VENIR, dans cet ordre : ' + up + ". La conversation passe d'abord. À la fin seulement, " + (p.duo ? "l'un des deux les rappelle" : 'tu les rappelles') +
+      " tous dans cet ordre, chacun avec son titre et son artiste (aucun n'est réduit à son seul artiste), en une ou deux phrases vives, sans les commenter un par un, puis lance le premier.");
   } else if (p.role === 'chronique' || p.role === 'culture') {
     lines.push((p.role === 'chronique' ? "CHRONIQUE : c'est le moment fort de la pause ; l'histoire est racontée en entier, avec du détail et du rythme. " : 'CULTURE COURTE : un fait de culture musicale, rapide et marquant. ') +
       "Le titre suivant a déjà été présenté dans le programme : ne refais pas le programme ; relance-le seulement en quelques mots à la fin, d'une façon différente à chaque fois (pas toujours « comme promis »).");

@@ -12,7 +12,7 @@ const C = MDJ_CORE;
 const WHERE = 'dans ce navigateur';
 const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
 const LOOKAHEAD = 5;
-const VERSION = '2.36.0';
+const VERSION = '2.37.0';
 // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
 // titres des styles ajoutés par l'IA (applyStyleSet).
 const BASE_CATALOG = CATALOG.slice();
@@ -41,7 +41,7 @@ const DEFAULT_SETTINGS = {
   hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
   voiceEngine: 'systeme',
   geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-  anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare', chat: 'parfois', presetRev: 0,
+  anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare', chat: 'parfois', games: 'parfois', presetRev: 0,
   // voiceChosen : l'auditeur a choisi lui-même son moteur de voix ; voiceOffered : la bascule lui a déjà été proposée.
   voiceChosen: false, voiceOffered: false
 };

@@ -138,7 +138,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   const now = atMs || Date.now();
   const tp = timeParts(new Date(now));
   const role = roleFor(s, next);
-  const progList = role === 'programme' ? programmeList(s, next) : null;
+  const progList = role === 'programme' ? programmeOf(s, next) : null;
   // Spécialiste invité : pendant son passage, il remplace le coanimateur (toujours en duo).
   const gPhase = kind === 'intro' ? '' : guestPhaseFor(s, next);
   const guest = gPhase && s.guest ? s.guest : null;
@@ -197,6 +197,9 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   if (plan.sayWeather && !c.weather) { plan.sayWeather = false; s.variety.weatherAt = plan.prevWeatherAt; }
   // Conversation libre à la place du programme : les titres à venir ne sont pas présentés cette fois.
   const progShown = progList && progList.length >= 2 && !plan.free ? progList : null;
+  // Mode bavardage (« Tout le temps ») : la conversation remplace le programme, mais les titres à venir sont
+  // rappelés à la fin, en une phrase.
+  const upcoming = plan.chatty && progList && progList.length >= 2 ? progList : null;
   // Réponse au jeu posé pendant le programme (vrai ou faux, question en suspens).
   let hookAnswer = null;
   if (hookDue(s, next)) {
@@ -260,7 +263,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   }
   // Vrai ou faux express (culture courte), quand une fiche donne un fait précis.
   let express = null;
-  if (live && role === 'culture' && !plan.free && !eph && !hookAnswer && !s.hook && facts && facts !== 'AUCUNE FICHE' && Math.random() < 0.3) {
+  if (live && role === 'culture' && !plan.free && !eph && !hookAnswer && !s.hook && facts && facts !== 'AUCUNE FICHE' && gameOk(v, 'express')) {
     const truth = flip();
     const b = drawBet(truth);
     express = { truth, bet: b.bet, won: b.won, score: duo ? scoreAfter(s, b.won) : null, gage: duo && !b.won && Math.random() < 0.35 ? pick(GAGES) : '' };
@@ -269,7 +272,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   // Jeu lancé pendant le programme sur le 2e titre (vrai ou faux, ou question en suspens), réponse à la chronique.
   let hook = null;
   let hookFacts = '';
-  if (live && progShown && settings.radioFreq === 'every' && !s.hook && !hookAnswer && !ch && Math.random() < 0.7) {
+  if (live && progShown && settings.radioFreq === 'every' && !s.hook && !hookAnswer && !ch && gameOk(v, 'hook')) {
     const t2 = progShown[1];
     const f = await factsFor(t2);
     if (f.text) {
@@ -318,7 +321,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
         angle: plan.angle ? plan.angle.txt : '', sayTime: plan.sayTime, sayStation: plan.sayStation,
         momentOk: plan.momentOk, yearOk: plan.yearOk, avoid: plan.avoid, openers: plan.openers,
         turns: duo && aiPower() === 'max' && kind !== 'talkover' ? Math.min(8, (plan.turns || 4) + 2) : plan.turns, opener: plan.opener, facts, long: plan.long, show: s.id || '',
-        role: plan.free ? null : plan.role, programme: progShown ? progShown.map(desc) : null, programmeCycle: settings.radioFreq === 'every', told,
+        role: plan.free ? null : plan.role, programme: progShown ? progShown.map(desc) : null, upcoming: upcoming ? upcoming.map(desc) : null, chatMode: !!plan.chatty, pivot: plan.pivot || '', programmeCycle: settings.radioFreq === 'every', told,
         rubrique: rub ? rub.name : '', hook: pub(hook), hookFacts, hookAnswer: pub(hookAnswer), express, ephemeride: eph, episode, stats, local,
         duo, cohost: gTalks ? guest.name : c.cohost, cohostStyle: gTalks ? guest.style : settings.cohostStyle,
         hostGender: hostGenders().host, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
@@ -375,11 +378,13 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   const plain = stripTags(turns.map((t) => t.text).join(' '));
   const sfx = fromClaude && settings.sfx !== false && emo !== 'sobre' && emo !== 'intime' ? marks.sfx : [];
   if (marks.sfx.length || turns.some((t) => t.emotion)) dlog('annonce', 'émotions', { tons: turns.filter((t) => t.emotion).map((t) => t.speaker + ' ' + t.emotion), bruitages: sfx.map((x) => x.name + ' @' + Math.round(x.at * 100) + '%') });
-  s.lastLines = (s.lastLines || []).concat([plain]).slice(-24);
+  // Exemples des Réglages : leur texte reste dans leur propre fausse émission. Une vraie annonce, elle, n'entre dans
+  // « les dernières interventions » qu'au moment où elle passe à l'antenne (sayIt).
+  if (s.demo) s.lastLines = (s.lastLines || []).concat([plain]).slice(-24);
   // Expressions fétiches entendues dans ce texte : elles passent « au repos » pour les prochaines interventions.
   const said = s.demo ? [] : noteSayings(s, plain, now);
   if (focus || said.length) dlog('annonce', 'dosage des fiches', { qui: speakers.join('+'), tic_permis: focus && focus.tic ? focus.tic.text : '', detail: focus && focus.facet ? focus.facet.text.slice(0, 80) : '', gag: (focus && focus.gag) || '',
-    au_repos: focus ? focus.rest.length : 0, entendus: said.join(' | '), dynamique: dyn ? dyn.id : '', bavardage: (plan.angle && plan.angle.format) || '', sujet: (plan.angle && plan.angle.topic) || '', variante: (plan.angle && plan.angle.twist) || '', coupure: turns.filter((t) => t.cut).length, libre: !!plan.free });
+    au_repos: focus ? focus.rest.length : 0, entendus: said.join(' | '), dynamique: dyn ? dyn.id : '', bavardage: (plan.angle && plan.angle.format) || '', retour: plan.pivot || '', sujet: (plan.angle && plan.angle.topic) || '', variante: (plan.angle && plan.angle.twist) || '', coupure: turns.filter((t) => t.cut).length, libre: !!plan.free });
   if (plan.episodeRef) plan.episodeRef.last = plain.slice(0, 300);
   // Mémoire des anecdotes : pour un vrai ou faux, c'est le vrai fait qui est retenu, jamais la version modifiée.
   if (fromClaude && subjects.length) rememberTold(subjects, express ? hidden.answer || '' : plain);
@@ -452,6 +457,10 @@ async function sayIt(ann, opts) {
   if (!ann || !ann.text) { dlog('annonce', 'rien à dire (texte vide)'); return; }
   if (ann.voice && !ann.voiced) await ann.voice();
   const s = ann.s;
+  // Retenue maintenant qu'elle passe à l'antenne (2.37). Elle l'était dès sa préparation : une annonce préparée puis
+  // jamais dite restait dans « les dernières interventions » montrées à l'IA, qui y répondait à l'annonce suivante
+  // (journal du 28/11 : le verdict d'un vrai ou faux que les auditeurs n'avaient jamais entendu).
+  if (s && !s.demo && ann.kind !== 'outro') s.lastLines = (s.lastLines || []).concat([ann.text]).slice(-24);
   if (s && ann.hookAnswered && s.hook && s.hook.id === ann.hookAnswered) {
     if (ann.scoreAfter) s.score = ann.scoreAfter;
     if (s.hook.answer) rememberTold(s.hook.subjects || [], s.hook.answer);
@@ -459,6 +468,11 @@ async function sayIt(ann, opts) {
     s.hook = null;
   }
   if (s && ann.express && ann.express.score) s.score = ann.express.score;
+  // Jeux espacés : on note si ce cycle a eu le sien (posé avec le programme, ou express), pour le suivant.
+  if (s && !s.demo && s.variety) {
+    if (ann.express) s.variety.gameLast = true;
+    else if (ann.role === 'programme' || ann.kind === 'intro') s.variety.gameLast = !!ann.hook;
+  }
   if (s && ann.guestPhase) guestAdvance(s, ann.guestPhase);
   if (s && ann.dedic && !ann.dedic.done) {
     ann.dedic.done = true;
@@ -812,7 +826,7 @@ async function demoAnnouncement(what) {
   }
   demoBusy = true;
   try {
-    toast(what === 'anecdote' ? "Recherche d'une anecdote…" : what === 'guest' ? "L'invité arrive en studio…" : what === 'chant' ? 'Les animateurs chauffent leur voix…' : "Préparation de l'exemple…", null, 4000);
+    toast(what === 'anecdote' ? "Recherche d'une anecdote…" : what === 'guest' ? "L'invité arrive en studio…" : what === 'chant' ? 'Les animateurs chauffent leur voix…' : what === 'bavardage' ? 'Les animateurs cherchent de quoi parler…' : "Préparation de l'exemple…", null, 4000);
     await callSafe('initAudio');
     await sleep(500);
     const fake = { id: 'demo', sel: session ? session.sel : sel, lastLines: session ? session.lastLines : [], played: [], queue: [], demo: what };

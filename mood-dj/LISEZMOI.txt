@@ -1,5 +1,57 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.36.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.37.0
 ============================================
+
+2.37.0 : LE BAVARDAGE À LA PLACE DES ANNONCES, ET MOINS DE RÉPÉTITIONS
+- Bavardage et discussions : un quatrième niveau, « Tout le temps »
+  (Réglages › L'émission). À chaque intervention, les animateurs déconnent
+  entre eux au lieu de faire une annonce : la vie du studio, un débat
+  absurde, un « tu préfères », un mini-jeu, une fausse rubrique, une
+  vanne. Environ sept fois sur dix, ça n'a rien à voir avec la musique ;
+  le reste du temps, c'est une conversation autour d'un titre (chambrage,
+  défi, aveu, note sur dix…) ou une anecdote, selon le réglage
+  « Anecdotes ».
+- Puis le rappel des titres. La conversation se termine par le titre
+  suivant. Quand un programme s'ouvre, l'un des deux rappelle en une ou
+  deux phrases tous les titres à venir, chacun avec son artiste, puis
+  lance le premier.
+- Dans ce mode : toujours à deux quand l'émission a un duo, même sur le
+  fondu (où un seul parlait six fois sur dix), et un peu plus long qu'une
+  annonce (15 à 30 secondes). Plus de programme détaillé, de chronique,
+  de rubrique ni de jeu. L'intro, les invités, les dédicaces, les choix
+  des animateurs et les changements d'ambiance gardent leur forme.
+  L'heure et le nom de la station se disent au moment de lancer le titre,
+  jamais au milieu de la conversation.
+- Retour à la musique : douze façons, tirées à tour de rôle (l'un coupe
+  court, le titre sert de chute, celui qui perd la discussion change de
+  sujet, la question est laissée aux auditeurs…). Au premier essai, les
+  animateurs revenaient au titre par « Bref, … » une fois sur deux.
+- Avec un seul animateur, le mode marche aussi : ce sont des confidences
+  aux auditeurs. Les autres niveaux (Jamais, Parfois, Souvent) n'ont pas
+  changé.
+- Bouton « Tester » à côté de « Bavardage et discussions » : un moment de
+  bavardage à écouter tout de suite, quel que soit le niveau choisi.
+- Jeux entre les animateurs (Réglages › L'émission, en « À chaque
+  titre » avec le programme) : Jamais, Parfois, Souvent. Dans le journal
+  du 28/11, 27 interventions sur 61 portaient un jeu : on entendait
+  « vrai ou faux » à presque chaque cycle de trois titres. Sur « Parfois »
+  (par défaut), jamais deux programmes de suite, soit environ un
+  programme sur trois au lieu de deux sur trois. « Souvent » : comme
+  avant.
+- Annonce préparée puis jetée (journal du 28/11). Avec le rythme naturel,
+  la longueur du programme suivant est tirée à l'ouverture de chaque
+  programme : l'annonce déjà préparée (texte et voix payés) ne
+  correspondait plus, elle était refaite au démarrage du titre et
+  arrivait trop tard (« titre lancé sans elle »). Elle est maintenant
+  reprise. Cela touchait surtout le réglage « Sur l'intro du suivant »
+  et les voix lentes à arriver.
+- Annonce jamais dite, mais retenue (journal du 28/11). Une annonce
+  entrait dans « les dernières interventions » montrées à l'IA dès sa
+  préparation. Une question « vrai ou faux » préparée mais jamais passée
+  à l'antenne a ainsi reçu son verdict à l'intervention suivante. Une
+  annonce n'est maintenant retenue que lorsqu'elle est dite.
+- Vérifié sur de vrais textes (trois émissions de dix à douze
+  interventions, plus une avec un seul animateur).
+- 9 nouveaux tests (65 en tout).
 
 2.36.0 : MOINS DE DÉPENSES, UNE VOIX MIEUX PLACÉE, DES ANIMATEURS QUI SE SOUVIENNENT
 - Consignes gardées une heure. La partie fixe des consignes (fiches,

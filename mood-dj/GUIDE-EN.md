@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.36.0.
+Up to date with version 2.37.0.
 
 ---
 
@@ -249,7 +249,7 @@ Settings › The show › **Segment rhythm**:
 
 ### Chit-chat and conversation
 
-Settings › The show › **Chit-chat and conversation**: Never, Sometimes (default) or Often.
+Settings › The show › **Chit-chat and conversation**: Never, Sometimes (default), Often or All the time. The **Test** button plays a moment of chit-chat right away, whatever the level.
 
 - With the programme on, every segment used to be a programme or a piece of trivia. Now about one segment in three (Sometimes) or one in two (Often) becomes a real conversation.
 - **About the music**, 15 kinds of conversation: teasing, a disagreement, a guessing game, a link between two tracks, a joke, a hot take on the track just played, a word to the listeners, a callback, plus the track's "instructions for use", a dare, a musical confession, what happened in the studio during the last track, a teaser, a verdict (marks out of ten) and a personal question. 249 topics, about how a track feels and how you listen to it rather than its technique: the AI cannot hear the track.
@@ -258,6 +258,7 @@ Settings › The show › **Chit-chat and conversation**: Never, Sometimes (defa
 - On "One track in three", those segments replace the programme (only the next track is announced). On "Every track", they replace the short culture moment.
 - Mood DJ also keeps count of what the hosts have already said: at most one catchphrase per segment and never two segments in a row, at most one personal detail, one running gag per show. Each host has a mood of the day, and each dialogue gets its own dynamic (in tune, teasing, bad faith, in a hurry, sincere…).
 - Now and then one host cuts the other off; the voices do not overlap yet.
+- **All the time**: chit-chat instead of announcements. Every time they speak, the hosts fool around together — about seven times in ten it has nothing to do with music; otherwise it is a conversation about a track, or a story (as often as the **Trivia** setting says). They then launch the next track; when a lineup opens, one of them reminds you of all the tracks coming up, each with its artist, and launches the first. Always both hosts when the show has a duo, even over the fade, and a little longer than an announcement (15 to 30 seconds). No detailed lineup, feature, segment or game in this mode; the intro, guests, dedications, host picks and vibe changes keep their shape. The way back to the music is drawn from twelve possibilities, so it is not always the same word. With a single host, these are asides to the listeners.
 
 ### Host emotions
 
@@ -283,7 +284,7 @@ From time to time, a specialist of the style playing drops by (rock specialist, 
 
 ### True or false
 
-Played with the lineup on Every track:
+Played with the lineup on Every track. Settings › The show › **Games between the hosts**: Never, Sometimes (default: never two lineups in a row, about one lineup in three) or Often (almost every lineup). No games when chit-chat is on All the time.
 
 - **Two-step bet**: the lineup often ends with a true-or-false about the second announced track. The co-host bets (you can too, in your head) and the answer comes just before that track.
 - Sometimes it's an open question ("do you know why this song almost never came out?") answered at the same moment.

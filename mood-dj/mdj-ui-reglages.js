@@ -452,12 +452,16 @@ function tabReglages() {
     labelTest('Anecdotes sur les groupes et les morceaux', 'anecdote', 'Écouter une anecdote sur le titre en cours (ou sur un classique)'),
     seg([['rare', 'Rarement'], ['souvent', 'Souvent'], ['max', 'Très souvent']], settings.anecdotes || 'souvent', (id) => { settings.anecdotes = id; saveSettings(); render(); }, 'Anecdotes'),
     h('div', { class: 'muted' }, "Des anecdotes vraies, tirées de la page de l'artiste sur YouTube Music, de son article Wikipédia et de celui du morceau, pour que les animateurs n'inventent rien. Une histoire déjà racontée n'est pas reprise avant longtemps. Il faut la clé Claude." +
-      (settings.radioFreq === 'every' && settings.programme !== false ? ' Avec le programme en « À chaque titre », la chronique et la culture courte sont toujours des anecdotes : ce réglage ne change rien.' : '') +
-      (settings.radioFreq === 'third' && settings.programme !== false ? ' Avec le programme en « Un titre sur trois », les anecdotes ne viennent que lorsqu’une intervention quitte le programme : voir « Bavardage et discussions », juste en dessous.' : '')),
-    h('div', { class: 'label' }, 'Bavardage et discussions'),
-    seg([['off', 'Jamais'], ['parfois', 'Parfois'], ['souvent', 'Souvent']], chatLevel(), (id) => { settings.chat = id; saveSettings(); render(); }, 'Bavardage et discussions'),
+      (chatAlways() ? ' Avec le bavardage sur « Tout le temps », ce réglage dit quelle part des conversations raconte une anecdote.'
+        : settings.radioFreq === 'every' && settings.programme !== false ? ' Avec le programme en « À chaque titre », la chronique et la culture courte sont toujours des anecdotes : ce réglage ne change rien.' : '') +
+      (!chatAlways() && settings.radioFreq === 'third' && settings.programme !== false ? ' Avec le programme en « Un titre sur trois », les anecdotes ne viennent que lorsqu’une intervention quitte le programme : voir « Bavardage et discussions », juste en dessous.' : '')),
+    labelTest('Bavardage et discussions', 'bavardage', 'Écouter un moment de bavardage entre deux titres'),
+    seg([['off', 'Jamais'], ['parfois', 'Parfois'], ['souvent', 'Souvent'], ['max', 'Tout le temps']], chatLevel(), (id) => { settings.chat = id; saveSettings(); render(); }, 'Bavardage et discussions'),
     h('div', { class: 'muted' }, chatLevel() === 'off'
       ? 'Les animateurs s’en tiennent au programme et aux anecdotes, sans bavardage hors musique.'
+      : chatAlways()
+        ? 'Le bavardage à la place des annonces : à chaque intervention, les animateurs déconnent entre eux (la vie du studio, un débat absurde, un mini-jeu, une vanne), puis lancent le titre suivant ou rappellent les titres à venir. Plus de programme détaillé, de chronique, de rubrique ni de jeu ; l’intro, les invités, les dédicaces et les changements d’ambiance gardent leur place.' +
+          (settings.duo && engine === 'gemini' ? '' : ' Avec un seul animateur, ce sont des confidences glissées aux auditeurs : le duo (voix Gemini) lui va bien mieux.')
       : settings.programme !== false && settings.radioFreq === 'third'
         ? (chatLevel() === 'souvent'
           ? 'Environ une intervention sur deux quitte le programme pour une vraie conversation : un désaccord, une devinette, une vanne, une anecdote ou un moment de bavardage hors musique. Ces fois-là, seul le titre suivant est annoncé.'
@@ -469,6 +473,13 @@ function tabReglages() {
           : (chatLevel() === 'souvent'
             ? 'Les animateurs bavardent souvent d’autre chose que de musique, entre deux titres : la vie du studio, un film, un débat absurde.'
             : 'De temps en temps, les animateurs bavardent d’autre chose que de musique, entre deux titres : la vie du studio, un film, un débat absurde.')),
+    settings.radioFreq === 'every' && settings.programme !== false && !chatAlways() ? [
+      h('div', { class: 'label' }, 'Jeux entre les animateurs'),
+      seg([['off', 'Jamais'], ['parfois', 'Parfois'], ['souvent', 'Souvent']], gameLevel(), (id) => { settings.games = id; saveSettings(); render(); }, 'Jeux entre les animateurs'),
+      h('div', { class: 'muted' }, gameLevel() === 'off' ? 'Pas de vrai ou faux ni de question en suspens : le programme, la chronique et la culture, sans jeu.'
+        : gameLevel() === 'souvent' ? 'Un vrai ou faux ou une question en suspens à presque chaque programme, avec la réponse à la chronique et le score de la soirée.'
+          : 'Un vrai ou faux ou une question en suspens de temps en temps, jamais deux programmes de suite : la réponse vient à la chronique, avec le score de la soirée.')
+    ] : null,
     switchRow("Bilan de fin d'émission", 'Quand une sélection se termine : souvenirs, invités, score des jeux, et la prochaine émission de la grille', settings.showRecap !== false,
       (v) => { settings.showRecap = v; saveSettings(); }),
     labelTest('Spécialiste invité', 'guest', 'Écouter l\'arrivée d\'un invité, sur le titre en cours (ou sur un classique)'),

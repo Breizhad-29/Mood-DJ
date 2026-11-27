@@ -264,6 +264,17 @@ function programmeList(s, t) {
   }
   return out;
 }
+// Programme présenté avec ce titre. Quand le titre vient d'ouvrir un programme, c'est la liste retenue à ce
+// moment-là (2.37). Avec le rythme naturel, la longueur du programme suivant est tirée juste après l'ouverture :
+// recalculée, la liste n'avait plus la même longueur, l'annonce préparée (texte et voix déjà payés) ne
+// correspondait plus et elle était refaite au démarrage du titre, souvent trop tard pour être dite.
+function programmeOf(s, t) {
+  const keys = s && s.programme && s.programme.keys;
+  if (keys && t && keys[0] === t.key && s.queue && !s.queue.includes(t)) {
+    return [t].concat(keys.slice(1).map((k) => s.queue.find((x) => x.key === k)).filter(Boolean));
+  }
+  return programmeList(s, t);
+}
 function roleFrom(s, t, keys) {
   if (changeFor(s, t)) return 'programme';
   const pos = keys.indexOf(t.key);
@@ -772,13 +783,53 @@ const TOPIC_LABEL = {"devinette": "Forme imposée cette fois", "lien": "Lien imp
 //   type de discussion. Mesuré par simulation : environ un bavardage toutes les deux heures sur « Parfois », un par
 //   heure sur « Souvent ».
 // CHAT_GAP : jamais deux bavardages plus rapprochés que ça, quel que soit le rythme des interventions.
-const CHAT_SHARE = { off: 0, parfois: 0.5, souvent: 1 };
-const CHAT_FREE_RATIO = { off: 0, parfois: 0.5, souvent: 1.4 };
-const CHAT_RATIO = { off: 0, parfois: 0.11, souvent: 0.32 };
-const CHAT_GAP = { off: 0, parfois: 45 * 60e3, souvent: 20 * 60e3 };
+// « Tout le temps » (max, 2.37) : le bavardage à la place des annonces. Chaque intervention est une conversation
+//   entre les animateurs, hors musique environ sept fois sur dix (les autres fois : un chambrage, un défi, un
+//   aveu, une anecdote selon son réglage…), toujours à deux quand l'émission a un duo, et elle se termine par le
+//   titre suivant ou, quand un programme s'ouvre, par le rappel des titres à venir. Plus de programme détaillé, de
+//   chronique, de rubrique ni de jeu ; l'intro, les invités, les dédicaces, les choix d'animateur et les
+//   changements d'ambiance gardent leur forme.
+const CHAT_SHARE = { off: 0, parfois: 0.5, souvent: 1, max: 1 };
+const CHAT_FREE_RATIO = { off: 0, parfois: 0.5, souvent: 1.4, max: 2.5 };
+const CHAT_RATIO = { off: 0, parfois: 0.11, souvent: 0.32, max: 2.5 };
+const CHAT_GAP = { off: 0, parfois: 45 * 60e3, souvent: 20 * 60e3, max: 0 };
 // Sujets de bavardage retenus d'une émission à l'autre (sur 260) : aucun ne revient avant une centaine d'autres.
 const CHAT_KEEP = 100;
 const chatLevel = () => (CHAT_SHARE[settings.chat] !== undefined ? settings.chat : 'parfois');
+const chatAlways = () => chatLevel() === 'max';
+// Retour à la musique, en mode bavardage. Chaque intervention finit par lancer un titre : sans consigne, l'IA
+// revenait presque toujours par le même mot (« Bref, … » cinq fois sur dix au premier essai réel). La façon de
+// revenir est donc tirée à chaque fois, jamais une des quatre dernières. duo : il faut être deux.
+const CHAT_PIVOTS = [
+  { t: "l'un coupe court d'un mot et lance le titre", duo: true },
+  { t: "le titre arrive sans aucune transition, au milieu de la conversation, comme si de rien n'était" },
+  { t: "celui qui est en train de perdre la discussion lance le titre pour changer de sujet", duo: true },
+  { t: "l'un rappelle qu'il y a quand même une émission à faire, et lance le titre", duo: true },
+  { t: "le titre suivant sert de chute ou de réponse à ce qui vient d'être dit" },
+  { t: "l'un lance le titre pendant que l'autre n'a pas tout à fait fini", duo: true },
+  { t: "ils remettent la suite de la conversation à après le titre, et le lancent", duo: true },
+  { t: "la question est laissée aux auditeurs, puis le titre est lancé" },
+  { t: "un petit temps, puis le titre est lancé très simplement, sans mot de liaison" },
+  { t: "c'est celui qui a le moins parlé qui lance le titre, en une phrase", duo: true },
+  { t: "le titre est lancé comme une évidence, sur le ton de la conversation, sans changer de voix" },
+  { t: "tu t'interromps toi-même, amusé d'être parti si loin, et tu lances le titre", solo: true }
+];
+function drawPivot(s, solo) {
+  const v = s.variety;
+  const last = v.pivots || [];
+  const ok = CHAT_PIVOTS.filter((x) => (solo ? !x.duo : !x.solo));
+  const fresh = ok.filter((x) => !last.includes(x.t));
+  const t = pick(fresh.length ? fresh : ok).t;
+  v.pivots = last.concat([t]).slice(-4);
+  return t;
+}
+// Jeux entre les animateurs, en « À chaque titre » : le vrai ou faux ou la question en suspens (posés pendant le
+// programme, réponse à la chronique) et le vrai ou faux express (culture courte). Journal du 28/11 : 27 interventions
+// sur 61 portaient un jeu, et on entendait « vrai ou faux » à presque chaque cycle de trois titres. Sur « Parfois »
+// (par défaut), jamais deux cycles de suite, soit environ un programme sur trois. « Souvent » : comme avant la 2.37.
+const GAME_RATE = { off: { hook: 0, express: 0 }, parfois: { hook: 0.45, express: 0.2 }, souvent: { hook: 0.7, express: 0.3 } };
+const gameLevel = () => (GAME_RATE[settings.games] ? settings.games : 'parfois');
+const gameOk = (v, what) => !chatAlways() && !(gameLevel() === 'parfois' && v && v.gameLast) && Math.random() < GAME_RATE[gameLevel()][what];
 // Dynamique d'un dialogue (2.35) : comment ils le jouent, tirée en plus de l'angle (de quoi ils parlent).
 // Sans elle, chaque dialogue recevait « ils se chambrent » : toujours le même ton.
 const DYNAMICS = [
@@ -862,7 +913,7 @@ function chatAngle(s, angle, kind) {
   const v = s.variety;
   const solo = !!angle.solo;
   const last = v.chatFormats || [];
-  const ok = (f) => !(f.duoOnly && solo) && !(f.long && kind === 'talkover') && !(f.lore && (loreLevel() === 'off' || aiPower() === 'eco'));
+  const ok = (f) => !(f.duoOnly && solo) && !(f.long && kind === 'talkover') && !(f.lore && (loreLevel() === 'off' || aiPower() === 'eco' || s.demo));
   const pool = CHAT_FORMATS.filter((f) => ok(f) && !last.includes(f.id));
   const use = pool.length ? pool : CHAT_FORMATS.filter(ok);
   let r = Math.random() * use.reduce((n, f) => n + f.w, 0);
@@ -953,17 +1004,26 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
   const v = s.variety || (s.variety = { angles: [], timeAt: 0, weatherAt: 0, stationAt: 0, momentAt: 0 });
   const lines = (s.lastLines || []).slice(-6);
   const duoOn = settings.voiceEngine === 'gemini' && hasGemini && settings.duo;
-  const duo = duoOn && (kind !== 'talkover' || Math.random() < 0.4);
-  const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year)) && (!a.prev || !!prev) &&
-    (a.id !== 'bavardage' || (chatLevel() !== 'off' && (s.demo || now - (v.chatAt || 0) >= CHAT_GAP[chatLevel()])));
-  const list = duo ? ANGLES_DUO : ANGLES_SOLO;
+  // Exemple « bavardage » des Réglages : toujours un moment de bavardage, quel que soit le réglage.
+  const demoChat = s.demo === 'bavardage';
+  const always = chatAlways();
   // Conversation libre (2.35). Avec le programme activé, les angles de discussion (chambrage, débat, devinette,
   // vanne, réaction, lien, bavardage…) ne sortaient presque jamais : chaque intervention était un programme
   // (« Un titre sur trois ») ou une anecdote (« À chaque titre »). Une part des programmes, ou des moments de
   // culture courte, laisse maintenant la place à une conversation ; jamais deux fois de suite.
   const slot = (role === 'programme' && progLen >= 2 && settings.radioFreq === 'third') || role === 'culture';
-  const free = !!(slot && kind !== 'intro' && !noFree && !s.demo && !changeFor(s, next) && !v.freeLast && Math.random() < CHAT_SHARE[chatLevel()]);
+  // « Tout le temps » : toutes les interventions, pas seulement ces créneaux, et sans tirage.
+  const free = demoChat || (always
+    ? !!(kind !== 'intro' && !noFree && !s.demo && !changeFor(s, next))
+    : !!(slot && kind !== 'intro' && !noFree && !s.demo && !changeFor(s, next) && !v.freeLast && Math.random() < CHAT_SHARE[chatLevel()]));
   if (slot) v.freeLast = free;
+  // chatty : la conversation est le format de l'émission (ou de l'exemple). Elle se joue alors toujours à deux,
+  // même par-dessus le fondu, où un seul animateur parle d'habitude six fois sur dix.
+  const chatty = free && (always || demoChat);
+  const duo = duoOn && (kind !== 'talkover' || chatty || Math.random() < 0.4);
+  const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year)) && (!a.prev || !!prev) &&
+    (a.id !== 'bavardage' || demoChat || (chatLevel() !== 'off' && (s.demo || now - (v.chatAt || 0) >= CHAT_GAP[chatLevel()])));
+  const list = duo ? ANGLES_DUO : ANGLES_SOLO;
   let angle;
   // À la place d'une culture courte (déjà une anecdote) : une conversation. À la place d'un programme : une
   // conversation ou une anecdote, selon le réglage « Anecdotes », qui n'avait aucun effet avec le programme.
@@ -974,7 +1034,11 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
     return (a) => (a.id === 'bavardage' ? ratio * others : angleWeight(a));
   };
   const talk = role === 'culture' ? list.filter((a) => !isAnecdote(a)) : list;
-  if (free) angle = pickAngle(talk, recent, okA, chatWeights(talk, CHAT_FREE_RATIO[chatLevel()]));
+  // Les angles récents ne reviennent pas tout de suite ; en mode bavardage, le bavardage lui-même n'est pas
+  // concerné (ses six formats et ses sujets tournent déjà de leur côté).
+  const recentA = chatty ? recent.filter((id) => id !== 'bavardage') : recent;
+  if (demoChat) angle = list.find((a) => a.id === 'bavardage');
+  else if (free) angle = pickAngle(talk, recentA, okA, chatWeights(talk, CHAT_FREE_RATIO[chatLevel()]));
   else if (role === 'programme' && progLen >= 2) angle = { id: 'programme', txt: duo ? PROGRAMME_ANGLE.duo : PROGRAMME_ANGLE.solo };
   else if (role === 'chronique') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => a.share || 1);
   else if (role === 'culture') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => CULTURE_W[a.id] || 0.6);
@@ -989,10 +1053,10 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
     sayStation: kind === 'intro' || (kind === 'interlude' && now - v.stationAt > 12 * min) || (kind === 'talkover' && now - v.stationAt > 25 * min && Math.random() < 0.3),
     momentOk: kind === 'intro' || (now - v.momentAt > 15 * min && Math.random() < 0.35),
     yearOk: Math.random() < 0.25,
-    turns: duo ? (kind === 'talkover' ? 2 : pick(kind === 'intro' ? [2, 3] : [2, 3, 3, 4, 4, 5])) : 0,
+    turns: duo ? (kind === 'talkover' ? (chatty ? pick([3, 3, 4]) : 2) : pick(kind === 'intro' ? [2, 3] : chatty ? [3, 4, 4, 5, 5] : [2, 3, 3, 4, 4, 5])) : 0,
     long: false,
     opener: duo && kind !== 'intro' && Math.random() < 0.4 ? 'B' : 'A',
-    free,
+    free, chatty,
     // Une coupure de parole, de temps en temps seulement : la réplique qui coupe sera marquée « >> ».
     cuts: duo && Math.random() < (kind === 'talkover' ? 0.25 : 0.4) ? 1 : 0
   };
@@ -1002,6 +1066,9 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
     if (duo) plan.turns = kind === 'talkover' ? 3 : pick([4, 5, 5, 6]);
   }
   if (angle && angle.id === 'programme' && duo) plan.turns = kind === 'interlude' ? 4 : 3;
+  // Mode bavardage sur l'ouverture d'un programme : une réplique de plus, pour le rappel des titres à venir.
+  if (chatty && duo && role === 'programme' && progLen >= 2) plan.turns = Math.max(plan.turns, 4);
+  if (chatty && always) plan.pivot = drawPivot(s, !duo);
   // Un mini-jeu ou un dilemme demande au moins quatre répliques.
   if (duo && angle && (angle.format === 'minijeu' || angle.format === 'dilemme') && kind !== 'talkover') plan.turns = Math.max(plan.turns, 4);
   plan.role = role || null;
@@ -1041,7 +1108,7 @@ async function artistFacts(name) {
   } catch (e) { return ''; }
 }
 
-const progKeysFor = (s, t) => (roleFor(s, t) === 'programme' ? programmeList(s, t).map((x) => x.key).join('|') : '');
+const progKeysFor = (s, t) => (roleFor(s, t) === 'programme' ? programmeOf(s, t).map((x) => x.key).join('|') : '');
 
 // Article Wikipédia de l'artiste (formation, nom, membres, concerts, coulisses), gardé 60 jours.
 async function artistWiki(name) {
