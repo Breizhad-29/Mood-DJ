@@ -53,4 +53,24 @@ function contentSlice(from, to) {
   return src.slice(i, j);
 }
 
-module.exports = { DIR, loadBackground, contentSlice, contentFiles, core: () => require(path.join(DIR, 'core.js')) };
+// Charge tout le panneau (fichiers du manifest, dans l'ordre) dans un faux navigateur : les fonctions et
+// les variables des fichiers mdj-*.js partagent la même portée, comme dans la page. run(code) y exécute du code.
+function loadPanel() {
+  const deep = () => new Proxy(function () {}, { get: (t, k) => (k === 'then' ? undefined : k === Symbol.toPrimitive ? () => '' : deep()), apply: () => deep(), construct: () => deep() });
+  const ctx = {
+    console, URL, URLSearchParams, TextEncoder, TextDecoder, atob, btoa, Promise, Date, Math, JSON,
+    setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
+    chrome: deep(), navigator: { language: 'fr-FR' }, location: { origin: 'https://music.youtube.com', href: 'https://music.youtube.com/' },
+    document: { body: null, readyState: 'loading', addEventListener: () => {}, createElement: () => deep(), documentElement: deep(), hidden: false },
+    speechSynthesis: deep(), SpeechSynthesisUtterance: function () {}, performance: { now: () => 0 }
+  };
+  ctx.window = ctx;
+  ctx.addEventListener = () => {};
+  ctx.postMessage = () => {};
+  vm.createContext(ctx);
+  for (const f of contentFiles()) vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f });
+  ctx.run = (code) => vm.runInContext(code, ctx);
+  return ctx;
+}
+
+module.exports = { DIR, loadBackground, loadPanel, contentSlice, contentFiles, core: () => require(path.join(DIR, 'core.js')) };

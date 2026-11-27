@@ -137,19 +137,19 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   const tp = timeParts(new Date(now));
   const role = roleFor(s, next);
   const progList = role === 'programme' ? programmeList(s, next) : null;
-  const plan = planAnnouncement(s, kind, prev, next, atMs, role, progList ? progList.length : 0);
-  // Exemple « anecdote » des Réglages : une vraie histoire sur le titre, tirée des fiches.
-  if (s.demo === 'anecdote') {
-    plan.angle = (plan.duo ? ANGLES_DUO : ANGLES_SOLO).find((a) => a.id === 'anecdote_oeuvre') || plan.angle;
-    plan.long = true;
-    if (plan.duo) plan.turns = Math.max(plan.turns || 0, 4);
-  }
   // Spécialiste invité : pendant son passage, il remplace le coanimateur (toujours en duo).
   const gPhase = kind === 'intro' ? '' : guestPhaseFor(s, next);
   const guest = gPhase && s.guest ? s.guest : null;
   const gTalks = !!(guest && guestSpeaks(gPhase));
   // Dédicace ou demande sur ce titre : lue juste avant lui.
   const dedic = next && next.dedic && !next.dedic.done && kind !== 'intro' ? next.dedic : null;
+  const plan = planAnnouncement(s, kind, prev, next, atMs, role, progList ? progList.length : 0, !!(gTalks || dedic || hookDue(s, next) || (next && next.pick)));
+  // Exemple « anecdote » des Réglages : une vraie histoire sur le titre, tirée des fiches.
+  if (s.demo === 'anecdote') {
+    plan.angle = (plan.duo ? ANGLES_DUO : ANGLES_SOLO).find((a) => a.id === 'anecdote_oeuvre') || plan.angle;
+    plan.long = true;
+    if (plan.duo) plan.turns = Math.max(plan.turns || 0, 4);
+  }
   if (gTalks) {
     plan.duo = true;
     if (plan.angle && (plan.angle.id === 'programme' || plan.angle.facts)) plan.angle = Object.assign({}, plan.angle, { txt: plan.angle.txt + ' ' + GUEST_ANGLES[gPhase] });
@@ -161,9 +161,16 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   if (dedic && plan.duo) plan.turns = Math.max(plan.turns || 0, 3);
   const duo = plan.duo;
   const v = s.variety;
+  // En duo, une annonce dite par un seul animateur alterne entre les deux (2.35) : avant, c'était toujours
+  // l'animateur principal, qui parlait donc bien plus que l'autre. Sur un choix d'animateur, c'est celui qui a
+  // choisi le titre qui le lance.
+  const duoShow = settings.voiceEngine === 'gemini' && hasGemini && settings.duo;
+  const soloB = !duo && duoShow && !s.demo && kind !== 'intro' && (next && next.pick ? next.pick.who === 'B' : Math.random() < (v.soloLast === 'B' ? 0.25 : v.soloLast === 'A' ? 0.75 : 0.5));
+  if (!duo && duoShow && !s.demo) v.soloLast = soloB ? 'B' : 'A';
+  const speakers = duo ? (gTalks ? ['A'] : ['A', 'B']) : [soloB ? 'B' : 'A'];
   const live = !!(settings.claudeAnnounce && hasKey);
   const desc = (t) => spokenTitle(t.title) + ' de ' + t.artist + (t.year ? ' (' + t.year + ')' : '');
-  const inProg = programmeOn() && (role === 'chronique' || role === 'culture');
+  const inProg = programmeOn() && (role === 'chronique' || role === 'culture') && !plan.free;
   const ch = changeFor(s, next);
   if (ch) {
     plan.angle = { id: 'changement', txt: duo
@@ -176,6 +183,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   const oldAmb = s.ambianceChange && !s.ambianceChange.done && next && s.ambianceChange.locked.includes(next.key) ? s.ambianceChange.from : '';
   const c = {
     host: (settings.hostName || 'Alex').trim() || 'Alex', cohost: (settings.cohostName || 'Sam').trim() || 'Sam',
+    // Le prénom de l'auditeur ne sert plus qu'à signer ses dédicaces : les animateurs parlent à tous les auditeurs.
     listener: (settings.listenerName || '').trim(),
     greet: tp.greet, time: tp.time, part: tp.part, prev, next, trend: trendOf(prev, next), ambiance: plainLabel(s.sel),
     weather: plan.sayWeather ? await weatherLine() : ''
@@ -185,7 +193,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   c.ambianceEn = s.sel ? ambianceEn(s.sel) : c.ambiance;
   c.weatherEn = c.weather ? fmtWeatherEn(weatherCache.data) : '';
   if (plan.sayWeather && !c.weather) { plan.sayWeather = false; s.variety.weatherAt = plan.prevWeatherAt; }
-  const progShown = progList && progList.length >= 2 ? progList : null;
+  // Conversation libre à la place du programme : les titres à venir ne sont pas présentés cette fois.
+  const progShown = progList && progList.length >= 2 && !plan.free ? progList : null;
   // Réponse au jeu posé pendant le programme (vrai ou faux, question en suspens).
   let hookAnswer = null;
   if (hookDue(s, next)) {
@@ -197,7 +206,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   }
   // Éphéméride (culture courte, au plus 2 fois par émission, espacées de 40 min).
   let eph = null;
-  if (live && role === 'culture' && !hookAnswer && !ch && (v.ephN || 0) < 2 && now - (v.ephAt || 0) > 40 * 60e3 && Math.random() < 0.4) {
+  if (live && role === 'culture' && !plan.free && !hookAnswer && !ch && (v.ephN || 0) < 2 && now - (v.ephAt || 0) > 40 * 60e3 && Math.random() < 0.4) {
     const items = await ephemerideItems(new Date(now), s);
     if (items.length) {
       eph = { date: dayLabel(new Date(now)), items };
@@ -249,7 +258,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   }
   // Vrai ou faux express (culture courte), quand une fiche donne un fait précis.
   let express = null;
-  if (live && role === 'culture' && !eph && !hookAnswer && !s.hook && facts && facts !== 'AUCUNE FICHE' && Math.random() < 0.3) {
+  if (live && role === 'culture' && !plan.free && !eph && !hookAnswer && !s.hook && facts && facts !== 'AUCUNE FICHE' && Math.random() < 0.3) {
     const truth = flip();
     const b = drawBet(truth);
     express = { truth, bet: b.bet, won: b.won, score: duo ? scoreAfter(s, b.won) : null, gage: duo && !b.won && Math.random() < 0.35 ? pick(GAGES) : '' };
@@ -287,12 +296,17 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   let fromClaude = false;
   let textInfo = 'phrases toutes faites';
   const t0 = Date.now();
-  const picks = live && !s.demo ? pickPayload(s, prev, next, duo, gTalks) : null;
+  // Seul à l'antenne, un animateur ne parle que de ses propres choix (il ne dirait pas « mon choix » pour celui de l'autre).
+  const picks = live && !s.demo ? pickPayload(s, prev, next, duo, gTalks, soloB) : null;
+  // Dosage des fiches, dynamique du dialogue et humeur du jour : tirés par Mood DJ (voir ficheFocus).
+  const focus = live && !s.demo ? ficheFocus(s, kind, speakers, now) : null;
+  const dyn = live && duo && !gTalks && !s.demo ? pickDynamic(s, plan.angle, emo) : null;
+  const who = soloB ? { name: c.cohost, style: settings.cohostStyle, gender: hostGenders().cohost } : { name: c.host, style: settings.hostStyle, gender: hostGenders().host };
   let memory = null;
   if (live) {
     try {
       text = await withTimeout(claude('announce', {
-        kind, host: c.host, style: settings.hostStyle, listener: c.listener, time: tp.time, partOfDay: tp.part, lang: radioLang(),
+        kind, host: who.name, style: who.style, time: tp.time, partOfDay: tp.part, lang: radioLang(),
         ambiance: oldAmb || (plan.momentOk || (s.sel && s.sel.prompt && s.sel.prompt.trim()) ? c.ambiance : styleText(s.sel)),
         change: ch ? { from: ch.from, to: ch.to } : null,
         previous: prev ? desc(prev) : '', next: desc(next), trend: c.trend,
@@ -300,16 +314,16 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
         angle: plan.angle ? plan.angle.txt : '', sayTime: plan.sayTime, sayStation: plan.sayStation,
         momentOk: plan.momentOk, yearOk: plan.yearOk, avoid: plan.avoid, openers: plan.openers,
         turns: duo && aiPower() === 'max' && kind !== 'talkover' ? Math.min(8, (plan.turns || 4) + 2) : plan.turns, opener: plan.opener, facts, long: plan.long, show: s.id || '',
-        role: plan.role, programme: progShown ? progShown.map(desc) : null, programmeCycle: settings.radioFreq === 'every', told,
+        role: plan.free ? null : plan.role, programme: progShown ? progShown.map(desc) : null, programmeCycle: settings.radioFreq === 'every', told,
         rubrique: rub ? rub.name : '', hook: pub(hook), hookFacts, hookAnswer: pub(hookAnswer), express, ephemeride: eph, episode, stats, local,
         duo, cohost: gTalks ? guest.name : c.cohost, cohostStyle: gTalks ? guest.style : settings.cohostStyle,
-        hostGender: hostGenders().host, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
+        hostGender: who.gender, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
         show: s.show ? { name: s.show.name, wake: !!s.show.wake } : null,
         dedic: dedic ? { to: dedic.to, msg: dedic.msg, from: dedic.from || c.listener, request: dedic.request } : null,
         guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost } : null,
         tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
-        power: aiPower(), persona: personaPayload(duo, gTalks, s), lore: s.demo ? null : lorePayload(s, kind),
-        listenMode: s.discover ? 'decouverte' : s.source === 'likes' ? 'jaime' : '',
+        power: aiPower(), persona: personaPayload(duo, gTalks, s, soloB), lore: s.demo ? null : lorePayload(s, kind, !!(plan.angle && plan.angle.id === 'bavardage')),
+        focus, dynamic: dyn ? dyn.txt : '', cuts: duo && !gTalks ? plan.cuts : undefined,
         ...(picks ? picks.view : {})
       }), aiTimeout(12000));
       textInfo = 'Claude (' + secs(Date.now() - t0) + ')';
@@ -321,7 +335,9 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
       // (une annonce refaite ou un exemple des Réglages ne laisse aucun faux souvenir).
       if (!s.demo) {
         memory = {
-          souvenirs: (Array.isArray(hidden.souvenirs) ? hidden.souvenirs : []).filter((m) => m && (m.who === 'A' || (m.who === 'B' && !gTalks))),
+          // Seul à l'antenne, B écrit ses souvenirs sous « SOUVENIR A » (« toi ») : ils lui reviennent.
+          souvenirs: (Array.isArray(hidden.souvenirs) ? hidden.souvenirs : []).filter((m) => m && (m.who === 'A' || (m.who === 'B' && !gTalks)))
+            .map((m) => (soloB ? { who: 'B', text: m.text } : m)),
           lore: Array.isArray(hidden.lore) ? hidden.lore : [],
           thread: duo ? String(hidden.suivi || '').slice(0, 200) : null
         };
@@ -335,7 +351,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   c.change = ch;
   c.programme = progShown;
   if (!text) {
-    text = duo && kind !== 'talkover' ? (fbEnglish() ? templateDuoEn : templateDuo)(kind, c) : (fbEnglish() ? templateLineEn : templateLine)(kind, c);
+    const cs = soloB ? Object.assign({}, c, { host: c.cohost }) : c;
+    text = duo && kind !== 'talkover' ? (fbEnglish() ? templateDuoEn : templateDuo)(kind, c) : (fbEnglish() ? templateLineEn : templateLine)(kind, cs);
     // Sans Claude, la réponse au jeu est quand même donnée.
     if (hookAnswer) text = (duo && kind !== 'talkover' ? 'A: ' : '') + hookAnswerLine(hookAnswer) + (duo && kind !== 'talkover' ? '\n' : ' ') + text;
     // Sans Claude, la dédicace est quand même lue, en une phrase simple.
@@ -355,6 +372,10 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   const sfx = fromClaude && settings.sfx !== false && emo !== 'sobre' && emo !== 'intime' ? marks.sfx : [];
   if (marks.sfx.length || turns.some((t) => t.emotion)) dlog('annonce', 'émotions', { tons: turns.filter((t) => t.emotion).map((t) => t.speaker + ' ' + t.emotion), bruitages: sfx.map((x) => x.name + ' @' + Math.round(x.at * 100) + '%') });
   s.lastLines = (s.lastLines || []).concat([plain]).slice(-24);
+  // Expressions fétiches entendues dans ce texte : elles passent « au repos » pour les prochaines interventions.
+  const said = s.demo ? [] : noteSayings(s, plain, now);
+  if (focus || said.length) dlog('annonce', 'dosage des fiches', { qui: speakers.join('+'), tic_permis: focus && focus.tic ? focus.tic.text : '', detail: focus && focus.facet ? focus.facet.text.slice(0, 80) : '', gag: (focus && focus.gag) || '',
+    au_repos: focus ? focus.rest.length : 0, entendus: said.join(' | '), dynamique: dyn ? dyn.id : '', coupure: turns.filter((t) => t.cut).length, libre: !!plan.free });
   if (plan.episodeRef) plan.episodeRef.last = plain.slice(0, 300);
   // Mémoire des anecdotes : pour un vrai ou faux, c'est le vrai fait qui est retenu, jamais la version modifiée.
   if (fromClaude && subjects.length) rememberTold(subjects, express ? hidden.answer || '' : plain);
@@ -381,8 +402,10 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
       const base = (st) => st + (lvl === 'dechaine' ? '. Overall energy: very high, theatrical and over the top, big swings in pitch, pace and volume, laughs come easily and loudly'
         : lvl === 'intime' ? '. Overall: intimate late-night tone, very close to the microphone, soft, tender and slow, gentle breaths and pauses, never loud' : '');
       const line = (e) => (!e ? '' : lvl === 'intime' ? '. Delivery for this line, softly and intimately: ' + e : lvl === 'dechaine' ? '. Delivery for this line, played BIG and exaggerated, far more intense than a normal radio host: ' + e : '. Delivery for this line: ' + e);
-      const styled = turns.map((t) => Object.assign({}, t, { style: base(t.speaker === 'B' ? styleB : gv.styleA) + line(t.emotion) }));
-      const r = await withTimeout(claude('gemini-tts', { turns: styled, voiceA: gv.a, voiceB: gVoice ? guest.voice : gv.b, style: gv.styleA }), duo || kind === 'interlude' ? 40000 : 25000);
+      const cutIn = '. This line interrupts the other speaker: jump in immediately, no pause before it';
+      const cutOff = '. This line gets cut off by the other speaker: stop abruptly on the last word, no falling intonation, no trailing pause';
+      const styled = turns.map((t, i) => Object.assign({}, t, { style: base(t.speaker === 'B' ? styleB : soloB ? gv.styleB : gv.styleA) + line(t.emotion) + (t.cut ? cutIn : '') + (turns[i + 1] && turns[i + 1].cut ? cutOff : '') }));
+      const r = await withTimeout(claude('gemini-tts', { turns: styled, voiceA: soloB ? gv.b : gv.a, voiceB: gVoice ? guest.voice : gv.b, style: soloB ? gv.styleB : gv.styleA }), duo || kind === 'interlude' ? 40000 : 25000);
       audio = b64ToBuffer(r.b64);
       voiceInfo = 'Gemini' + (duo ? ' en duo' : '') + ' (' + secs(Date.now() - t1) + (r.cle && hasGemini2 ? ', clé ' + r.cle : '') + ')';
     } catch (e) {
@@ -390,11 +413,11 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
       voiceWarn(s, 'Voix Gemini : ' + e.message);
     }
   }
-  return { text: plain, audio, engine, s, kind, role: plan.role, saysTime: !!(plan.sayTime || plan.sayWeather), info: 'texte : ' + textInfo + ' · ' + voiceInfo + (useGemini() ? ' · émotions ' + (EMO_NAMES[emo] || emo) + (emotionSetting() === 'auto' ? ' (auto)' : '') : ''),
+  return { text: plain, audio, engine, s, kind, role: plan.free ? null : plan.role, saysTime: !!(plan.sayTime || plan.sayWeather), info: 'texte : ' + textInfo + ' · ' + voiceInfo + (useGemini() ? ' · émotions ' + (EMO_NAMES[emo] || emo) + (emotionSetting() === 'auto' ? ' (auto)' : '') : ''),
     hook, hookAnswered: hookAnswer ? hookAnswer.id : null, scoreAfter: (hookAnswer && hookAnswer.score) || (express && express.score) || null,
     express, rubrique: fromClaude && rub ? rub.name : '', sting: fromClaude && gTalks && gPhase === 'arrivee' ? 'invite' : fromClaude && rub ? rub.sting : '',
     guestPhase: fromClaude ? gPhase : '', guestName: guest ? guest.name : '', sfx, dedic,
-    memory: fromClaude ? memory : null, pickRefs: fromClaude && picks ? picks.refs : null };
+    memory: fromClaude ? memory : null, pickRefs: fromClaude && picks ? picks.refs : null, solo: duo ? '' : soloB ? 'B' : 'A' };
 }
 
 async function getAnnouncement(s, kind, prev, next) {

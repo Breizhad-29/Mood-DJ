@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.34.0.
+Up to date with version 2.35.0.
 
 ---
 
@@ -154,7 +154,7 @@ Radio mode adds a host (or two) who talk between tracks. Most of it is in Settin
 
 ### Hosts and voices
 
-- For each host: **First name**, **Voice gender**, **Style** and **Voice** (with **Test**). Optional: **Your first name** and **City for the weather** (weather from Open-Meteo, free).
+- For each host: **First name**, **Voice gender**, **Style** and **Voice** (with **Test**). Optional: **Your first name** (only used to sign your dedications: the hosts speak to all listeners, never to one person) and **City for the weather** (weather from Open-Meteo, free).
 - **Host duo**: two hosts who answer each other, tease and don't always agree, with short reactions ("No!", "Wait…") between the lines. Needs the Gemini voices. **Test the duo** plays both.
 - **Host styles**: Warm, Quirky, Late-night voice, Pro FM, General-interest radio, Sports commentator, TV presenter, Rock'n'roll, Learned music buff, Hyped morning show, Nostalgic storyteller, Deadpan, Zen. The style changes how the AI writes and, with Gemini, the voice's tone and default voice. With the computer voice, only the text changes.
 - **What makes the hosts talk?**:
@@ -172,7 +172,7 @@ With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a
 
 ### The Jeff & Laeti duo, relationship and voice direction
 
-- **Load the Jeff & Laeti duo** (top of the Hosts card, with a Claude or Gemini key): a former camera operator who *watches* the music and a former sound engineer who *listens* to it. One click fills in their names, styles, personalities, their relationship, the station's universe and their voice direction. **Undo** in the message restores your previous settings. Everything stays editable.
+- **Load the Jeff & Laeti duo** (top of the Hosts card, with a Claude or Gemini key): a former camera operator and a former sound engineer, two friends from a film crew who now talk about music and everything else. One click fills in their names, styles, personalities, their relationship, the station's universe and their voice direction. **Undo** in the message restores your previous settings. Everything stays editable.
 - **Duo relationship** (co-host card): the duo's "bible", sent to the AI with every dialogue: how they talk, who teases whom, who leads when, their running gags, what they must never do. Optional, for any duo.
 - **Voice direction (Gemini)**, for each host: a short note added to the voice style (e.g. "measured pace, a beat before the punchline").
 - **The hosts' towns**: when you give your city (for the weather), Mood DJ asks the AI once for two real towns within about 50 km, one for each host. They mention it in passing ("back home in…"). The towns stay the same as long as you stay in the same country.
@@ -245,7 +245,16 @@ Settings › The show › **Segment rhythm**:
 - Topics: why and for whom a song was written, samples and famous covers, studio stories, legendary instruments, origin of a name or cover, flops that became hits, a song's appearance in a film, series or video game, real links between two artists played back to back.
 - The hosts remember anecdotes already told (per artist, track and style) for 3 months.
 - They stick to the facts in their sources and never talk about private life, health, deaths or legal affairs. When nothing is found, they tell a music-culture story instead.
-- Small nods: your weather city when a source mentions it; your listening habits ("fourth time this month"), at most once every 30 minutes.
+- Small nods: your weather city when a source mentions it; the station's own rotation ("fourth time on air this month"), at most once every 30 minutes. The hosts never mention your likes, your tastes or how a track was picked.
+
+### Chit-chat and conversation
+
+Settings › The show › **Chit-chat and conversation**: Never, Sometimes (default) or Often.
+
+- With the programme on, every segment used to be a programme or a piece of trivia. Now about one segment in three (Sometimes) or one in two (Often) becomes a real conversation: a disagreement, a guessing game, a joke, a hot take on the track just played, or some off-topic chit-chat (studio life, a film, an absurd debate; 30 topics, never repeated from one show to the next).
+- On "One track in three", those segments replace the programme (only the next track is announced). On "Every track", they replace the short culture moment.
+- Mood DJ also keeps count of what the hosts have already said: at most one catchphrase per segment and never two segments in a row, at most one personal detail, one running gag per show. Each host has a mood of the day, and each dialogue gets its own dynamic (in tune, teasing, bad faith, in a hurry, sincere…).
+- Now and then one host cuts the other off; the voices do not overlap yet.
 
 ### Host emotions
 

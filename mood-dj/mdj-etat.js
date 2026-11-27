@@ -41,7 +41,7 @@ const DEFAULT_SETTINGS = {
   hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
   voiceEngine: 'systeme',
   geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-  anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare'
+  anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare', chat: 'parfois', presetRev: 0
 };
 const DEFAULT_SEL = {
   style: 'rock', sub: 'all', moment: 'route', energy: 3, mood: null, era: 'all', prompt: '',
@@ -174,7 +174,7 @@ function markProblem() {
 // Exporter : un fichier avec les réglages, les J'aime classés, les découvertes et les mémoires des
 // animateurs (jamais les clés API ni le journal). Importer : le même fichier, par exemple sur un autre
 // ordinateur.
-const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog'];
+const BACKUP_KEYS = ['settings', 'sel', 'savedAmbiances', 'showHistory', 'learn', 'resolveCache', 'likes', 'trackMeta', 'learnedCat', 'artistCache', 'wikiCache', 'toldCache', 'dataVersion', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog', 'airLog'];
 async function exportData() {
   try {
     const all = await chrome.storage.local.get(BACKUP_KEYS);
@@ -229,7 +229,7 @@ function backupCard() {
 }
 
 async function loadAll() {
-  const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog', 'aiUsage']);
+  const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog', 'airLog', 'aiUsage']);
   showHistory = Array.isArray(d.showHistory) ? d.showHistory.filter((x) => x && x.id && Array.isArray(x.tracks)) : [];
   hasSetlist = !!d.setlistfmKey;
   hasTicketmaster = !!d.ticketmasterKey;
@@ -243,6 +243,7 @@ async function loadAll() {
   const hm = d.hostMemory && typeof d.hostMemory === 'object' ? d.hostMemory : {};
   hostMemory = { A: cleanMemories(hm.A), B: cleanMemories(hm.B), L: cleanMemories(hm.L) };
   pickLog = Array.isArray(d.pickLog) ? d.pickLog.filter((x) => x && typeof x.title === 'string').slice(-40) : [];
+  airLog = cleanAirLog(d.airLog);
   aiUsage = d.aiUsage && typeof d.aiUsage === 'object' ? d.aiUsage : null;
   learned = Array.isArray(d.learnedCat) ? d.learnedCat : [];
   artistCache = d.artistCache && d.artistCache.pages ? d.artistCache : { names: {}, pages: {} };

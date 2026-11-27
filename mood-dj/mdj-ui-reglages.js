@@ -437,7 +437,23 @@ function tabReglages() {
     labelTest('Anecdotes sur les groupes et les morceaux', 'anecdote', 'Écouter une anecdote sur le titre en cours (ou sur un classique)'),
     seg([['rare', 'Rarement'], ['souvent', 'Souvent'], ['max', 'Très souvent']], settings.anecdotes || 'souvent', (id) => { settings.anecdotes = id; saveSettings(); render(); }, 'Anecdotes'),
     h('div', { class: 'muted' }, "Des anecdotes vraies, tirées de la page de l'artiste sur YouTube Music, de son article Wikipédia et de celui du morceau, pour que les animateurs n'inventent rien. Une histoire déjà racontée n'est pas reprise avant longtemps. Il faut la clé Claude." +
-      (settings.radioFreq === 'every' && settings.programme !== false ? ' Avec le programme en « À chaque titre », la chronique et la culture courte sont toujours des anecdotes : ce réglage ne change rien.' : '')),
+      (settings.radioFreq === 'every' && settings.programme !== false ? ' Avec le programme en « À chaque titre », la chronique et la culture courte sont toujours des anecdotes : ce réglage ne change rien.' : '') +
+      (settings.radioFreq === 'third' && settings.programme !== false ? ' Avec le programme en « Un titre sur trois », les anecdotes ne viennent que lorsqu’une intervention quitte le programme : voir « Bavardage et discussions », juste en dessous.' : '')),
+    h('div', { class: 'label' }, 'Bavardage et discussions'),
+    seg([['off', 'Jamais'], ['parfois', 'Parfois'], ['souvent', 'Souvent']], chatLevel(), (id) => { settings.chat = id; saveSettings(); render(); }, 'Bavardage et discussions'),
+    h('div', { class: 'muted' }, chatLevel() === 'off'
+      ? 'Les animateurs s’en tiennent au programme et aux anecdotes, sans bavardage hors musique.'
+      : settings.programme !== false && settings.radioFreq === 'third'
+        ? (chatLevel() === 'souvent'
+          ? 'Environ une intervention sur deux quitte le programme pour une vraie conversation : un désaccord, une devinette, une vanne, une anecdote ou un moment de bavardage hors musique. Ces fois-là, seul le titre suivant est annoncé.'
+          : 'Environ une intervention sur trois quitte le programme pour une vraie conversation : un désaccord, une devinette, une vanne, une anecdote ou un moment de bavardage hors musique. Ces fois-là, seul le titre suivant est annoncé.')
+        : settings.programme !== false && settings.radioFreq === 'every'
+          ? (chatLevel() === 'souvent'
+            ? 'Environ une fois sur deux, la culture courte laisse la place à une conversation : un désaccord, une devinette, une vanne ou un moment de bavardage hors musique.'
+            : 'Environ une fois sur trois, la culture courte laisse la place à une conversation : un désaccord, une devinette, une vanne ou un moment de bavardage hors musique.')
+          : (chatLevel() === 'souvent'
+            ? 'Les animateurs bavardent souvent d’autre chose que de musique, entre deux titres : la vie du studio, un film, un débat absurde.'
+            : 'De temps en temps, les animateurs bavardent d’autre chose que de musique, entre deux titres : la vie du studio, un film, un débat absurde.')),
     switchRow("Bilan de fin d'émission", 'Quand une sélection se termine : souvenirs, invités, score des jeux, et la prochaine émission de la grille', settings.showRecap !== false,
       (v) => { settings.showRecap = v; saveSettings(); }),
     labelTest('Spécialiste invité', 'guest', 'Écouter l\'arrivée d\'un invité, sur le titre en cours (ou sur un classique)'),
@@ -490,7 +506,7 @@ function tabReglages() {
         await callSafe('bedStop', 1.5);
       }
     }, 'Écouter l’habillage')),
-    textField('mdj-listener', 'Ton prénom (facultatif)', settings.listenerName, "Pour que les animateurs t'appellent par ton prénom", (v) => { settings.listenerName = v; saveSettings(); }),
+    textField('mdj-listener', 'Ton prénom (facultatif)', settings.listenerName, 'Pour signer tes dédicaces à l’antenne', (v) => { settings.listenerName = v; saveSettings(); }),
     textField('mdj-city', 'Ville pour la météo (facultatif)', settings.weatherCity, 'ex. Lyon', (v) => { settings.weatherCity = v; weatherCache.at = 0; saveSettings(); }),
     h('div', { class: 'muted' }, 'La météo vient d\'Open-Meteo (gratuit, sans compte).'),
     h('div', { class: 'btns' },

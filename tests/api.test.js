@@ -78,5 +78,7 @@ test('choix d’un animateur : schéma JSON, énergie visée et choix précéden
 test('annonce après un choix zappé : l’animateur encaisse', async () => {
   const bg = loadBackground();
   await bg.run("writeAnnouncement({ kind: 'talkover', host: 'Laeti', cohost: 'Jeff', duo: true, turns: 3, next: 'X de Y', hostPickAfter: { who: 'B', name: 'Jeff', kind: 'coeur', why: '', skipped: true } })");
-  assert.match(bg.__calls[0].body.messages[0].content, /l’auditeur l’a zappé/);
+  // 2.35 : l'animateur encaisse toujours, mais sans désigner l'auditeur (les animateurs parlent à tous les auditeurs).
+  assert.match(bg.__calls[0].body.messages[0].content, /écourté à l’antenne/);
+  assert.doesNotMatch(bg.__calls[0].body.messages[0].content, /l’auditeur l’a zappé/);
 });

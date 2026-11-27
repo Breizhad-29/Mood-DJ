@@ -8,6 +8,8 @@
 async function init() {
   try { await loadAll(); } catch (e) { /* valeurs par défaut */ }
   mountUi();
+  // 2.35 : anciens textes du duo Jeff & Laeti remplacés par les nouveaux (une seule fois).
+  try { migratePreset(); } catch (e) { dlog('session', 'mise à jour du duo : ' + e.message); }
   setTimeout(() => checkGridPending(), 1500);
   if (elevenRemoved) dlog('session', 'ElevenLabs retiré de Mood DJ', elevenRemoved);
   if (dataMigration) {

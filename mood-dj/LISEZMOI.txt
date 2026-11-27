@@ -1,5 +1,59 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.34.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
 ============================================
+
+2.35.0 : DES ANIMATEURS QUI PARLENT AUX AUDITEURS, ET QUI SE RÉPÈTENT MOINS
+- Les animateurs s'adressent à tous les auditeurs : « vous », jamais « tu »,
+  jamais par ton prénom. Le prénom des Réglages ne sert plus qu'à signer tes
+  dédicaces. Les phrases toutes faites suivent (« Vous écoutez Mood DJ »).
+- Plus aucune allusion à tes goûts : ni « Mes J'aime », ni titre
+  « similaire », ni recommandation. À l'antenne, c'est la programmation de
+  la station. Un changement d'ambiance est annoncé comme un choix de la
+  station, et un choix d'animateur zappé est simplement « écourté ».
+- Textes écrits pour l'oreille : l'IA écrit comme on parle (phrases courtes,
+  élisions, petits mots de l'oral), et la ponctuation règle le débit de la
+  voix. À l'écoute, c'est ce qui rend la voix moins « lue ».
+- Dosage des fiches. Chaque annonce est écrite sans que l'IA sache ce qui a
+  déjà été dit dans l'heure : elle plaçait donc tics et manies à chaque
+  fois. C'est maintenant Mood DJ qui tient le compte : à chaque
+  intervention, une expression fétiche au plus (et pas deux interventions
+  de suite), celles déjà entendues « au repos » 25 minutes (une heure pour
+  les rares), un seul détail personnel au plus, un seul running gag par
+  émission (différent de celui de l'émission d'avant). Le journal
+  technique note « dosage des fiches ».
+- Humeur du jour : chaque animateur a une humeur tirée au début de
+  l'émission, qui colore le ton sans jamais être dite.
+- Dynamique des dialogues : en plus de l'angle (de quoi ils parlent), Mood
+  DJ tire comment ils le jouent (complices, taquins, mauvaise foi, l'un
+  pressé, sincères, posés…). Avant, chaque dialogue recevait « ils se
+  chambrent ».
+- Coupures de parole : de temps en temps, l'un coupe l'autre. La phrase
+  coupée s'arrête net, et la voix Gemini reçoit l'indication d'enchaîner
+  sans pause. Les deux voix ne se superposent pas encore (version à venir).
+- Bavardage et discussions (Réglages › L'émission) : Jamais, Parfois,
+  Souvent. Avec le programme, les angles de conversation (désaccord,
+  devinette, vanne, réaction à chaud…) ne sortaient presque jamais : chaque
+  intervention était un programme ou une anecdote. Une intervention sur
+  trois (Parfois) ou sur deux (Souvent) devient une vraie conversation, ou
+  un moment de bavardage hors musique (30 sujets, jamais repris d'une
+  émission à l'autre). Sur « Jamais », tout reste comme avant.
+- En duo, une annonce dite par un seul animateur alterne entre les deux ;
+  avant, c'était toujours l'animateur principal. Le coanimateur lance
+  maintenant lui-même ses propres choix.
+- Exemples de dialogue en rotation dans les consignes (un seul exemple
+  servait de moule), et petites réactions variées.
+- La liste des mots trop entendus compte aussi les mots de 4 lettres à
+  partir de trois fois (« chef », « film », « bref »), et n'écarte plus les
+  prénoms des animateurs ni leurs expressions.
+- Jusqu'à 12 répliques envoyées à la voix (8 avant : les dernières
+  pouvaient sauter).
+- Jeff & Laeti : « chef » est réservé à Marielle, leur ancienne patronne ;
+  Jeff ne le dit plus aux auditeurs. Annaelle, dite Anna, est
+  l'éclairagiste. Les mots d'image de Jeff et l'oreille de preneuse de son
+  de Laeti deviennent des exceptions. Si tu avais chargé le duo, ses fiches
+  sont mises à jour toutes seules (voix et souvenirs gardés) ; si tu les
+  avais retouchées, elles ne sont pas changées et la mise à jour t'est
+  proposée.
+- 12 nouveaux tests (38 en tout).
 
 2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
 - Réponses structurées : quand l'IA doit choisir (sélection décrite en

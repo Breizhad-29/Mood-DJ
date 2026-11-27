@@ -103,16 +103,25 @@ function voiceWarn(s, msg) {
   toast(msg + " Je prends la voix de l'ordinateur.", null, 12000);
 }
 
-// Repères écrits par Claude : {ton de la réplique} au début d'une réplique, {{bruitage}} à sa place.
-// Ils sont retirés du texte dit ; le ton va à la voix Gemini, les bruitages sont joués au bon moment.
+// Repères écrits par Claude : {ton de la réplique} au début d'une réplique, {{bruitage}} à sa place, et
+// « >> » en tête d'une réplique qui coupe la parole à la précédente (2.35).
+// Ils sont retirés du texte dit ; le ton va à la voix Gemini, les bruitages sont joués au bon moment, et
+// la coupure est notée sur la réplique (t.cut) pour le jeu de la voix.
 const SFX_OK = new Set(['applaudissements', 'acclamations', 'badumtss', 'roulement', 'buzzer', 'victoire']);
 function takeMarks(turns) {
   const sfx = [];
   let pos = 0;
+  let before = null;
   for (const t of turns) {
     let txt = String(t.text || '');
+    // « >> » en tête (avant ou après le ton et une balise sonore) : cette réplique coupe la précédente.
+    const cut = /^>\s*>+/.test(txt.replace(/<[^<>]{1,25}>|\{(?!\{)[^{}]{0,80}\}/g, ' ').trimStart());
+    txt = txt.replace(/>\s*>+/g, ' ').replace(/^\s+/, '');
     const em = txt.match(/^\s*\{(?!\{)([^{}]{2,80})\}\s*/);
     if (em) { t.emotion = em[1].trim(); txt = txt.slice(em[0].length); }
+    // On ne se coupe pas la parole à soi-même, et la première réplique ne coupe personne.
+    if (cut && before && before !== t.speaker) t.cut = true;
+    before = t.speaker;
     let clean = '';
     let last = 0;
     const re = /\{\{\s*([a-zàâçéèêëîïôûùü-]{3,20})\s*\}\}/gi;
@@ -466,15 +475,15 @@ function templateDuo(kind, c) {
   const nx = spokenTitle(c.next.title) + ', de ' + c.next.artist;
   if (c.programme) {
     const names = progNames(c.programme);
-    return 'A: ' + (kind === 'intro' ? c.greet + (c.listener ? ' ' + c.listener : '') + ' ! ' + c.host + ' et ' + c.cohost + ' avec toi sur Mood DJ. ' : '') +
+    return 'A: ' + (kind === 'intro' ? c.greet + ' à toutes et à tous ! ' + c.host + ' et ' + c.cohost + ' avec vous sur Mood DJ. ' : '') +
       'Au programme des prochaines minutes : ' + progText(names) + '.\nB: Et on commence tout de suite avec ' + names[0] + ' !';
   }
   if (kind === 'intro') {
-    return 'A: ' + c.greet + (c.listener ? ' ' + c.listener : '') + ' ! ' + c.host + ' et ' + c.cohost + ' avec toi sur Mood DJ.\n' +
+    return 'A: ' + c.greet + ' à toutes et à tous ! ' + c.host + ' et ' + c.cohost + ' avec vous sur Mood DJ.\n' +
       'B: Au programme ' + ({ matin: 'ce matin', midi: 'ce midi', 'après-midi': 'cet après-midi', soirée: 'ce soir', nuit: 'cette nuit' }[c.part] || 'aujourd\'hui') + ' : ' + c.ambiance + '. On commence avec ' + nx + '.';
   }
   const w = c.weather ? ' Dehors, ' + c.weather + '.' : '';
-  return 'A: ' + (c.sayTime === false ? 'Tu écoutes Mood DJ.' : 'Tu écoutes Mood DJ, il est ' + c.time + '.') + w + '\n' +
+  return 'A: ' + (c.sayTime === false ? 'Vous écoutez Mood DJ.' : 'Vous écoutez Mood DJ, il est ' + c.time + '.') + w + '\n' +
     'B: ' + (c.prev ? "C'était " + spokenTitle(c.prev.title) + ', de ' + c.prev.artist + '. ' : '') + pick(['On enchaîne avec ', 'La suite, ', 'Et maintenant, ']) + nx + ' !';
 }
 
@@ -509,23 +518,24 @@ function spokenTitle(title) {
 
 function templateLine(kind, c) {
   const nx = spokenTitle(c.next.title) + ', de ' + c.next.artist;
-  const call = c.listener && Math.random() < 0.4 ? c.listener + ', ' : '';
+  // 2.35 : les animateurs parlent à tous les auditeurs (« vous »), sans prénom.
+  const call = '';
   if (c.programme) {
-    const head = kind === 'intro' ? c.greet + (c.listener ? ' ' + c.listener : '') + ' ! Ici ' + c.host + ' sur Mood DJ, avec ' + c.ambiance + '. '
+    const head = kind === 'intro' ? c.greet + ' à toutes et à tous ! Ici ' + c.host + ' sur Mood DJ, avec ' + c.ambiance + '. '
       : c.change ? "Changement d'ambiance : place à " + c.change.to + ' ! ' : '';
     return head + 'Au programme des prochaines minutes : ' + progText(progNames(c.programme)) + '. On commence tout de suite !';
   }
   if (kind === 'intro') {
     return pick([
-      c.greet + (c.listener ? ' ' + c.listener : '') + ' ! Ici ' + c.host + ' sur Mood DJ. Au programme : ' + c.ambiance + '. On commence avec ' + nx + '.',
-      c.greet + ", c'est " + c.host + '. Installe-toi, on part sur ' + c.ambiance + ', et ça commence avec ' + nx + '.'
+      c.greet + ' à toutes et à tous ! Ici ' + c.host + ' sur Mood DJ. Au programme : ' + c.ambiance + '. On commence avec ' + nx + '.',
+      c.greet + ", c'est " + c.host + '. Installez-vous, on part sur ' + c.ambiance + ', et ça commence avec ' + nx + '.'
     ]);
   }
   if (kind === 'interlude') {
     const w = c.weather ? ' Dehors, ' + c.weather + '.' : '';
-    const back = c.prev ? pick(["C'était " + spokenTitle(c.prev.title) + ', de ' + c.prev.artist + '.', "Tu viens d'écouter " + c.prev.artist + '.']) : '';
+    const back = c.prev ? pick(["C'était " + spokenTitle(c.prev.title) + ', de ' + c.prev.artist + '.', "Vous venez d'écouter " + c.prev.artist + '.']) : '';
     return pick([
-      'Tu écoutes Mood DJ avec ' + c.host + ', il est ' + c.time + '.' + w + ' ' + back + ' ' + cap(call + 'on enchaîne avec ' + nx + '.'),
+      'Vous écoutez Mood DJ avec ' + c.host + ', il est ' + c.time + '.' + w + ' ' + back + ' ' + cap(call + 'on enchaîne avec ' + nx + '.'),
       back + ' Il est ' + c.time + ' sur Mood DJ.' + w + ' ' + cap(call + "la suite, c'est " + nx + '.')
     ]).replace(/\s+/g, ' ').trim();
   }
@@ -544,7 +554,7 @@ const progTextEn = (names) => (names.length === 2 ? names[0] + ', then ' + names
 const PART_EN = { matin: 'this morning', midi: 'this lunchtime', 'après-midi': 'this afternoon', soirée: 'tonight', nuit: 'tonight' };
 function templateDuoEn(kind, c) {
   const nx = spokenTitle(c.next.title) + ', by ' + c.next.artist;
-  const hi = c.greetEn + (c.listener ? ' ' + c.listener : '') + '! ' + c.host + ' and ' + c.cohost + ' with you on Mood DJ.';
+  const hi = c.greetEn + ', everyone! ' + c.host + ' and ' + c.cohost + ' with you on Mood DJ.';
   if (c.programme) {
     const names = progNamesEn(c.programme);
     return 'A: ' + (kind === 'intro' ? hi + ' ' : '') + 'Coming up in the next few minutes: ' + progTextEn(names) + '.\nB: And we start right now with ' + names[0] + '!';
@@ -558,17 +568,17 @@ function templateDuoEn(kind, c) {
 }
 function templateLineEn(kind, c) {
   const nx = spokenTitle(c.next.title) + ', by ' + c.next.artist;
-  const call = c.listener && Math.random() < 0.4 ? c.listener + ', ' : '';
+  const call = '';
   const changeTo = c.change ? c.change.toEn || c.change.to : '';
   if (c.programme) {
-    const head = kind === 'intro' ? c.greetEn + (c.listener ? ' ' + c.listener : '') + '! This is ' + c.host + ' on Mood DJ, with ' + c.ambianceEn + '. '
+    const head = kind === 'intro' ? c.greetEn + ', everyone! This is ' + c.host + ' on Mood DJ, with ' + c.ambianceEn + '. '
       : c.change ? 'Change of mood: here comes ' + changeTo + '! ' : '';
     return head + 'Coming up in the next few minutes: ' + progTextEn(progNamesEn(c.programme)) + '. Let\'s get started!';
   }
   if (kind === 'intro') {
     return pick([
-      c.greetEn + (c.listener ? ' ' + c.listener : '') + '! This is ' + c.host + ' on Mood DJ. On the menu: ' + c.ambianceEn + '. We start with ' + nx + '.',
-      c.greetEn + ", it's " + c.host + '. Make yourself comfortable, we\'re going for ' + c.ambianceEn + ', starting with ' + nx + '.'
+      c.greetEn + ', everyone! This is ' + c.host + ' on Mood DJ. On the menu: ' + c.ambianceEn + '. We start with ' + nx + '.',
+      c.greetEn + ", it's " + c.host + '. Make yourselves comfortable, we\'re going for ' + c.ambianceEn + ', starting with ' + nx + '.'
     ]);
   }
   if (kind === 'interlude') {
@@ -616,7 +626,8 @@ const ANGLES_DUO = [
   { id: 'lien', w: 2, txt: "Ils trouvent un lien amusant ou inattendu entre le titre écouté et le suivant (thème, ambiance, artistes), puis lancent le suivant." },
   { id: 'vanne', w: 2, txt: "Une vanne bon enfant sur le style musical, ses clichés ou le titre du morceau suivant ; l'autre surenchérit, puis l'un des deux annonce le titre." },
   { id: 'reaction', w: 2, facts: 'prev', txt: "Ils réagissent à chaud au titre qu'on vient d'écouter (la voix, le refrain, l'effet qu'il fait), avec des avis différents, puis enchaînent sur le suivant." },
-  { id: 'auditeur', w: 1, txt: "Ils s'adressent directement à l'auditeur (ce qu'il fait sans doute en ce moment, une question complice), puis lancent le titre." },
+  { id: 'auditeur', w: 1, txt: "Ils s'adressent directement aux auditeurs, à tous ceux qui écoutent (ce qu'ils font sans doute en ce moment, une question complice lancée à la cantonade), puis lancent le titre." },
+  { id: 'bavardage', w: 2, txt: "Un moment de bavardage, hors musique : ils parlent d'autre chose, comme deux collègues entre deux disques, en quelques répliques légères et sans chercher la vanne à tout prix ; puis l'un des deux revient à la musique et lance le titre suivant." },
   { id: 'rappel', w: 1, history: true, txt: "Ils rebondissent sur une remarque d'une annonce précédente (voir la liste) comme un running gag, puis passent au titre suivant." }
 ];
 const ANGLES_SOLO = [
@@ -635,7 +646,8 @@ const ANGLES_SOLO = [
   { id: 'anecdote_revanche', share: 0.6, facts: 'next', txt: "Si les fiches le disent, raconte comment le titre suivant ou son groupe est passé de l'échec au succès ; sinon raconte son histoire. Puis annonce-le." },
   { id: 'anecdote_epoque', share: 0.6, facts: 'next', year: true, txt: "Un fait marquant et certain de l'année de sortie du titre suivant (actualité, mode, technologie, autre tube), relié au morceau si possible, puis annonce-le." },
   { id: 'anecdote_lien', share: 0.6, facts: 'both', txt: "Un vrai lien entre l'artiste qu'on vient d'écouter et le suivant d'après les fiches (membre commun, première partie, influence, même ville) ; à défaut un point commun réel. Puis annonce le titre." },
-  { id: 'vanne', w: 1, txt: "Un trait d'humour léger sur le titre ou l'artiste suivant." }
+  { id: 'vanne', w: 1, txt: "Un trait d'humour léger sur le titre ou l'artiste suivant." },
+  { id: 'bavardage', w: 2, txt: "Un mot de bavardage, hors musique, comme une confidence glissée à l'antenne ; puis reviens à la musique et annonce le titre suivant." }
 ];
 // Sujets précis pour les angles qui finissent sinon toujours pareil (la même vanne trois fois
 // dans la soirée) : un sujet est tiré au sort à chaque fois, sans reprise dans la session.
@@ -648,28 +660,82 @@ const ANGLE_TOPICS = {
     'le son de la production', 'le meilleur album du groupe', 'si ça passe en soirée', "à quelle heure il faut l'écouter", 'la basse', 'le titre du morceau'],
   reaction: ['la voix', 'le riff', 'le refrain', 'la batterie', 'la fin du morceau', "l'énergie", 'les paroles', 'le son', "l'intro"],
   vanne: ['les clichés du style', 'le titre du morceau', 'le nom du groupe', 'les coiffures de l\'époque', 'les tenues de scène', 'la longueur des solos', 'les fans du genre',
-    "l'heure tardive", 'les pochettes de disques', 'les clips de l\'époque']
+    "l'heure tardive", 'les pochettes de disques', 'les clips de l\'époque'],
+  // Bavardage (2.35) : des sujets hors musique, sans saison, sans actualité et sans lieu précis.
+  bavardage: ["ce qu'ils ont mangé (ou raté) aujourd'hui", "la nuit trop courte de l'un des deux", 'le café ou le thé du moment, et qui en abuse', 'un film ou une série vus récemment, sans rien divulguer',
+    'un jeu vidéo ou un jeu de société du moment', 'un petit objet du studio qui a disparu', 'un bruit bizarre ou une petite panne dans le studio', 'un débat absurde : le superpouvoir le plus inutile',
+    'un débat absurde : la pire invention du quotidien', 'un top 3 improbable, improvisé', "ce qu'ils faisaient avant de faire de la radio", "un souvenir d'enfance lié à un long trajet",
+    'leur pire talent caché', "ce qu'ils feront en sortant du studio", "la tenue de l'autre aujourd'hui", "un mot que l'un des deux n'arrive jamais à prononcer", 'une bonne résolution déjà abandonnée',
+    'le dernier fou rire hors antenne', "ce qu'ils emporteraient sur une île déserte (pas de disque)", "un message reçu d'un collègue ou d'un proche de la station", 'une question lancée aux auditeurs, sans attendre de réponse',
+    "un petit rituel d'avant-émission", 'ce qui traîne sur la table du studio', 'le chauffage du studio, éternel sujet de discorde', 'un rêve bizarre fait cette nuit', 'un compliment sincère, pour une fois',
+    'un pari stupide entre eux', 'un livre ou une bande dessinée en cours', 'une chose apprise cette semaine', 'ce qui les fait rire en ce moment']
 };
+// Bavardage et discussions libres (réglage « Bavardage ») : jamais, parfois, souvent.
+// - poids de l'angle « bavardage » parmi les angles de conversation ;
+// - part des interventions où une conversation libre prend la place du programme (« Un titre sur trois »)
+//   ou de la culture courte (« À chaque titre »). Sur « Jamais », le programme garde toute la place, comme avant.
+const CHAT_W = { off: 0, parfois: 2, souvent: 4 };
+// Jamais deux conversations libres de suite : avec une chance p à chaque fois, la part réelle est p / (1 + p).
+// 0,5 donne donc une intervention sur trois, et 1 une sur deux (en alternance).
+const CHAT_SHARE = { off: 0, parfois: 0.5, souvent: 1 };
+const chatLevel = () => (CHAT_W[settings.chat] !== undefined ? settings.chat : 'parfois');
+// Dynamique d'un dialogue (2.35) : comment ils le jouent, tirée en plus de l'angle (de quoi ils parlent).
+// Sans elle, chaque dialogue recevait « ils se chambrent » : toujours le même ton.
+const DYNAMICS = [
+  { id: 'complices', calm: true, txt: "ils sont sur la même longueur d'onde : complicité tranquille, ils s'amusent ensemble, aucune pique" },
+  { id: 'taquin', txt: "l'un taquine gentiment, l'autre encaisse avec humour et rend la pareille en une ligne" },
+  { id: 'mauvaise_foi', txt: "l'un est d'une mauvaise foi assumée, l'autre le lui fait remarquer sans s'énerver" },
+  { id: 'ailleurs', txt: "l'un a la tête ailleurs, occupé à autre chose dans le studio, et l'autre le ramène à l'antenne" },
+  { id: 'presse', txt: "l'un veut lancer le titre tout de suite, l'autre a encore quelque chose à dire, et y arrive" },
+  { id: 'sincere', calm: true, txt: 'pas de vanne cette fois : un enthousiasme simple et sincère, partagé' },
+  { id: 'curieux', calm: true, txt: "l'un pose de vraies questions et l'autre répond : on sent la curiosité, pas un numéro de duettistes" },
+  { id: 'pose', calm: true, quiet: true, txt: 'ton posé, peu de mots, on prend son temps' },
+  { id: 'surenchere', hot: true, txt: "ils renchérissent l'un sur l'autre jusqu'à l'absurde, puis l'un des deux arrête tout d'un mot" },
+  { id: 'desaccord', txt: 'un vrai petit désaccord, courtois, que personne ne gagne' }
+];
+// Ces angles portent déjà leur dynamique (chambrage, débat, vanne, devinette) : on n'en tire pas une autre.
+const OWN_DYNAMIC = new Set(['chambre', 'debat', 'vanne', 'devinette']);
+function pickDynamic(s, angle, emo) {
+  if (angle && OWN_DYNAMIC.has(angle.id)) return null;
+  const v = s.variety;
+  const recent = v.dyn || [];
+  const story = !!(angle && (/^anecdote/.test(angle.id) || angle.id === 'ephemeride' || angle.id === 'programme'));
+  const ok = (d) => (emo === 'intime' || emo === 'sobre' ? d.calm : emo === 'dechaine' ? !d.quiet : true)
+    && (!story || d.calm || d.id === 'taquin') && (!d.hot || emo === 'expressif' || emo === 'dechaine');
+  const pool = DYNAMICS.filter((d) => ok(d) && !recent.includes(d.id));
+  const use = pool.length ? pool : DYNAMICS.filter(ok);
+  const d = use[Math.floor(Math.random() * use.length)];
+  v.dyn = recent.concat([d.id]).slice(-3);
+  return d;
+}
 function withTopic(s, angle) {
   const list = angle && ANGLE_TOPICS[angle.id];
   if (!list) return angle;
   const v = s.variety;
   v.topics = v.topics || {};
   const used = v.topics[angle.id] || [];
-  const free = list.filter((x) => !used.includes(x));
-  const topic = pick(free.length ? free : list);
-  v.topics[angle.id] = (free.length ? used : []).concat([topic]);
+  const before = angle.id === 'bavardage' ? airLog.chat : [];
+  const unused = list.filter((x) => !used.includes(x));
+  const free = unused.filter((x) => !before.includes(x));
+  const topic = pick(free.length ? free : unused.length ? unused : list);
+  v.topics[angle.id] = (unused.length ? used : []).concat([topic]);
+  if (angle.id === 'bavardage' && !s.demo) { airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-18); store({ airLog }); }
   return Object.assign({}, angle, { topic, txt: angle.txt + ' Sujet imposé cette fois : ' + topic + ' (un sujet déjà utilisé dans l\'émission ne doit pas revenir).' });
 }
 
 const STOP_WORDS = new Set(('alors aussi avant avec avoir bien cette cela comme dans deux elle elles encore entre fait faire juste leurs maintenant mais même parce petit petite place pour quand quoi sans sont suite tout toute toujours très vient voilà votre ' +
-  'mood titre titres morceau chanson heures heure degrés minutes ensemble juste').split(' '));
+  'mood titre titres morceau chanson heures heure degrés minutes ensemble juste ouais enfin tiens allez écoute écoutez voyez dites disons quand même aujourd autre autres chose choses').split(' '));
+// Mots de 4 lettres qui ne sont jamais des tics. Les autres (« chef », « film », « clip », « bref », « whoa »)
+// échappaient à la liste des mots trop entendus, qui ne comptait qu'à partir de 5 lettres (2.35).
+const STOP4 = new Set(('avec pour dans mais elle vous nous tout tous bien très trop plus sans sont sous vers chez puis donc même déjà rien cela ceci ceux leur quoi quel hein allô allo ' +
+  'être fait faut peut veut vais suis sera avez êtes aura dire sais sait vois voit voir veux peux dois doit mets tard soir nuit jour fois deux cinq sept huit neuf onze zéro vrai faux tant mood ' +
+  'bon, ici, moi, toi, lui, eux, oui, non').split(/[ ,]+/).filter((x) => x.length === 4));
 
 // Place des anecdotes selon le réglage (Rarement, Souvent, Très souvent).
 // Poids de chacun des quatre angles « anecdote » (histoire du titre suivant, du précédent,
 // film/série/événement, culture du style).
 const ANECDOTE_WEIGHT = { rare: 0.2, souvent: 1.5, max: 4 };
-const angleWeight = (a) => (/^anecdote/.test(a.id) ? (ANECDOTE_WEIGHT[settings.anecdotes] || 3) * (a.share || 1) * (a.norm || 1) : a.w);
+const angleWeight = (a) => (/^anecdote/.test(a.id) ? (ANECDOTE_WEIGHT[settings.anecdotes] || 3) * (a.share || 1) * (a.norm || 1) : a.id === 'bavardage' ? CHAT_W[chatLevel()] : a.w);
 function pickAngle(list, recent, ok, weight) {
   const wf = weight || angleWeight;
   const pool = list.filter((a) => ok(a) && !recent.includes(a.id));
@@ -694,26 +760,40 @@ const PROGRAMME_ANGLE = {
 function overused(lines, skip) {
   const count = new Map();
   for (const l of lines) {
-    const words = new Set((String(l).toLowerCase().match(/[a-zàâçéèêëîïôûùüÿœ'-]{5,}/g) || [])
-      .map((x) => x.replace(/^[a-z]'/, '')).filter((x) => x.length >= 5 && !STOP_WORDS.has(x) && !skip.has(x)));
+    // Les apostrophes séparent les mots (« l'autre », « qu’il ») : seuls les vrais mots sont comptés.
+    const words = new Set((String(l).toLowerCase().match(/[a-zàâçéèêëîïôûùüÿœ-]{4,}/g) || [])
+      .map((x) => x.replace(/^-+|-+$/g, '')).filter((x) => (x.length >= 5 ? !STOP_WORDS.has(x) : x.length === 4 && !STOP4.has(x)) && !skip.has(x)));
     for (const x of words) count.set(x, (count.get(x) || 0) + 1);
   }
-  return [...count.entries()].filter((e) => e[1] >= 2).sort((a, b) => b[1] - a[1]).slice(0, 16).map((e) => e[0]);
+  // Un mot court ne devient suspect qu'à partir de trois interventions.
+  return [...count.entries()].filter((e) => e[1] >= (e[0].length >= 5 ? 2 : 3)).sort((a, b) => b[1] - a[1]).slice(0, 16).map((e) => e[0]);
 }
 function openings(lines) {
   return lines.map((l) => String(l).split(/\s+/).slice(0, 4).join(' ')).filter((x) => x.length > 6);
 }
 
-function planAnnouncement(s, kind, prev, next, atMs, role, progLen) {
+// noFree : cette intervention a déjà sa structure (invité au micro, dédicace, réponse d'un jeu, choix d'un animateur).
+function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
   const now = atMs || Date.now();
   const v = s.variety || (s.variety = { angles: [], timeAt: 0, weatherAt: 0, stationAt: 0, momentAt: 0 });
   const lines = (s.lastLines || []).slice(-6);
   const duoOn = settings.voiceEngine === 'gemini' && hasGemini && settings.duo;
   const duo = duoOn && (kind !== 'talkover' || Math.random() < 0.4);
-  const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year));
+  const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year)) &&
+    (a.id !== 'bavardage' || chatLevel() !== 'off');
   const list = duo ? ANGLES_DUO : ANGLES_SOLO;
+  // Conversation libre (2.35). Avec le programme activé, les angles de discussion (chambrage, débat, devinette,
+  // vanne, réaction, lien, bavardage…) ne sortaient presque jamais : chaque intervention était un programme
+  // (« Un titre sur trois ») ou une anecdote (« À chaque titre »). Une part des programmes, ou des moments de
+  // culture courte, laisse maintenant la place à une conversation ; jamais deux fois de suite.
+  const slot = (role === 'programme' && progLen >= 2 && settings.radioFreq === 'third') || role === 'culture';
+  const free = !!(slot && kind !== 'intro' && !noFree && !s.demo && !changeFor(s, next) && !v.freeLast && Math.random() < CHAT_SHARE[chatLevel()]);
+  if (slot) v.freeLast = free;
   let angle;
-  if (role === 'programme' && progLen >= 2) angle = { id: 'programme', txt: duo ? PROGRAMME_ANGLE.duo : PROGRAMME_ANGLE.solo };
+  // À la place d'une culture courte (déjà une anecdote) : une conversation. À la place d'un programme : une
+  // conversation ou une anecdote, selon le réglage « Anecdotes », qui n'avait aucun effet avec le programme.
+  if (free) angle = pickAngle(role === 'culture' ? list.filter((a) => !isAnecdote(a)) : list, v.angles.slice(-3), okA);
+  else if (role === 'programme' && progLen >= 2) angle = { id: 'programme', txt: duo ? PROGRAMME_ANGLE.duo : PROGRAMME_ANGLE.solo };
   else if (role === 'chronique') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => a.share || 1);
   else if (role === 'culture') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => CULTURE_W[a.id] || 0.6);
   else angle = kind === 'intro' ? null : pickAngle(list, v.angles.slice(-3), okA);
@@ -728,7 +808,10 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen) {
     yearOk: Math.random() < 0.25,
     turns: duo ? (kind === 'talkover' ? 2 : pick(kind === 'intro' ? [2, 3] : [2, 3, 3, 4, 4, 5])) : 0,
     long: false,
-    opener: duo && kind !== 'intro' && Math.random() < 0.4 ? 'B' : 'A'
+    opener: duo && kind !== 'intro' && Math.random() < 0.4 ? 'B' : 'A',
+    free,
+    // Une coupure de parole, de temps en temps seulement : la réplique qui coupe sera marquée « >> ».
+    cuts: duo && Math.random() < (kind === 'talkover' ? 0.25 : 0.4) ? 1 : 0
   };
   // Une anecdote a le droit de prendre plus de place.
   if (angle && /^anecdote/.test(angle.id)) {
@@ -738,6 +821,10 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen) {
   if (angle && angle.id === 'programme' && duo) plan.turns = kind === 'interlude' ? 4 : 3;
   plan.role = role || null;
   const skip = new Set([prev, next].concat((s.played || []).slice(-8)).filter(Boolean).flatMap((t) => (t.title + ' ' + t.artist).toLowerCase().split(/[^a-zàâçéèêëîïôûùüÿœ]+/)));
+  // Les prénoms des animateurs et leurs expressions fétiches ne sont pas des « mots trop entendus » : les
+  // prénoms sont normaux, et les expressions ont leur propre dosage (ficheFocus).
+  const own = [settings.hostName, settings.cohostName, s.guest && s.guest.name].concat(sayingsOf().map((x) => x.text));
+  for (const w of own.filter(Boolean).join(' ').toLowerCase().split(/[^a-zàâçéèêëîïôûùüÿœ]+/)) if (w) skip.add(w);
   // Mots et images déjà entendus plusieurs fois dans toute l'émission (pas seulement les dernières annonces).
   plan.avoid = overused((s.lastLines || []).slice(-24), skip);
   plan.openers = openings(lines.slice(-4));
@@ -921,8 +1008,9 @@ function statsFor(s, t, now) {
   const n = within(plays[t.key]);
   const na = within(plays['a:' + C.artistKey(t.artist)]);
   let txt = '';
-  if (n >= 3) txt = 'Ce titre a déjà été écouté ' + n + " fois sur Mood DJ ces 30 derniers jours : c'est un habitué de l'émission.";
-  else if (na >= 8) txt = na + ' titres de ' + t.artist + ' ont été écoutés sur Mood DJ ces 30 derniers jours.';
+  // 2.35 : dit comme une statistique de la station (sa programmation), jamais comme les habitudes de quelqu'un.
+  if (n >= 3) txt = 'Ce titre est déjà passé ' + n + " fois à l'antenne de Mood DJ ces 30 derniers jours : c'est un habitué de la programmation.";
+  else if (na >= 8) txt = na + ' titres de ' + t.artist + " sont passés à l'antenne de Mood DJ ces 30 derniers jours.";
   if (txt) v.statsAt = now;
   return txt;
 }
@@ -934,7 +1022,7 @@ function localHint(facts) {
   const re = new RegExp(esc, 'i');
   const body = String(facts).replace(/^(?:Fiche|Article)[^:\n]{0,120}:\s*/gm, '');
   const sentence = body.split(/(?<=[.!?])\s+|\n/).find((x) => re.test(x));
-  return sentence ? 'la fiche mentionne : « ' + sentence.trim().slice(0, 220) + " », ce qui parle à un auditeur de " + city + '.' : '';
+  return sentence ? 'la fiche mentionne : « ' + sentence.trim().slice(0, 220) + " », ce qui parle aux auditeurs de la région de " + city + '.' : '';
 }
 // Nom de la rubrique (et son petit jingle) pour la chronique et la culture courte.
 function rubriqueFor(role, angle, o) {
