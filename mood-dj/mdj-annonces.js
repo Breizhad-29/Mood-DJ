@@ -375,7 +375,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   // Expressions fétiches entendues dans ce texte : elles passent « au repos » pour les prochaines interventions.
   const said = s.demo ? [] : noteSayings(s, plain, now);
   if (focus || said.length) dlog('annonce', 'dosage des fiches', { qui: speakers.join('+'), tic_permis: focus && focus.tic ? focus.tic.text : '', detail: focus && focus.facet ? focus.facet.text.slice(0, 80) : '', gag: (focus && focus.gag) || '',
-    au_repos: focus ? focus.rest.length : 0, entendus: said.join(' | '), dynamique: dyn ? dyn.id : '', bavardage: (plan.angle && plan.angle.format) || '', coupure: turns.filter((t) => t.cut).length, libre: !!plan.free });
+    au_repos: focus ? focus.rest.length : 0, entendus: said.join(' | '), dynamique: dyn ? dyn.id : '', bavardage: (plan.angle && plan.angle.format) || '', sujet: (plan.angle && plan.angle.topic) || '', variante: (plan.angle && plan.angle.twist) || '', coupure: turns.filter((t) => t.cut).length, libre: !!plan.free });
   if (plan.episodeRef) plan.episodeRef.last = plain.slice(0, 300);
   // Mémoire des anecdotes : pour un vrai ou faux, c'est le vrai fait qui est retenu, jamais la version modifiée.
   if (fromClaude && subjects.length) rememberTold(subjects, express ? hidden.answer || '' : plain);

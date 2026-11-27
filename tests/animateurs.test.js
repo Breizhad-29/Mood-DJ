@@ -167,16 +167,16 @@ test('programme : une part des interventions devient une conversation, jamais de
   assert.equal(p.run('__n'), 0);
 });
 
-test('bavardage : 260 sujets sans doublon en six formats, rien « entre eux » pour un animateur seul, jamais deux bavardages rapprochés', () => {
+test('bavardage : 261 sujets sans doublon en six formats, rien « entre eux » pour un animateur seul, jamais deux bavardages rapprochés', () => {
   const p = loadPanel();
   const duo = [...p.run('CHAT_DUO')];
   const solo = [...p.run('CHAT_SOLO')];
   const pools = JSON.parse(JSON.stringify(p.run('CHAT_POOL')));
   const all = duo.concat(...Object.values(pools));
-  assert.equal(duo.length, 145);
-  assert.equal(solo.length, 125);
-  assert.equal(all.length, 260);
-  assert.equal(new Set(all).size, 260);
+  assert.equal(duo.length, 146);
+  assert.equal(solo.length, 126);
+  assert.equal(all.length, 261);
+  assert.equal(new Set(all).size, 261);
   assert.deepEqual([...p.run('CHAT_FORMATS.map((f) => f.id)')], ['papotage', 'dilemme', 'minijeu', 'rubrique', 'nouvelles', 'auditeurs']);
   const between = [...p.run('CHAT_TOPICS.entreEux')];
   assert.ok(between.every((x) => !solo.includes(x)));
@@ -184,13 +184,14 @@ test('bavardage : 260 sujets sans doublon en six formats, rien « entre eux » p
   for (const x of duo) assert.doesNotMatch(x, /(^|[^a-zà-ÿ])(hiver|été|printemps|automne|météo|noël|actualité|chanson|concert)s?([^a-zà-ÿ]|$)/i, x);
   // Seul à l'antenne (voix de l'ordinateur), en parlant à chaque titre : ni mini-jeu ni sujet « entre eux ».
   p.run("Object.assign(settings, { chat: 'souvent', radioFreq: 'every', programme: false, voiceEngine: 'systeme', loreLevel: 'discret' }); var __s = { lastLines: [], played: [], queue: [] }; var __t = []; var __f = []; var __at = [];" +
-    "for (var i = 0; i < 600; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.topic); __f.push(pl.angle.format); __at.push(i * 4); } }");
+    "for (var i = 0; i < 600; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.base); __f.push(pl.angle.format); __at.push(i * 4); } }");
   const topics = [...p.run('__t')];
   const formats = [...p.run('__f')];
   const at = [...p.run('__at')];
   assert.ok(topics.length > 30, 'le bavardage sort : ' + topics.length);
   assert.ok(topics.every((x) => !between.includes(x) && !pools.minijeu.includes(x)));
-  assert.equal(new Set(topics).size, topics.length, 'aucun sujet repris dans l’émission');
+  const fixed = topics.filter((x) => x !== '{choix}, ou {choix}');
+  assert.equal(new Set(fixed).size, fixed.length, 'aucun sujet repris dans l’émission');
   assert.ok(new Set(formats).size >= 4, 'plusieurs formats sortent : ' + [...new Set(formats)].join(', '));
   assert.ok(!formats.includes('minijeu'));
   for (let i = 1; i < formats.length; i++) assert.notEqual(formats[i], formats[i - 1], 'le même format deux fois de suite');
@@ -213,7 +214,7 @@ test('discussions autour de la musique : quinze types, sujets sans doublon, tir�
     assert.equal(new Set(T[k]).size, T[k].length, 'doublon dans ' + k);
     n += T[k].length;
   }
-  assert.equal(n, 249);
+  assert.equal(n, 242);
   // Un angle qui parle du titre qu'on vient d'écouter ne sort pas s'il n'y en a pas (début d'émission).
   p.run("hasGemini = true; Object.assign(settings, { voiceEngine: 'gemini', duo: true, chat: 'off', programme: false, radioFreq: 'every' }); var __ids = {}; var __s = { lastLines: [], played: [], queue: [] };" +
     "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s, 'interlude', null, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 6e5, null, 0, false); __ids[pl.angle.id] = 1; }");
@@ -228,18 +229,56 @@ test('discussions autour de la musique : quinze types, sujets sans doublon, tir�
 test('sujets imposés : pas de reprise d’une émission à l’autre, même pour une petite liste', () => {
   const p = loadPanel();
   // Dix sujets seulement pour le « mode d'emploi » : sans mémoire, une émission sur dix rouvrait sur le même.
-  p.run("var __a = { variety: { angles: [] } }; var __first = []; for (var i = 0; i < 7; i++) __first.push(drawTopic(__a, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false));");
-  const first = [...p.run('__first')];
-  assert.equal(new Set(first).size, 7);
-  p.run("var __b = { variety: { angles: [] } }; var __next = []; for (var i = 0; i < 3; i++) __next.push(drawTopic(__b, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false));");
-  const next = [...p.run('__next')];
-  assert.ok(next.every((x) => !first.includes(x)), 'la nouvelle émission commence par les sujets pas encore entendus');
+  // Douze émissions de quatre tirages : un sujet ne revient jamais avant sept autres (70 % de la liste).
+  p.run("var __seq = []; for (var e = 0; e < 12; e++) { var __sh = { variety: { angles: [] } }; for (var i = 0; i < 4; i++) __seq.push(drawTopic(__sh, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false)); }");
+  const seq = [...p.run('__seq')];
+  const last = {};
+  seq.forEach((x, i) => { if (last[x] !== undefined) assert.ok(i - last[x] > 7, 'sujet revenu après ' + (i - last[x]) + ' tirages'); last[x] = i; });
+  assert.equal(new Set(seq).size, 10, 'toute la liste finit par passer');
   // Un exemple des Réglages ne compte pas.
   const before = JSON.stringify(p.run('airLog.topics.mode_emploi'));
   p.run("drawTopic({ demo: 'x', variety: { angles: [] } }, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false)");
   assert.equal(JSON.stringify(p.run('airLog.topics.mode_emploi')), before);
   // Sauvegarde abîmée : la mémoire repart propre, sans casser le démarrage.
   assert.deepEqual(JSON.parse(JSON.stringify(p.run("cleanAirLog({ gag: 3, chat: 'x', topics: { vanne: ['a', 4, 'b'], bad: 'non' } })"))), { gag: '', chat: [], topics: { vanne: ['a', 'b'], bad: [] } });
+});
+
+test('cases à remplir et variantes : chaque case a sa liste, deux cases identiques diffèrent, une variante une fois sur deux', () => {
+  const p = loadPanel();
+  const all = [...p.run('CHAT_DUO')].concat(...Object.values(JSON.parse(JSON.stringify(p.run('CHAT_POOL')))), ...Object.values(JSON.parse(JSON.stringify(p.run('ANGLE_TOPICS')))));
+  const slots = JSON.parse(JSON.stringify(p.run('TOPIC_SLOTS')));
+  const used = new Set(all.join(' ').match(/\{[a-z_]+\}/g).map((x) => x.slice(1, -1)));
+  for (const k of used) assert.ok(Array.isArray(slots[k]) && slots[k].length >= 3, 'case sans liste : ' + k);
+  assert.equal(all.filter((x) => x.includes('{')).length, 26);
+  // Tous les sujets, une fois remplis, n'ont plus d'accolade ; « pour X ou pour Y » ne tire jamais deux fois le même mot.
+  p.run("var __v = { variety: { angles: [] } };");
+  for (const x of all) assert.doesNotMatch(p.run('fillSlots(__v, ' + JSON.stringify(x) + ')'), /[{}]/, x);
+  for (let i = 0; i < 60; i++) {
+    const m = p.run("fillSlots(__v, 'plutôt pour {usage} ou pour {usage}')").match(/^plutôt pour (.+) ou pour (.+)$/);
+    assert.ok(m && m[1] !== m[2], m && m[0]);
+    const d = p.run("fillSlots(__v, '{choix}, ou {choix}')").split(', ou ');
+    assert.ok(d.length === 2 && d[0] !== d[1], d.join(' | '));
+  }
+  // Variantes : environ une fois sur deux, jamais une variante « à deux » pour un animateur seul, jamais sans famille.
+  p.run("var __tw = []; for (var i = 0; i < 400; i++) __tw.push(drawTwist(__v, 'coulisses', false)); var __solo = []; for (var i = 0; i < 400; i++) __solo.push(drawTwist(__v, 'studio', true));");
+  const tw = [...p.run('__tw')];
+  const n = tw.filter(Boolean).length;
+  assert.ok(n > 150 && n < 250, n + ' variantes sur 400');
+  // Jamais une des quatre dernières variantes de l'émission.
+  const said = tw.filter(Boolean);
+  for (let i = 1; i < said.length; i++) assert.ok(!said.slice(Math.max(0, i - 4), i).includes(said[i]), 'variante revenue trop tôt : ' + said[i]);
+  const duoOnly = [...p.run("TOPIC_TWISTS.recit.filter((x) => x.duo).map((x) => x.t)")];
+  assert.ok(duoOnly.length > 0 && [...p.run('__solo')].every((x) => !duoOnly.includes(x)));
+  assert.equal(p.run("drawTwist(__v, 'vanne', false)"), '');
+  // Chaque famille citée existe, et la consigne finale porte le sujet rempli et sa variante.
+  const of = JSON.parse(JSON.stringify(p.run('TWIST_OF')));
+  for (const k of Object.keys(of)) assert.ok(p.run('Array.isArray(TOPIC_TWISTS[' + JSON.stringify(of[k]) + '])'), k);
+  p.run("hasGemini = true; Object.assign(settings, { voiceEngine: 'gemini', duo: true, chat: 'off', programme: false, radioFreq: 'every' }); var __s = { lastLines: ['a', 'b', 'c'], played: [], queue: [] }; var __hit = null;" +
+    "for (var i = 0; i < 600 && !__hit; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 6e5, null, 0, false); if (pl.duo && pl.angle.twist && pl.angle.base !== pl.angle.topic) __hit = pl.angle; }");
+  const hit = JSON.parse(JSON.stringify(p.run('__hit')));
+  assert.ok(hit, 'un sujet à case avec variante finit par sortir');
+  assert.ok(hit.txt.includes(hit.topic) && hit.txt.includes('Variante de cette fois : ' + hit.twist + '.'));
+  assert.doesNotMatch(hit.txt, /[{}]/);
 });
 
 test('phrases toutes faites : on parle aux auditeurs (« vous »), sans prénom', () => {

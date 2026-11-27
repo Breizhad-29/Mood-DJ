@@ -76,7 +76,14 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   chaque type de discussion, les derniers sujets tirés sont écartés à la
   prochaine émission (une liste de 10 sujets retombait sinon une fois sur
   dix sur le même).
-- 17 nouveaux tests (43 en tout).
+- Cases à remplir et variantes. 26 sujets ont une case tirée à chaque fois
+  (« une disparition dans le studio : … », « plutôt pour … ou pour … »),
+  et un « tu préfères » sur deux assemble deux moitiés au hasard parmi 62.
+  Une fois sur deux, le sujet reçoit en plus une variante (« raconté par
+  celui des deux qui n'y était pas », « c'est devenu une affaire d'État
+  dans le studio », « l'un des deux triche un peu »…), choisie dans la
+  famille qui lui va : un sujet qui revient n'est plus tout à fait le même.
+- 18 nouveaux tests (44 en tout).
 
 2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
 - Réponses structurées : quand l'IA doit choisir (sélection décrite en
