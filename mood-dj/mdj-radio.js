@@ -647,10 +647,23 @@ const ANGLES_SOLO = [
   { id: 'anecdote_epoque', share: 0.6, facts: 'next', year: true, txt: "Un fait marquant et certain de l'année de sortie du titre suivant (actualité, mode, technologie, autre tube), relié au morceau si possible, puis annonce-le." },
   { id: 'anecdote_lien', share: 0.6, facts: 'both', txt: "Un vrai lien entre l'artiste qu'on vient d'écouter et le suivant d'après les fiches (membre commun, première partie, influence, même ville) ; à défaut un point commun réel. Puis annonce le titre." },
   { id: 'vanne', w: 1, txt: "Un trait d'humour léger sur le titre ou l'artiste suivant." },
-  { id: 'bavardage', w: 2, txt: "Un mot de bavardage, hors musique, comme une confidence glissée à l'antenne ; puis reviens à la musique et annonce le titre suivant." }
+  { id: 'bavardage', w: 2, solo: true, txt: "Un mot de bavardage, hors musique, comme une confidence glissée à l'antenne ; puis reviens à la musique et annonce le titre suivant." }
 ];
 // Sujets précis pour les angles qui finissent sinon toujours pareil (la même vanne trois fois
 // dans la soirée) : un sujet est tiré au sort à chaque fois, sans reprise dans la session.
+// Bavardage (2.35) : 150 sujets hors musique, sans saison, sans actualité et sans lieu précis, rangés par famille.
+// Les six premières familles (130 sujets) valent pour un animateur seul comme pour un duo ; « entreEux » demande deux animateurs.
+const CHAT_TOPICS = {
+  quotidien: ["le repas raté (ou réussi) du jour", "la nuit trop courte de la veille", "le café ou le thé du moment, et la tasse de trop", "un rêve bizarre fait cette nuit", "ce qu'il y a de prévu en sortant du studio", "le réveil qui n'a pas sonné", "une course oubliée, encore", "les clés perdues, puis retrouvées au pire endroit", "un vêtement mis à l'envers sans s'en rendre compte", "la lessive qui attend depuis trop longtemps", "un téléphone à trois pour cent de batterie", "la liste de choses à faire qui ne raccourcit jamais", "le seul plat qu'on sait vraiment faire", "la sieste, pour ou contre", "le petit-déjeuner idéal", "un objet acheté sans raison et jamais utilisé", "une notice de montage impossible à suivre", "le tiroir fourre-tout que tout le monde a chez soi", "une plante qu'on essaie de garder en vie", "le grignotage de fin de soirée", "un mot de passe oublié pour la dixième fois", "le rangement toujours remis à demain", "une recette tentée après l'avoir vue en vidéo", "la tasse préférée, et pourquoi on n'en change pas", "ce qu'on trouve au fond de ses poches aujourd'hui"],
+  studio: ["un petit objet du studio qui a disparu", "un bruit bizarre ou une petite panne dans le studio", "un message reçu d'un collègue ou d'un proche de la station", "un petit rituel d'avant-émission", "ce qui traîne sur la table du studio", "le chauffage du studio, éternel sujet de discorde", "la chaise du studio qui grince", "un câble dont personne ne sait à quoi il sert", "le bouton de la console qu'il ne faut surtout pas toucher", "le casque qui a rendu l'âme", "un mot mystérieux retrouvé collé sur la console", "la réserve de biscuits du studio, et qui la vide", "la lumière du studio, trop forte ou trop faible", "une vieille affiche accrochée au mur", "le stylo qui ne marche jamais quand il faut", "un carton jamais déballé dans un coin", "la pendule du studio, toujours un peu en avance", "un micro capricieux", "la meilleure place du studio, que tout le monde se dispute", "une odeur inexpliquée dans le studio", "la bouilloire ou la cafetière du studio, et ses humeurs", "le ménage du studio, et à qui c'est le tour", "une mise à jour du matériel qui a tout déréglé", "les objets oubliés par les visiteurs", "ce qu'on voit par la fenêtre du studio, sans dire où", "ce qu'un collègue écoute en boucle hors antenne", "le carnet où quelqu'un note tout", "un vieil objet retrouvé au fond d'un tiroir du studio", "le porte-bonheur du studio", "le voyant rouge de l'antenne, et ce qu'on fait quand il s'éteint"],
+  soi: ["le métier d'avant la radio", "un souvenir d'enfance lié à un long trajet", "le pire talent caché", "une bonne résolution déjà abandonnée", "une chose apprise cette semaine", "ce qui fait rire en ce moment", "le métier rêvé quand on était enfant", "une peur un peu ridicule", "une collection commencée et jamais finie", "un sport tenté une seule fois", "le plus beau raté en cuisine", "une langue qu'on aurait aimé parler", "un surnom d'enfance", "la matière détestée à l'école", "un petit plaisir un peu honteux, qui n'a rien de musical", "un objet gardé depuis toujours", "le pire cadeau jamais reçu", "le meilleur conseil jamais reçu", "une superstition qu'on respecte quand même", "un talent parfaitement inutile", "ce qu'on ferait d'une journée sans rien de prévu", "un jeu d'enfance auquel on rejouerait bien", "une manie de rangement", "une chose qu'on ne sait toujours pas faire à son âge", "le premier petit boulot", "une habitude prise récemment", "ce qu'on emporte toujours en voyage", "une invention qu'on aimerait voir exister", "le sens de l'orientation, ou son absence", "une petite victoire de la semaine"],
+  jeux: ["un débat absurde : le superpouvoir le plus inutile", "un débat absurde : la pire invention du quotidien", "un top 3 improbable, improvisé", "ce qu'on emporterait sur une île déserte (pas de disque)", "un débat absurde : le meilleur moment de la journée", "un débat absurde : chat ou chien, sans se fâcher", "un débat absurde : le meilleur parfum de glace", "un débat absurde : la meilleure place dans une voiture", "un débat absurde : sucré ou salé au petit-déjeuner", "un débat absurde : escalier ou ascenseur", "un débat absurde : l'ananas sur la pizza", "l'époque où on aimerait passer une semaine", "le métier qu'on ferait pendant une seule journée", "pouvoir revenir dix secondes en arrière : pour quoi faire", "trois objets pour décrire quelqu'un", "le pire nom possible pour un animal de compagnie", "inventer une fête qui n'existe pas", "le mot le plus drôle de la langue", "la devise que pourrait avoir le studio", "le classement des jours de la semaine", "une règle à ajouter à un jeu de société", "le meilleur bruit du quotidien", "la question à poser à un extraterrestre", "un sport qui devrait exister", "le pire superhéros imaginable"],
+  culture: ["un film ou une série vus récemment, sans rien divulguer", "un jeu vidéo ou un jeu de société du moment", "un livre ou une bande dessinée en cours", "un film vu dix fois sans s'en lasser", "le méchant de fiction préféré", "une série jamais terminée", "un dessin animé d'enfance", "un livre commencé trois fois", "le pire film vu jusqu'au bout", "une réplique de film qu'on ressort à tout propos", "un personnage de fiction avec qui on partirait en voyage", "un jeu auquel on triche un peu", "un documentaire qui a fait changer d'avis", "le héros de fiction le plus agaçant", "une fin d'histoire qu'on aurait écrite autrement, sans rien divulguer"],
+  auditeurs: ["une question lancée aux auditeurs, sans attendre de réponse", "un petit défi lancé aux auditeurs d'ici la fin du prochain titre", "un merci à ceux qui écoutent depuis longtemps", "un sondage pour rire auprès des auditeurs", "le conseil du jour aux auditeurs, parfaitement inutile"],
+  entreEux: ["la tenue de l'autre aujourd'hui", "un mot que l'un des deux n'arrive jamais à prononcer", "le dernier fou rire hors antenne", "un compliment sincère, pour une fois", "un pari stupide entre eux", "ce que l'un a emprunté à l'autre et jamais rendu", "la fois où l'un a sauvé la mise à l'autre", "qui arrive toujours le premier, et qui le dernier", "le défaut de l'autre qu'on finit par trouver attachant", "un secret de polichinelle entre eux", "ce que l'un sait faire et que l'autre lui envie", "qui range, et qui dérange", "le souvenir de leur première émission ensemble", "un désaccord vieux de plusieurs années, toujours pas réglé", "ce que l'un mange et que l'autre ne supporte pas", "qui conduit, et qui lit la carte", "le cadeau que l'un devrait offrir à l'autre", "l'imitation que l'un fait de l'autre", "ce qu'ils feraient s'ils échangeaient leurs places une journée", "la dette d'honneur que l'un doit encore à l'autre"]
+};
+const CHAT_SOLO = [].concat(CHAT_TOPICS.quotidien, CHAT_TOPICS.studio, CHAT_TOPICS.soi, CHAT_TOPICS.jeux, CHAT_TOPICS.culture, CHAT_TOPICS.auditeurs);
+const CHAT_DUO = CHAT_SOLO.concat(CHAT_TOPICS.entreEux);
 const ANGLE_TOPICS = {
   chambre: ['un plaisir coupable musical inavouable', "ce qu'il ou elle boit pendant l'émission", 'sa façon de taper du pied à contretemps', 'sa manie de chanter faux les refrains',
     'son attachement à un vieux matériel (platine, casque, vieil ampli)', 'son retard au début de l\'émission', 'ses jeux de mots ratés', 'sa playlist de sport',
@@ -661,20 +674,21 @@ const ANGLE_TOPICS = {
   reaction: ['la voix', 'le riff', 'le refrain', 'la batterie', 'la fin du morceau', "l'énergie", 'les paroles', 'le son', "l'intro"],
   vanne: ['les clichés du style', 'le titre du morceau', 'le nom du groupe', 'les coiffures de l\'époque', 'les tenues de scène', 'la longueur des solos', 'les fans du genre',
     "l'heure tardive", 'les pochettes de disques', 'les clips de l\'époque'],
-  // Bavardage (2.35) : des sujets hors musique, sans saison, sans actualité et sans lieu précis.
-  bavardage: ["ce qu'ils ont mangé (ou raté) aujourd'hui", "la nuit trop courte de l'un des deux", 'le café ou le thé du moment, et qui en abuse', 'un film ou une série vus récemment, sans rien divulguer',
-    'un jeu vidéo ou un jeu de société du moment', 'un petit objet du studio qui a disparu', 'un bruit bizarre ou une petite panne dans le studio', 'un débat absurde : le superpouvoir le plus inutile',
-    'un débat absurde : la pire invention du quotidien', 'un top 3 improbable, improvisé', "ce qu'ils faisaient avant de faire de la radio", "un souvenir d'enfance lié à un long trajet",
-    'leur pire talent caché', "ce qu'ils feront en sortant du studio", "la tenue de l'autre aujourd'hui", "un mot que l'un des deux n'arrive jamais à prononcer", 'une bonne résolution déjà abandonnée',
-    'le dernier fou rire hors antenne', "ce qu'ils emporteraient sur une île déserte (pas de disque)", "un message reçu d'un collègue ou d'un proche de la station", 'une question lancée aux auditeurs, sans attendre de réponse',
-    "un petit rituel d'avant-émission", 'ce qui traîne sur la table du studio', 'le chauffage du studio, éternel sujet de discorde', 'un rêve bizarre fait cette nuit', 'un compliment sincère, pour une fois',
-    'un pari stupide entre eux', 'un livre ou une bande dessinée en cours', 'une chose apprise cette semaine', 'ce qui les fait rire en ce moment']
+  bavardage: CHAT_DUO
 };
 // Bavardage et discussions libres (réglage « Bavardage ») : jamais, parfois, souvent.
 // - poids de l'angle « bavardage » parmi les angles de conversation ;
 // - part des interventions où une conversation libre prend la place du programme (« Un titre sur trois »)
 //   ou de la culture courte (« À chaque titre »). Sur « Jamais », le programme garde toute la place, comme avant.
-const CHAT_W = { off: 0, parfois: 2, souvent: 4 };
+// Mesuré par simulation : avec un poids de 2, un vrai bavardage ne sortait que toutes les 5 à 7 heures sur
+// « Parfois ». Dans un créneau de conversation libre (CHAT_FREE_W), il pèse maintenant environ un tiers des
+// tirages ; hors programme, où chaque intervention tire dans toute la liste, il reste plus léger (CHAT_W).
+// CHAT_GAP : jamais deux bavardages plus rapprochés que ça, quel que soit le rythme des interventions.
+const CHAT_W = { off: 0, parfois: 2.5, souvent: 7 };
+const CHAT_FREE_W = { off: 0, parfois: 11, souvent: 30 };
+const CHAT_GAP = { off: 0, parfois: 45 * 60e3, souvent: 20 * 60e3 };
+// Sujets de bavardage retenus d'une émission à l'autre (sur 150) : aucun ne revient avant une centaine d'autres.
+const CHAT_KEEP = 100;
 // Jamais deux conversations libres de suite : avec une chance p à chaque fois, la part réelle est p / (1 + p).
 // 0,5 donne donc une intervention sur trois, et 1 une sur deux (en alternance).
 const CHAT_SHARE = { off: 0, parfois: 0.5, souvent: 1 };
@@ -709,7 +723,8 @@ function pickDynamic(s, angle, emo) {
   return d;
 }
 function withTopic(s, angle) {
-  const list = angle && ANGLE_TOPICS[angle.id];
+  // Seul à l'antenne, pas de sujet « entre eux ».
+  const list = angle && (angle.id === 'bavardage' && angle.solo ? CHAT_SOLO : ANGLE_TOPICS[angle.id]);
   if (!list) return angle;
   const v = s.variety;
   v.topics = v.topics || {};
@@ -719,7 +734,7 @@ function withTopic(s, angle) {
   const free = unused.filter((x) => !before.includes(x));
   const topic = pick(free.length ? free : unused.length ? unused : list);
   v.topics[angle.id] = (unused.length ? used : []).concat([topic]);
-  if (angle.id === 'bavardage' && !s.demo) { airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-18); store({ airLog }); }
+  if (angle.id === 'bavardage' && !s.demo) { airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-CHAT_KEEP); store({ airLog }); }
   return Object.assign({}, angle, { topic, txt: angle.txt + ' Sujet imposé cette fois : ' + topic + ' (un sujet déjà utilisé dans l\'émission ne doit pas revenir).' });
 }
 
@@ -787,7 +802,7 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
   const duoOn = settings.voiceEngine === 'gemini' && hasGemini && settings.duo;
   const duo = duoOn && (kind !== 'talkover' || Math.random() < 0.4);
   const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year)) &&
-    (a.id !== 'bavardage' || chatLevel() !== 'off');
+    (a.id !== 'bavardage' || (chatLevel() !== 'off' && (s.demo || now - (v.chatAt || 0) >= CHAT_GAP[chatLevel()])));
   const list = duo ? ANGLES_DUO : ANGLES_SOLO;
   // Conversation libre (2.35). Avec le programme activé, les angles de discussion (chambrage, débat, devinette,
   // vanne, réaction, lien, bavardage…) ne sortaient presque jamais : chaque intervention était un programme
@@ -799,11 +814,12 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
   let angle;
   // À la place d'une culture courte (déjà une anecdote) : une conversation. À la place d'un programme : une
   // conversation ou une anecdote, selon le réglage « Anecdotes », qui n'avait aucun effet avec le programme.
-  if (free) angle = pickAngle(role === 'culture' ? list.filter((a) => !isAnecdote(a)) : list, v.angles.slice(-3), okA);
+  if (free) angle = pickAngle(role === 'culture' ? list.filter((a) => !isAnecdote(a)) : list, v.angles.slice(-3), okA, (a) => (a.id === 'bavardage' ? CHAT_FREE_W[chatLevel()] : angleWeight(a)));
   else if (role === 'programme' && progLen >= 2) angle = { id: 'programme', txt: duo ? PROGRAMME_ANGLE.duo : PROGRAMME_ANGLE.solo };
   else if (role === 'chronique') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => a.share || 1);
   else if (role === 'culture') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => CULTURE_W[a.id] || 0.6);
   else angle = kind === 'intro' ? null : pickAngle(list, v.angles.slice(-3), okA);
+  if (angle && angle.id === 'bavardage') v.chatAt = now;
   angle = withTopic(s, angle);
   const min = 60000;
   const plan = {

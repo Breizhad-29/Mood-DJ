@@ -167,6 +167,29 @@ test('programme : une part des interventions devient une conversation, jamais de
   assert.equal(p.run('__n'), 0);
 });
 
+test('bavardage : 150 sujets sans doublon, aucun sujet « entre eux » pour un animateur seul, jamais deux bavardages rapprochés', () => {
+  const p = loadPanel();
+  const duo = [...p.run('CHAT_DUO')];
+  const solo = [...p.run('CHAT_SOLO')];
+  assert.equal(duo.length, 150);
+  assert.equal(new Set(duo).size, 150);
+  assert.equal(solo.length, 130);
+  const between = [...p.run('CHAT_TOPICS.entreEux')];
+  assert.ok(between.every((x) => !solo.includes(x)));
+  // Ni saison, ni météo, ni actualité, ni musique : le bavardage reste hors de ces sujets.
+  for (const x of duo) assert.doesNotMatch(x, /(^|[^a-zà-ÿ])(hiver|été|printemps|automne|météo|noël|actualité|chanson|concert)s?([^a-zà-ÿ]|$)/i, x);
+  // Seul à l'antenne (voix de l'ordinateur) : le sujet imposé vient des 130.
+  p.run("Object.assign(settings, { chat: 'souvent', radioFreq: 'every', programme: false, voiceEngine: 'systeme' }); var __s = { lastLines: [], played: [], queue: [] }; var __t = []; var __at = [];" +
+    "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s, 'talkover', null, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.topic); __at.push(i * 4); } }");
+  const topics = [...p.run('__t')];
+  const at = [...p.run('__at')];
+  assert.ok(topics.length > 20, 'le bavardage sort : ' + topics.length);
+  assert.ok(topics.every((x) => solo.includes(x)));
+  assert.equal(new Set(topics).size, topics.length, 'aucun sujet repris dans l’émission');
+  // Sur « Souvent », au moins 20 minutes entre deux bavardages, même quand les animateurs parlent à chaque titre.
+  for (let i = 1; i < at.length; i++) assert.ok(at[i] - at[i - 1] >= 20, 'écart de ' + (at[i] - at[i - 1]) + ' min');
+});
+
 test('phrases toutes faites : on parle aux auditeurs (« vous »), sans prénom', () => {
   const p = loadPanel();
   p.run("var __c = { host: 'Alex', cohost: 'Sam', listener: 'Luc', greet: 'Bonsoir', time: 'vingt heures', part: 'soirée', ambiance: 'rock du soir', weather: '', prev: { title: 'Wonderwall', artist: 'Oasis' }, next: { title: 'Song 2', artist: 'Blur' }, trend: 'monte' };");

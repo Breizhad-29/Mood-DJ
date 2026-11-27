@@ -594,7 +594,7 @@ const DAY_MOODS = ['en pleine forme, envie de parler', 'd’humeur taquine', 'd�
   'd’humeur joueuse, cherche la petite bête', 'tout à son affaire, très à l’écoute des morceaux', 'd’humeur généreuse, compliments faciles'];
 // Ce qui reste d'une émission à l'autre : le dernier running gag placé, les derniers sujets de bavardage.
 let airLog = { gag: '', chat: [] };
-const cleanAirLog = (x) => ({ gag: x && typeof x.gag === 'string' ? x.gag : '', chat: x && Array.isArray(x.chat) ? x.chat.filter((t) => typeof t === 'string').slice(-18) : [] });
+const cleanAirLog = (x) => ({ gag: x && typeof x.gag === 'string' ? x.gag : '', chat: x && Array.isArray(x.chat) ? x.chat.filter((t) => typeof t === 'string').slice(-100) : [] });
 const SAY_REST = 25 * 60e3;
 const SAY_REST_RARE = 60 * 60e3;
 // Ce que cette intervention a le droit de montrer des fiches. speakers : ceux qui parlent ('A', 'B' ou les deux).

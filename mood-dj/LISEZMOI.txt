@@ -34,8 +34,11 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   devinette, vanne, réaction à chaud…) ne sortaient presque jamais : chaque
   intervention était un programme ou une anecdote. Une intervention sur
   trois (Parfois) ou sur deux (Souvent) devient une vraie conversation, ou
-  un moment de bavardage hors musique (30 sujets, jamais repris d'une
-  émission à l'autre). Sur « Jamais », tout reste comme avant.
+  un moment de bavardage hors musique : 150 sujets rangés en 7 familles
+  (le quotidien, le studio, eux-mêmes, débats et jeux, culture, les
+  auditeurs, entre eux), jamais repris avant une centaine d'autres. Sur
+  « Parfois », un bavardage toutes les deux heures environ ; sur
+  « Souvent », un par heure environ, jamais à moins de 20 minutes. Sur « Jamais », tout reste comme avant.
 - En duo, une annonce dite par un seul animateur alterne entre les deux ;
   avant, c'était toujours l'animateur principal. Le coanimateur lance
   maintenant lui-même ses propres choix.
@@ -59,7 +62,7 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   les petits mots de 4 lettres ne sont comptés qu'en français. Une fiche
   que Mood DJ ne sait pas découper (autre alphabet) n'est pas dosée : elle
   est suivie comme avant.
-- 14 nouveaux tests (40 en tout).
+- 15 nouveaux tests (41 en tout).
 
 2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
 - Réponses structurées : quand l'IA doit choisir (sélection décrite en

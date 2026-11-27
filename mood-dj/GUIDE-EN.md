@@ -251,7 +251,7 @@ Settings › The show › **Segment rhythm**:
 
 Settings › The show › **Chit-chat and conversation**: Never, Sometimes (default) or Often.
 
-- With the programme on, every segment used to be a programme or a piece of trivia. Now about one segment in three (Sometimes) or one in two (Often) becomes a real conversation: a disagreement, a guessing game, a joke, a hot take on the track just played, or some off-topic chit-chat (studio life, a film, an absurd debate; 30 topics, never repeated from one show to the next).
+- With the programme on, every segment used to be a programme or a piece of trivia. Now about one segment in three (Sometimes) or one in two (Often) becomes a real conversation: a disagreement, a guessing game, a joke, a hot take on the track just played, or some off-topic chit-chat (studio life, a film, an absurd debate; 150 topics in 7 families, none coming back before a hundred others; roughly one every two hours on Sometimes, one an hour on Often).
 - On "One track in three", those segments replace the programme (only the next track is announced). On "Every track", they replace the short culture moment.
 - Mood DJ also keeps count of what the hosts have already said: at most one catchphrase per segment and never two segments in a row, at most one personal detail, one running gag per show. Each host has a mood of the day, and each dialogue gets its own dynamic (in tune, teasing, bad faith, in a hurry, sincere…).
 - Now and then one host cuts the other off; the voices do not overlap yet.
