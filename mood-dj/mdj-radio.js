@@ -757,12 +757,19 @@ const PROGRAMME_ANGLE = {
 };
 
 // Mots qui reviennent dans plusieurs des dernières annonces, et débuts de phrase déjà utilisés.
+// Petits mots anglais, pour une radio en anglais (les autres langues n'ont pas de liste : seuls les mots de
+// 5 lettres et plus y sont comptés, comme avant).
+const STOP_EN = new Set(('about there their these those which would could should really think going gonna track music little right where while after before being every never always still again ' +
+  'listening tonight today because other maybe through thing things something people gotta wanna great comes coming here’s what’s let’s next song songs').split(' '));
 function overused(lines, skip) {
+  // La liste des petits mots de 4 lettres est française : ils ne sont comptés que pour une radio en français.
+  // Dans une autre langue, « that », « with » ou « nicht » auraient rempli la liste des mots à éviter.
+  const lang = radioLang();
   const count = new Map();
   for (const l of lines) {
     // Les apostrophes séparent les mots (« l'autre », « qu’il ») : seuls les vrais mots sont comptés.
     const words = new Set((String(l).toLowerCase().match(/[a-zàâçéèêëîïôûùüÿœ-]{4,}/g) || [])
-      .map((x) => x.replace(/^-+|-+$/g, '')).filter((x) => (x.length >= 5 ? !STOP_WORDS.has(x) : x.length === 4 && !STOP4.has(x)) && !skip.has(x)));
+      .map((x) => x.replace(/^-+|-+$/g, '')).filter((x) => (x.length >= 5 ? !STOP_WORDS.has(x) && !(lang === 'en' && STOP_EN.has(x)) : lang === 'fr' && x.length === 4 && !STOP4.has(x)) && !skip.has(x)));
     for (const x of words) count.set(x, (count.get(x) || 0) + 1);
   }
   // Un mot court ne devient suspect qu'à partir de trois interventions.

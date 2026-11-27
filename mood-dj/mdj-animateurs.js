@@ -519,26 +519,28 @@ function personaPayload(duo, guestTalks, s, soloB) {
 // l'émission se place, et de quelle humeur sont les animateurs ce jour-là.
 const normSay = (t) => ' ' + String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
 // Le contenu des guillemets est masqué (même longueur) : les découpes ne tombent jamais dedans.
-const maskQuotes = (t) => String(t || '').replace(/«[^«»]*»/g, (m) => '«' + '·'.repeat(m.length - 2) + '»');
+// Guillemets français « … », anglais “ … ” ou droits " … " : une fiche peut être écrite dans n'importe quelle langue.
+const maskQuotes = (t) => String(t || '').replace(/«[^«»]*»|“[^“”]*”|"[^"]*"/g, (m) => m[0] + '·'.repeat(m.length - 2) + m[m.length - 1]);
 // Expressions entre guillemets d'une fiche. offer : celles de la rubrique « Tics » (proposables de temps en
 // temps) ; les autres sont seulement surveillées. rare : marquées « rare » ou « une fois par… ».
 function fileSayings(text, who) {
   const src = String(text || '');
   const masked = maskQuotes(src);
   const labels = [];
-  const reL = /(?:^|[.!?»\n]\s+)([A-ZÀ-Ý][^.:;!?«»\n]{0,60}?)\s*:/g;
+  const reL = /(?:^|[.!?»”"\n]\s+)([A-ZÀ-Ý][^.:;!?«»“”"\n]{0,60}?)\s*:/g;
   let m;
   while ((m = reL.exec(masked))) labels.push({ at: m.index, name: m[1] });
   const out = [];
-  const reQ = /«\s*([^«»]{2,70}?)\s*»/g;
+  const reQ = /«\s*([^«»]{2,70}?)\s*»|“\s*([^“”]{2,70}?)\s*”|"\s*([^"]{2,70}?)\s*"/g;
   while ((m = reQ.exec(src))) {
+    m[1] = m[1] || m[2] || m[3] || '';
     const key = normSay(m[1]).trim();
     if (key.length < 3) continue;
     const lab = labels.filter((l) => l.at < m.index).pop();
     const from = Math.max(masked.lastIndexOf(';', m.index), lab ? lab.at : 0, 0);
     const to = masked.indexOf(';', m.index);
     const clause = masked.slice(from, to < 0 ? Math.min(masked.length, m.index + m[0].length + 60) : to);
-    out.push({ who, text: m[1].trim(), key, offer: !!(lab && /^(tics?|catchphrases?|expressions?)\b/i.test(lab.name)), rare: /\brare|une fois par/i.test(clause) });
+    out.push({ who, text: m[1].trim(), key, offer: !!(lab && /^(tics?|catchphrases?|expressions?)\b/i.test(lab.name)), rare: /\brare|une fois par|\bonce (?:an?|per|every)\b/i.test(clause) });
   }
   return out;
 }
@@ -557,7 +559,7 @@ function fileFacets(text, who) {
   const src = String(text || '').replace(/\s+/g, ' ').trim();
   const masked = maskQuotes(src);
   const cuts = [0];
-  const re = /[.!?…]»?\s+(?=[A-ZÀ-Ý«])/g;
+  const re = /[.!?…][»”"]?\s+(?=[A-ZÀ-Ý«“"])/g;
   let m;
   while ((m = re.exec(masked))) cuts.push(m.index + m[0].length);
   cuts.push(src.length);
@@ -615,22 +617,23 @@ function ficheFocus(s, kind, speakers, atMs) {
     const w = (x) => (x.rare ? 0.35 : 1) * (v.said[x.key] ? 0.5 : 1);
     let r = Math.random() * free.reduce((n, x) => n + w(x), 0);
     tic = free.find((x) => (r -= w(x)) <= 0) || free[free.length - 1];
+    // Proposée = comptée comme dite. Dans une autre langue que celle de la fiche, l'expression est traduite à
+    // l'antenne (« Oki-doki » devient « Okey-dokey ») et noteSayings ne la reconnaîtrait pas dans le texte.
+    v.said[tic.key] = now;
   }
   v.ticLast = !!tic;
   // Un seul détail personnel, pas à chaque fois, et jamais le même deux fois de suite dans l'émission.
   let facet = null;
-  if (Math.random() < (kind === 'interlude' ? 0.55 : kind === 'intro' ? 0.35 : 0.3)) {
-    const slot = { A: 'hostPersona', B: 'cohostPersona' };
-    let pool = [];
-    for (const w of speakers) {
-      pool = pool.concat(fileFacets(settings[slot[w]], w), aiPower() === 'eco' ? [] : (hostMemory[w] || []).slice(-12).map((m) => ({ who: w, text: m.t })));
-    }
+  const slot = { A: 'hostPersona', B: 'cohostPersona' };
+  let pool = [];
+  for (const w of speakers) {
+    pool = pool.concat(fileFacets(settings[slot[w]], w), aiPower() === 'eco' ? [] : (hostMemory[w] || []).slice(-12).map((m) => ({ who: w, text: m.t })));
+  }
+  if (pool.length && Math.random() < (kind === 'interlude' ? 0.55 : kind === 'intro' ? 0.35 : 0.3)) {
     const seen = v.facets || [];
     const fresh = pool.filter((x) => !seen.includes(x.text));
-    if (pool.length) {
-      facet = pick(fresh.length ? fresh : pool);
-      v.facets = seen.concat([facet.text]).slice(-Math.max(1, Math.min(10, pool.length - 1)));
-    }
+    facet = pick(fresh.length ? fresh : pool);
+    v.facets = seen.concat([facet.text]).slice(-Math.max(1, Math.min(10, pool.length - 1)));
   }
   // Running gag : un seul par émission, différent de celui de l'émission précédente, placé une seule fois.
   const gags = duo && speakers.includes('B') ? fileGags(settings.duoRelation) : [];
@@ -648,7 +651,9 @@ function ficheFocus(s, kind, speakers, atMs) {
       store({ airLog });
     }
   }
-  return { tic: tic ? { who: tic.who, text: tic.text } : null, rest: rest.map((x) => x.text), facet, gag, hasGags: gags.length > 0,
+  // hasSayings, hasFacets : la fiche a-t-elle été comprise ? Une fiche sans guillemets, sans phrases découpables ou
+  // écrite dans un autre alphabet n'est pas dosée : l'IA la suit comme avant, sans rien lui interdire.
+  return { tic: tic ? { who: tic.who, text: tic.text } : null, rest: rest.map((x) => x.text), facet, gag, hasGags: gags.length > 0, hasSayings: all.length > 0, hasFacets: pool.length > 0,
     mood: { A: speakers.includes('A') ? v.mood.A : '', B: speakers.includes('B') ? v.mood.B : '' } };
 }
 // Après l'écriture : quelles expressions des fiches ont été dites (elles passent « au repos »).

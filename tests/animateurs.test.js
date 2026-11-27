@@ -105,6 +105,38 @@ test('mots trop entendus : « chef » est compté, les prénoms et les expressio
   assert.ok(!p.run('overused(["Bref, on y va.", "Bref."], new Set())').includes('bref'));
 });
 
+test('radio dans une autre langue : fiche en anglais comprise, petits mots anglais jamais « à éviter », tic au repos sans le reconnaître', () => {
+  const p = loadPanel();
+  // Guillemets anglais ou droits, rubrique « Catchphrases », « once an hour ».
+  const say = [...p.run("fileSayings('Dry wit. Catchphrases: “Okey-dokey” to wrap up; \"Blimey…\" once an hour; “Not bad.” as his biggest compliment. Loves 80s synths and film scores.', 'A')")];
+  assert.deepEqual(say.map((x) => x.text), ['Okey-dokey', 'Blimey…', 'Not bad.']);
+  assert.ok(say.every((x) => x.offer));
+  assert.deepEqual(say.map((x) => x.rare), [false, true, false]);
+  // En anglais, « that » et « with » ne remplissent pas la liste des mots à éviter ; un vrai mot répété, si.
+  p.run("settings.radioLang = 'en'");
+  const words = [...p.run('overused(["That was great, with that guitar.", "With that voice, that chorus about love.", "That guitar again, with love, about time."], new Set())')];
+  assert.deepEqual(words.sort(), ['guitar']);
+  // La fiche est en français, la radio en anglais : « Oki-doki » est dit « Okey-dokey », que Mood DJ ne peut pas
+  // reconnaître dans le texte. L'expression proposée est donc comptée comme dite, et passe au repos.
+  p.run('Object.assign(settings, PRESET_JEFF_LAETI); var __s = { variety: { angles: [] } }; var __log = [];');
+  for (let i = 0; i < 60; i++) p.run("__log.push(ficheFocus(__s, 'interlude', ['A', 'B'], 1e12 + " + i + ' * 4 * 60e3))');
+  const log = JSON.parse(JSON.stringify(p.run('__log')));
+  assert.ok(log.some((f) => f.tic));
+  for (let i = 1; i < log.length; i++) if (log[i - 1].tic) assert.ok(log[i].rest.includes(log[i - 1].tic.text), 'repos à ' + i);
+});
+
+test('fiche que Mood DJ ne sait pas découper : rien n’est interdit, la fiche est suivie comme avant', async () => {
+  const p = loadPanel();
+  p.run("Object.assign(settings, { hostPersona: 'ロック好き。ギターソロに点数をつける。', cohostPersona: 'fan de rock', duoRelation: '' }); hostMemory = { A: [], B: [], L: [] };");
+  const f = JSON.parse(JSON.stringify(p.run("ficheFocus({ variety: { angles: [] } }, 'interlude', ['A', 'B'], 1e12)")));
+  assert.deepEqual([f.hasSayings, f.hasFacets, f.hasGags, f.tic, f.facet], [false, false, false, null, null]);
+  const bg = loadBackground();
+  await bg.run('writeAnnouncement({ kind: "talkover", host: "Alex", cohost: "Sam", duo: true, turns: 2, next: "X de Y", focus: ' + JSON.stringify(f) + ' })');
+  const user = bg.__calls[0].body.messages[0].content;
+  assert.doesNotMatch(user, /DOSAGE DES FICHES|Aucun détail personnel|Aucune expression fétiche/);
+  assert.match(user, /HUMEUR DU JOUR/);
+});
+
 test('coupure de parole : « >> » est noté sur la réplique et n’est jamais lu', () => {
   const p = loadPanel();
   const r = JSON.parse(JSON.stringify(p.run("takeMarks(parseTurns('A: >> Bonsoir à tous.\\nB: Moi, ce que j’aime, c’est quand la basse…\\nA: >> {amused} … arrive enfin.\\nB: Laisse-moi >> finir !\\nB: >> Bon.', true))")));

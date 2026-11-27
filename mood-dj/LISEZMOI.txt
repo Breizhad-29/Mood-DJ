@@ -53,7 +53,13 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   sont mises à jour toutes seules (voix et souvenirs gardés) ; si tu les
   avais retouchées, elles ne sont pas changées et la mise à jour t'est
   proposée.
-- 12 nouveaux tests (38 en tout).
+- Radio dans une autre langue : une fiche écrite en anglais (guillemets
+  anglais ou droits, rubrique « Catchphrases ») est comprise ; une
+  expression proposée est comptée comme dite, même traduite à l'antenne ;
+  les petits mots de 4 lettres ne sont comptés qu'en français. Une fiche
+  que Mood DJ ne sait pas découper (autre alphabet) n'est pas dosée : elle
+  est suivie comme avant.
+- 14 nouveaux tests (40 en tout).
 
 2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
 - Réponses structurées : quand l'IA doit choisir (sélection décrite en

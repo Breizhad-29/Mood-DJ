@@ -681,15 +681,16 @@ async function writeAnnouncement(p) {
     const of = (w) => (!p.duo ? '' : w === 'B' ? ' (B, ' + nameB + ')' : w === 'A' ? ' (A, ' + host + ')' : '');
     const bits = ["DOSAGE DES FICHES POUR CETTE INTERVENTION (il prime sur les fiches : c'est Mood DJ qui tient le compte de ce qui a déjà été entendu) : la personnalité s'entend dans le ton et la façon de parler, pas dans les sujets."];
     const facet = fo.facet && fq(fo.facet.text, 420);
-    bits.push(facet ? "Un seul détail personnel peut affleurer, en passant et seulement s'il vient naturellement" + of(fo.facet.who) + ' : ' + facet + " Rien d'autre des fiches (autre goût, manie, objet, souvenir, ancien métier)."
+    // Une fiche que Mood DJ n'a pas su découper (autre alphabet, pas de phrases) n'est pas dosée : rien n'est interdit.
+    if (facet || fo.hasFacets !== false) bits.push(facet ? "Un seul détail personnel peut affleurer, en passant et seulement s'il vient naturellement" + of(fo.facet.who) + ' : ' + facet + " Rien d'autre des fiches (autre goût, manie, objet, souvenir, ancien métier)."
       : 'Aucun détail personnel cette fois : ni goût, ni manie, ni objet, ni souvenir, ni ancien métier.');
     const tic = fo.tic && fq(fo.tic.text, 70);
-    bits.push(tic ? 'Expression fétiche : une seule au plus, « ' + tic + ' »' + of(fo.tic.who) + ', et seulement si elle tombe juste.'
+    if (tic || fo.hasSayings !== false) bits.push(tic ? 'Expression fétiche : une seule au plus, « ' + tic + ' »' + of(fo.tic.who) + ', et seulement si elle tombe juste.'
       : 'Aucune expression fétiche des fiches (les tics entre guillemets) cette fois.');
     const rest = (Array.isArray(fo.rest) ? fo.rest : []).map((x) => fq(x, 70)).filter(Boolean).slice(0, 8);
     if (rest.length) bits.push('Au repos, déjà entendues récemment, à ne pas dire : ' + rest.map((x) => '« ' + x + ' »').join(', ') + '.');
     if (fo.hasGags) bits.push(fo.gag && fq(fo.gag, 300) ? "Running gag de l'émission, à placer maintenant, une seule fois et en peu de mots : " + fq(fo.gag, 300) + '.' : 'Aucun running gag cette fois.');
-    lines.push(bits.join(' '));
+    if (bits.length > 1) lines.push(bits.join(' '));
     // Seul à l'antenne, une seule humeur : celle de celui qui parle (A ou B).
     const mA = fo.mood ? fq(fo.mood.A, 80) : '';
     const mB = fo.mood ? fq(fo.mood.B, 80) : '';
