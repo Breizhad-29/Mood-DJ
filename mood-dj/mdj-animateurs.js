@@ -594,9 +594,15 @@ function fileGags(relation) {
 const DAY_MOODS = ['en pleine forme, envie de parler', 'd’humeur taquine', 'd’humeur rêveuse, un peu dans la lune', 'petite fatigue assumée, économie de mots', 'd’humeur nostalgique',
   'de très bonne humeur, rit pour un rien', 'd’humeur posée, tout en douceur', 'd’humeur curieuse, pose des questions', 'un rien grognon, mais avec le sourire',
   'd’humeur joueuse, cherche la petite bête', 'tout à son affaire, très à l’écoute des morceaux', 'd’humeur généreuse, compliments faciles'];
-// Ce qui reste d'une émission à l'autre : le dernier running gag placé, les derniers sujets de bavardage.
-let airLog = { gag: '', chat: [] };
-const cleanAirLog = (x) => ({ gag: x && typeof x.gag === 'string' ? x.gag : '', chat: x && Array.isArray(x.chat) ? x.chat.filter((t) => typeof t === 'string').slice(-100) : [] });
+// Ce qui reste d'une émission à l'autre : le dernier running gag placé, les derniers sujets de bavardage et de discussion.
+// topics : par type de discussion musicale, les derniers sujets imposés.
+let airLog = { gag: '', chat: [], topics: {} };
+function cleanAirLog(x) {
+  const strings = (l, n) => (Array.isArray(l) ? l.filter((t) => typeof t === 'string').slice(-n) : []);
+  const topics = {};
+  if (x && x.topics && typeof x.topics === 'object') for (const k of Object.keys(x.topics).slice(0, 40)) topics[k] = strings(x.topics[k], 60);
+  return { gag: x && typeof x.gag === 'string' ? x.gag : '', chat: strings(x && x.chat, 100), topics };
+}
 const SAY_REST = 25 * 60e3;
 const SAY_REST_RARE = 60 * 60e3;
 // Ce que cette intervention a le droit de montrer des fiches. speakers : ceux qui parlent ('A', 'B' ou les deux).

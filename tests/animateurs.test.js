@@ -225,6 +225,23 @@ test('discussions autour de la musique : quinze types, sujets sans doublon, tir�
   assert.match(p.run('__pl.angle.txt'), /Défi imposé cette fois : /);
 });
 
+test('sujets imposés : pas de reprise d’une émission à l’autre, même pour une petite liste', () => {
+  const p = loadPanel();
+  // Dix sujets seulement pour le « mode d'emploi » : sans mémoire, une émission sur dix rouvrait sur le même.
+  p.run("var __a = { variety: { angles: [] } }; var __first = []; for (var i = 0; i < 7; i++) __first.push(drawTopic(__a, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false));");
+  const first = [...p.run('__first')];
+  assert.equal(new Set(first).size, 7);
+  p.run("var __b = { variety: { angles: [] } }; var __next = []; for (var i = 0; i < 3; i++) __next.push(drawTopic(__b, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false));");
+  const next = [...p.run('__next')];
+  assert.ok(next.every((x) => !first.includes(x)), 'la nouvelle émission commence par les sujets pas encore entendus');
+  // Un exemple des Réglages ne compte pas.
+  const before = JSON.stringify(p.run('airLog.topics.mode_emploi'));
+  p.run("drawTopic({ demo: 'x', variety: { angles: [] } }, 'mode_emploi', ANGLE_TOPICS.mode_emploi, false)");
+  assert.equal(JSON.stringify(p.run('airLog.topics.mode_emploi')), before);
+  // Sauvegarde abîmée : la mémoire repart propre, sans casser le démarrage.
+  assert.deepEqual(JSON.parse(JSON.stringify(p.run("cleanAirLog({ gag: 3, chat: 'x', topics: { vanne: ['a', 4, 'b'], bad: 'non' } })"))), { gag: '', chat: [], topics: { vanne: ['a', 'b'], bad: [] } });
+});
+
 test('phrases toutes faites : on parle aux auditeurs (« vous »), sans prénom', () => {
   const p = loadPanel();
   p.run("var __c = { host: 'Alex', cohost: 'Sam', listener: 'Luc', greet: 'Bonsoir', time: 'vingt heures', part: 'soirée', ambiance: 'rock du soir', weather: '', prev: { title: 'Wonderwall', artist: 'Oasis' }, next: { title: 'Song 2', artist: 'Blur' }, trend: 'monte' };");

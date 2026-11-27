@@ -72,7 +72,11 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   les petits mots de 4 lettres ne sont comptés qu'en français. Une fiche
   que Mood DJ ne sait pas découper (autre alphabet) n'est pas dosée : elle
   est suivie comme avant.
-- 16 nouveaux tests (42 en tout).
+- Sujets imposés : pas de reprise d'une émission à l'autre non plus. Pour
+  chaque type de discussion, les derniers sujets tirés sont écartés à la
+  prochaine émission (une liste de 10 sujets retombait sinon une fois sur
+  dix sur le même).
+- 17 nouveaux tests (43 en tout).
 
 2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
 - Réponses structurées : quand l'IA doit choisir (sélection décrite en

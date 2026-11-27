@@ -766,17 +766,25 @@ function pickDynamic(s, angle, emo) {
   v.dyn = recent.concat([d.id]).slice(-3);
   return d;
 }
-// Tire le sujet imposé d'un angle, sans reprise dans l'émission. Pour le bavardage, tire aussi le format.
-function drawTopic(s, key, list, keepAcross) {
+// Tire le sujet imposé d'un angle, sans reprise dans l'émission ni d'une émission à l'autre. Pour le bavardage,
+// les 100 derniers sujets (tous formats) sont écartés ; pour chaque type de discussion musicale, les derniers
+// sujets tirés, à hauteur de 70 % de sa liste : une petite liste (8 ou 10 sujets) ne retombe plus sur le même
+// sujet deux émissions de suite.
+function drawTopic(s, key, list, isChat) {
   const v = s.variety;
   v.topics = v.topics || {};
+  airLog.topics = airLog.topics || {};
   const used = v.topics[key] || [];
-  const before = keepAcross ? airLog.chat : [];
+  const before = isChat ? airLog.chat : (airLog.topics[key] || []);
   const unused = list.filter((x) => !used.includes(x));
   const free = unused.filter((x) => !before.includes(x));
   const topic = pick(free.length ? free : unused.length ? unused : list);
   v.topics[key] = (unused.length ? used : []).concat([topic]);
-  if (keepAcross && !s.demo) { airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-CHAT_KEEP); store({ airLog }); }
+  if (!s.demo) {
+    if (isChat) airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-CHAT_KEEP);
+    else airLog.topics[key] = before.filter((x) => x !== topic).concat([topic]).slice(-Math.max(1, Math.floor(list.length * 0.7)));
+    store({ airLog });
+  }
   return topic;
 }
 function chatAngle(s, angle, kind) {
