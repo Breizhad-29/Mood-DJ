@@ -10,6 +10,8 @@ async function init() {
   mountUi();
   // 2.35 : anciens textes du duo Jeff & Laeti remplacés par les nouveaux (une seule fois).
   try { migratePreset(); } catch (e) { dlog('session', 'mise à jour du duo : ' + e.message); }
+  // 2.36 : clé Gemini présente mais voix de l'ordinateur : la bascule est proposée une fois.
+  setTimeout(() => { try { offerGeminiVoices(); } catch (e) { /* ignore */ } }, 4000);
   setTimeout(() => checkGridPending(), 1500);
   if (elevenRemoved) dlog('session', 'ElevenLabs retiré de Mood DJ', elevenRemoved);
   if (dataMigration) {

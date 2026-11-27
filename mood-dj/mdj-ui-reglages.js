@@ -215,7 +215,7 @@ function tabReglages() {
   const voiceCard = h('div', { class: 'card' },
     h('h2', { class: 'label white' }, 'Voix'),
     h('div', { class: 'muted' }, 'Qui fait parler les animateurs ?'),
-    seg([['systeme', 'Ordinateur'], ['gemini', 'Gemini']], engine, (id) => { settings.voiceEngine = id; saveSettings(); render(); }, 'Moteur de voix'),
+    seg([['systeme', 'Ordinateur'], ['gemini', 'Gemini']], engine, (id) => { settings.voiceEngine = id; settings.voiceChosen = true; saveSettings(); render(); }, 'Moteur de voix'),
     h('div', { class: 'muted' }, engine === 'gemini'
       ? 'Voix naturelles de Google, avec le duo à deux voix. Le ton suit le style de chaque animateur, avec de petits rires ou des pauses quand Claude écrit les annonces.'
       : "Les voix installées sur ton ordinateur : gratuites et immédiates, mais plus robotiques. Pas de duo."),
@@ -280,7 +280,22 @@ function tabReglages() {
         h('button', {
           class: 'btn small', type: 'button', disabled: !n,
           onclick: () => { hostMemory[who] = []; saveMemory(); toast('Souvenirs oubliés.'); render(); }
-        }, 'Oublier ses souvenirs')),
+        }, 'Oublier ses souvenirs'),
+        // 2.36 : ce que l'animateur a raconté de lui à l'antenne, à relire et à oublier un par un.
+        n ? h('button', {
+          class: 'btn small', type: 'button', 'aria-expanded': memOpen[who] ? 'true' : 'false',
+          onclick: () => { memOpen[who] = !memOpen[who]; render(); }
+        }, memOpen[who] ? 'Masquer ses souvenirs' : 'Voir ses souvenirs', ' (' + n + ')') : null),
+      n && memOpen[who] ? h('div', { class: 'section', style: { gap: '6px' } },
+        h('div', { class: 'muted' }, 'Ce qu’il ou elle a raconté de sa vie à l’antenne, du plus récent au plus ancien. L’IA s’en souvient d’une émission à l’autre, pour ne pas se contredire.'),
+        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto', paddingRight: '4px' } },
+          (hostMemory[who] || []).slice().reverse().map((m) => h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+            // Le souvenir est affiché tel quel, sans passer par la traduction de l'interface.
+            h('span', { class: 'muted', style: { flex: '1', minWidth: '0' } }, document.createTextNode(m.t)),
+            h('button', {
+              class: 'btn small', type: 'button', title: 'Oublier ce souvenir', 'aria-label': 'Oublier ce souvenir', style: { flex: 'none', height: '26px', minWidth: '26px', padding: '0 8px' },
+              onclick: () => { hostMemory[who] = (hostMemory[who] || []).filter((x) => x !== m); saveMemory(); render(); }
+            }, '×'))))) : null,
       h('label', { class: 'label', for: id + '-story' }, 'Son histoire'),
       h('textarea', {
         class: 'input', id: id + '-story', rows: '3', maxlength: '2000', spellcheck: 'true', value: settings[SLOT[who].story] || '',

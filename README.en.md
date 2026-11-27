@@ -26,7 +26,7 @@ Without a key, Mood DJ still works, but in a limited form: built-in catalog, a s
 Keys are entered in the extension's secure page (Settings › API keys):
 
 - **Claude** (Anthropic) or **Gemini** (Google): the hosts' scripts, playlists described in plain words, adding styles.
-- **Gemini**: the hosts' voices, solo or duo. Free key at [aistudio.google.com](https://aistudio.google.com) (“Get API key” button).
+- **Gemini**: the hosts' voices, solo or duo. Free key at [aistudio.google.com](https://aistudio.google.com) (“Get API key” button). On its own, the free key lets you try Mood DJ every day: it has a limit, which resets every 24 hours. With a paid key as well, the two take turns for longer listening: the free key always goes first, and the paid key takes over without interrupting anything.
 - **Last.fm, Discogs, Setlist.fm, Ticketmaster**: extra trivia and concert dates.
 
 With a Claude or Gemini key, each host has a personality and remembers what they say from one show to the next. The **AI power** setting (Economy, Normal or Full power) and an hourly call cap let you choose between livelier hosts and lower usage.

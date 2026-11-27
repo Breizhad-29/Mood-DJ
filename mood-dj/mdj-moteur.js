@@ -545,8 +545,14 @@ async function playTrack(s, track, opts) {
     s.failedKeys.add(track.key);
     s.current = null;
     toast('Impossible de lancer « ' + track.title + ' », je passe au suivant.');
-    await sleep(400);
-    advance('failed');
+    // playTrack est presque toujours appelé depuis un enchaînement en cours : advance() refusait alors de
+    // repartir, et l'émission restait figée en silence. On attend que l'enchaînement en cours soit fini.
+    const again = (n) => setTimeout(() => {
+      if (session !== s || s.status !== 'playing' || s.current) return;
+      if (s.advancing) { if (n < 60) again(n + 1); return; }
+      advance('failed');
+    }, 400);
+    again(0);
     return;
   }
   callSafe('setRate', effectiveRate());

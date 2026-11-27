@@ -1,5 +1,68 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.36.0
 ============================================
+
+2.36.0 : MOINS DE DÉPENSES, UNE VOIX MIEUX PLACÉE, DES ANIMATEURS QUI SE SOUVIENNENT
+- Consignes gardées une heure. La partie fixe des consignes (fiches,
+  univers, règles) est mise de côté chez Claude et relue à prix réduit.
+  Elle n'était gardée que 5 minutes : avec « Un titre sur trois », le
+  délai était presque toujours dépassé, et tout était repayé plein tarif.
+  Elle est maintenant gardée une heure. L'estimation du jour (Réglages ›
+  Clés API) compte ce nouveau tarif.
+- Les mêmes consignes pour le duo et pour un animateur seul. Avant, trois
+  versions se partageaient le cache (dialogue, animateur seul, coanimateur
+  seul) et se le faisaient perdre. Il n'y en a plus qu'une : les deux
+  fiches partent toujours, et chaque demande dit qui parle.
+- La voix n'est plus fabriquée d'avance. L'annonce du titre suivant était
+  écrite et mise en voix dès la 8e seconde : chaque titre zappé jetait une
+  voix payée (la voix est ce qui coûte le plus). Le texte est maintenant
+  écrit après 20 secondes d'écoute, et la voix seulement dans la dernière
+  minute et quart du titre. Zappé au début, un titre ne coûte rien ; zappé
+  plus tard, seulement le texte. Si la voix échoue, seul un nouvel essai
+  de voix est fait, le texte est gardé.
+- Après « Suivant » en plein titre, la voix n'est donc pas encore prête :
+  le titre démarre à plein volume, et la musique ne baisse qu'au moment
+  où l'animateur parle (quelques secondes plus tard). Si elle n'est pas
+  prête en 15 secondes, le titre continue sans annonce, comme avant.
+- Une voix placée selon sa durée. Sur le fondu, la voix partait toujours
+  8,5 secondes avant la fin du titre : une annonce de 30 secondes
+  débordait de plus de 20 secondes sur le titre suivant, chant compris.
+  Elle part maintenant d'autant plus tôt qu'elle est longue (60 % sur la
+  fin du titre, le reste sur l'intro du suivant), sans jamais couvrir plus
+  des 22 dernières secondes.
+- Longues répliques : au-delà de 700 caractères, une réplique est envoyée
+  à Gemini en plusieurs morceaux coupés aux fins de phrase, dans le même
+  fichier son. Les très longues tirades étaient parfois tronquées.
+- « Arrêter » fait taire l'animateur tout de suite. Avant, la voix
+  finissait sa phrase, le fond sonore pouvait continuer, et le titre
+  suivant pouvait encore démarrer après l'arrêt. Même chose quand
+  l'émission est mise en attente.
+- Minuterie : plus de bilan de fin après la minuterie. La musique venait
+  de s'éteindre en douceur, et les animateurs reprenaient la parole à
+  plein volume. Le bilan reste dit quand la sélection arrive à sa durée.
+- Fond sonore : « Suivant » pendant le jingle d'un interlude laissait
+  parfois le fond sonore tourner sous les titres suivants. Il est coupé
+  dans tous les cas.
+- Titre impossible à lancer : l'émission pouvait rester figée en silence.
+  Mood DJ attend la fin de l'enchaînement en cours puis passe au suivant.
+- Voix Gemini d'office. Quand tu enregistres ta première clé Gemini, les
+  animateurs passent aux voix Gemini (un bouton permet de garder la voix
+  de l'ordinateur). Si tu avais déjà une clé et la voix de l'ordinateur,
+  rien n'est changé : la bascule t'est proposée une seule fois.
+- Clés Gemini gratuite et payante : elles se complètent (la gratuite se
+  recharge chaque jour, la payante prend le relais). Tant qu'une des deux
+  répond, rien n'est dit. Quand aucune ne répond, le message dit laquelle
+  est dans quel état et quand la gratuite revient.
+- Mémoire des animateurs : 100 souvenirs par animateur au lieu de 30. À
+  chaque annonce, l'IA reçoit les 10 plus récents et 4 anciens qui
+  tournent : un vieux détail ressort de temps en temps au lieu de
+  disparaître. Deux souvenirs presque identiques n'en font plus qu'un (le
+  plus complet est gardé). Le « détail du jour » est pris une fois sur
+  deux dans la fiche, une fois sur deux dans les souvenirs.
+- Réglages › Animateurs : « Voir ses souvenirs » affiche la liste, du plus
+  récent au plus ancien, avec un bouton × pour en oublier un seul.
+- Le numéro de version affiché dans les Réglages et dans le journal
+  technique était resté à 2.34.0 : corrigé, et vérifié par un test.
+- 12 nouveaux tests (56 en tout).
 
 2.35.0 : DES ANIMATEURS QUI PARLENT AUX AUDITEURS, ET QUI SE RÉPÈTENT MOINS
 - Les animateurs s'adressent à tous les auditeurs : « vous », jamais « tu »,

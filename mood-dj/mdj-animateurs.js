@@ -222,7 +222,7 @@ function saveHostProfile(who) {
   const entry = {
     name, gender: who === 'A' ? hostGenderUi() : (settings.duo ? cohostGenderUi() : cohostGenderOf(hostGenderUi())), style: settings[S.style] || '',
     persona: settings[S.persona] || '', story: settings[S.story] || '', voiceNote: settings[S.voiceNote] || '', gvoice: settings[S.gvoice] || '',
-    memories: clone((hostMemory[who] || []).slice(-30)), at: Date.now()
+    memories: clone((hostMemory[who] || []).slice(-MEM_MAX)), at: Date.now()
   };
   const i = hostProfiles.findIndex((x) => x.name.toLowerCase() === name.toLowerCase());
   if (i >= 0) hostProfiles[i] = entry;
@@ -408,12 +408,48 @@ function hostCityPair() {
   return hc && hc.a ? { a: hc.a, b: hc.b } : { a: '', b: '' };
 }
 let hostMemory = { A: [], B: [], L: [] };
+// Liste des souvenirs affichée dans les Réglages (elle reste ouverte quand on en oublie un).
+const memOpen = { A: false, B: false };
 // Choix des animateurs déjà passés, et s'ils ont été écoutés jusqu'au bout ou zappés (40 derniers).
 let pickLog = [];
 // Consommation de l'IA du jour (estimation tenue par le service en arrière-plan).
 let aiUsage = null;
 // Une entrée de mémoire abîmée (sauvegarde, profil) ne doit jamais casser une annonce.
-const cleanMemories = (list) => (Array.isArray(list) ? list.filter((m) => m && typeof m.t === 'string' && m.t.trim()).slice(-30) : []);
+// 2.36 : 100 souvenirs par animateur (30 avant). Les aveux, les questions personnelles et le chambrage en créent
+// bien plus qu'avant ; avec 30, un animateur oubliait vite ce qu'il avait dit, et pouvait se contredire.
+const MEM_MAX = 100;
+const cleanMemories = (list) => (Array.isArray(list) ? list.filter((m) => m && typeof m.t === 'string' && m.t.trim()).slice(-MEM_MAX) : []);
+// Deux souvenirs presque identiques (« Jeff chante sous la douche », « Jeff chante toujours sous la douche ») :
+// au moins deux mots porteurs en commun, et 80 % de ceux du plus court. Les prénoms et les petits mots ne comptent pas.
+const MEM_SMALL = new Set(('les des une pas est son ses sur pour dans avec que qui elle lui aux par mais plus tres trop tout tous cette cet ces leur leurs the and his her was has not ' +
+  'toujours jamais souvent parfois encore deja vraiment absolument beaucoup depuis quand comme').split(' '));
+function memWords(t) {
+  const names = [settings.hostName, settings.cohostName].map((x) => normSay(x).trim()).filter(Boolean);
+  return new Set((normSay(t).match(/[a-z0-9]{3,}/g) || []).filter((w) => !MEM_SMALL.has(w) && !names.includes(w)));
+}
+function memAlike(a, b) {
+  const A = memWords(a);
+  const B = memWords(b);
+  if (!A.size || !B.size) return false;
+  let n = 0;
+  for (const w of A) if (B.has(w)) n++;
+  return n >= 2 && n / Math.min(A.size, B.size) >= 0.8;
+}
+// Souvenirs rappelés à l'IA pour une annonce : les 10 plus récents, plus 4 anciens qui tournent d'une annonce à
+// l'autre. Un vieux détail ressort ainsi de temps en temps, au lieu de disparaître derrière les nouveaux.
+function memFor(who, s) {
+  if (aiPower() === 'eco') return [];
+  const list = hostMemory[who] || [];
+  const recent = list.slice(-10);
+  const older = list.slice(0, -10);
+  if (!older.length) return recent.map((m) => m.t);
+  const v = s && s.variety ? s.variety : null;
+  const turn = v ? (v.memTurn = (v.memTurn || 0) + 1) : Math.floor(Math.random() * older.length);
+  const n = Math.min(4, older.length);
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(older[(turn * n + i) % older.length]);
+  return out.concat(recent).map((m) => m.t);
+}
 const saveMemory = debounce(() => store({ hostMemory }), 800);
 // who : 'A' ou 'B' (souvenirs d'un animateur), 'L' (ce qui s'est passé dans l'univers de la station).
 function rememberSelf(who, text) {
@@ -422,7 +458,15 @@ function rememberSelf(who, text) {
   const key = t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim();
   const list = hostMemory[who] || [];
   if (list.some((m) => m.t.toLowerCase().replace(/[^a-z0-9à-ÿ]+/g, ' ').trim() === key)) return;
-  hostMemory[who] = list.concat([{ t, at: Date.now() }]).slice(-30);
+  // Presque le même souvenir : on garde la version la plus complète, remise parmi les récents.
+  const twin = list.find((m) => memAlike(m.t, t));
+  if (twin) {
+    hostMemory[who] = list.filter((m) => m !== twin).concat([{ t: twin.t.length >= t.length ? twin.t : t, at: Date.now() }]);
+    saveMemory();
+    dlog('annonce', 'souvenir déjà connu (' + who + ')', { texte: t, garde: twin.t.length >= t.length ? twin.t : t });
+    return;
+  }
+  hostMemory[who] = list.concat([{ t, at: Date.now() }]).slice(-MEM_MAX);
   saveMemory();
   dlog('annonce', 'souvenir retenu (' + who + ')', { texte: t });
 }
@@ -500,14 +544,14 @@ const aiPower = () => (settings.aiPower === 'eco' || settings.aiPower === 'max' 
 const slowModel = () => aiPower() !== 'eco' && (settings.textEngine === 'gemini' ? settings.geminiTextModel === 'gemini-4-argon' : /opus/.test(settings.model || ''));
 const aiTimeout = (ms) => (aiPower() === 'max' || slowModel() ? Math.max(ms, 45000) : ms);
 // Ce que l'IA reçoit sur les animateurs. guestTalks : l'invité remplace B, sans sa fiche.
-// soloB : le coanimateur parle seul, sa fiche prend la place de celle de l'animateur principal.
-function personaPayload(duo, guestTalks, s, soloB) {
+// team : émission à deux sans invité au micro. Les deux fiches et la relation partent alors toujours, même quand un
+// seul animateur parle : la partie fixe des consignes est la même pour toutes les annonces de l'émission.
+function personaPayload(duo, guestTalks, s, team) {
   ensurePersonas();
-  const mem = (who) => (aiPower() === 'eco' ? [] : (hostMemory[who] || []).slice(-12).map((m) => m.t));
+  const mem = (who) => memFor(who, s);
   const thread = s && s.variety && s.variety.thread ? s.variety.thread : '';
   const cities = hostCityPair();
-  if (soloB && !duo) return { a: settings.cohostPersona, memA: mem('B'), cityA: cities.b, storyA: settings.cohostLore || '', b: '', memB: [], cityB: '', storyB: '', relation: '', thread: '' };
-  const withB = duo && !guestTalks;
+  const withB = (duo && !guestTalks) || !!team;
   return { a: settings.hostPersona, memA: mem('A'), cityA: cities.a, storyA: settings.hostLore || '', b: withB ? settings.cohostPersona : '', memB: withB ? mem('B') : [], cityB: withB ? cities.b : '',
     storyB: withB ? settings.cohostLore || '' : '',
     relation: withB ? settings.duoRelation || '' : '', thread: duo ? thread : '' };
@@ -633,15 +677,25 @@ function ficheFocus(s, kind, speakers, atMs) {
   // Un seul détail personnel, pas à chaque fois, et jamais le même deux fois de suite dans l'émission.
   let facet = null;
   const slot = { A: 'hostPersona', B: 'cohostPersona' };
-  let pool = [];
+  // Le détail vient de la fiche ou des souvenirs (tous, pas seulement les derniers) : une chance sur deux chacun,
+  // sinon cent souvenirs noieraient les quelques détails de la fiche.
+  let fromFile = [];
+  let fromMem = [];
   for (const w of speakers) {
-    pool = pool.concat(fileFacets(settings[slot[w]], w), aiPower() === 'eco' ? [] : (hostMemory[w] || []).slice(-12).map((m) => ({ who: w, text: m.t })));
+    fromFile = fromFile.concat(fileFacets(settings[slot[w]], w));
+    if (aiPower() !== 'eco') fromMem = fromMem.concat((hostMemory[w] || []).map((m) => ({ who: w, text: m.t })));
+  }
+  const seen = v.facets || [];
+  const freshOf = (list) => list.filter((x) => !seen.includes(x.text));
+  let pool = fromFile.concat(fromMem);
+  if (fromFile.length && fromMem.length) {
+    const first = Math.random() < 0.5 ? fromFile : fromMem;
+    pool = freshOf(first).length ? first : first === fromFile ? fromMem : fromFile;
   }
   if (pool.length && Math.random() < (kind === 'interlude' ? 0.55 : kind === 'intro' ? 0.35 : 0.3)) {
-    const seen = v.facets || [];
-    const fresh = pool.filter((x) => !seen.includes(x.text));
+    const fresh = freshOf(pool);
     facet = pick(fresh.length ? fresh : pool);
-    v.facets = seen.concat([facet.text]).slice(-Math.max(1, Math.min(10, pool.length - 1)));
+    v.facets = seen.concat([facet.text]).slice(-Math.max(1, Math.min(30, fromFile.length + fromMem.length - 1)));
   }
   // Running gag : un seul par émission, différent de celui de l'émission précédente, placé une seule fois.
   const gags = duo && speakers.includes('B') ? fileGags(settings.duoRelation) : [];
@@ -661,7 +715,7 @@ function ficheFocus(s, kind, speakers, atMs) {
   }
   // hasSayings, hasFacets : la fiche a-t-elle été comprise ? Une fiche sans guillemets, sans phrases découpables ou
   // écrite dans un autre alphabet n'est pas dosée : l'IA la suit comme avant, sans rien lui interdire.
-  return { tic: tic ? { who: tic.who, text: tic.text } : null, rest: rest.map((x) => x.text), facet, gag, hasGags: gags.length > 0, hasSayings: all.length > 0, hasFacets: pool.length > 0,
+  return { tic: tic ? { who: tic.who, text: tic.text } : null, rest: rest.map((x) => x.text), facet, gag, hasGags: gags.length > 0, hasSayings: all.length > 0, hasFacets: fromFile.length + fromMem.length > 0,
     mood: { A: speakers.includes('A') ? v.mood.A : '', B: speakers.includes('B') ? v.mood.B : '' } };
 }
 // Après l'écriture : quelles expressions des fiches ont été dites (elles passent « au repos »).

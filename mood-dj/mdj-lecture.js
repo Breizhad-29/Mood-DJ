@@ -193,8 +193,10 @@ function engineTick(s) {
     }
   }
 
-  // Prépare l'annonce suivante dès le début du titre (texte et voix), avec l'heure du moment où
-  // elle sera dite. Si la file change (réglages, retour en arrière…), elle est refaite pour le bon titre.
+  // Prépare l'annonce suivante, avec l'heure du moment où elle sera dite. 2.36 : le texte est écrit après 20 s
+  // d'écoute (8 s avant), et la voix seulement dans la dernière minute et quart (VOICE_LEAD). Un titre zappé dans
+  // ses premières secondes ne coûte plus rien, et zappé plus tard, il ne coûte plus que le texte.
+  // Si la file change (réglages, retour en arrière…), l'annonce est refaite pour le bon titre.
   const nx = s.queue[0];
   // Annonce préparée trop tôt après une longue pause : l'heure qu'elle donne serait fausse.
   const late = s.prefetch && s.prefetch.planned && s.prefetch.ready && s.prefetch.ready.saysTime && !ps.paused &&
@@ -203,20 +205,32 @@ function engineTick(s) {
     (late || s.prefetch.key !== nx.key || announceKind(s, s.transitions + 1, 'ended', true, nx) !== s.prefetch.kind ||
       (s.prefetch.role || null) !== roleFor(s, nx) || (s.prefetch.progKeys || '') !== progKeysFor(s, nx) || (s.prefetch.hookId || '') !== hookIdFor(s, nx) ||
       (s.prefetch.guestPhase || '') !== guestPhaseFor(s, nx) || (s.prefetch.dedicId || '') !== dedicIdOf(nx));
-  // Voix ratée lors de la préparation anticipée (incident passager) : un nouvel essai dans la dernière minute.
+  // Voix ratée (incident passager) : un nouvel essai dans les dernières secondes, pour la voix seule (le texte est gardé).
   const pf0 = s.prefetch;
-  const retry = pf0 && pf0.ready && !pf0.ready.audio && !pf0.retried && !s.fadeVoice && nx && pf0.key === nx.key &&
-    useGemini() && remaining < 45 && remaining > 8;
-  if (settings.radio && nx && dur && (!s.prefetch || stale || retry) && (t >= 8 || remaining < 60) && remaining > 0.3) {
+  if (pf0 && pf0.ready && pf0.ready.voiced && !pf0.ready.audio && !pf0.retried && !stale && !s.fadeVoice && nx && pf0.key === nx.key &&
+      useGemini() && remaining < 45 && remaining > 8) {
+    pf0.retried = true;
+    s.voiceErrorShown = true;
+    dlog('annonce', 'voix : nouvel essai', { pour: nx.title, reste: remaining });
+    pf0.ready.voiced = false;
+    pf0.ready.voiceP = null;
+    pf0.ready.voice().catch(() => {});
+  }
+  // La voix de l'annonce prête : fabriquée quand la fin du titre approche.
+  if (pf0 && pf0.ready && !stale && !pf0.voiceAsked && nx && pf0.key === nx.key && remaining < VOICE_LEAD) {
+    pf0.voiceAsked = true;
+    const tv = Date.now();
+    pf0.ready.voice().then((r) => dlog('annonce', 'voix prête en ' + (Date.now() - tv) + ' ms', { kind: r.kind, voix: r.audio ? r.audio.byteLength + ' octets' : 'ordinateur', info: r.info })).catch(() => {});
+  }
+  if (settings.radio && nx && dur && (!s.prefetch || stale) && (t >= TEXT_AFTER || remaining < VOICE_LEAD) && remaining > 0.3) {
     const k = announceKind(s, s.transitions + 1, 'ended', true, nx);
-    const pf = { key: nx.key, kind: k, role: roleFor(s, nx), progKeys: progKeysFor(s, nx), hookId: hookIdFor(s, nx), guestPhase: guestPhaseFor(s, nx), dedicId: dedicIdOf(nx), at: now, planned: now + remaining * 1000, promise: null, ready: null, retried: !!retry };
-    if (retry) s.voiceErrorShown = true;
+    const pf = { key: nx.key, kind: k, role: roleFor(s, nx), progKeys: progKeysFor(s, nx), hookId: hookIdFor(s, nx), guestPhase: guestPhaseFor(s, nx), dedicId: dedicIdOf(nx), at: now, planned: now + remaining * 1000, promise: null, ready: null, retried: false, voiceAsked: false };
     if (k) {
-      dlog('annonce', 'préparation' + (retry ? ' (nouvel essai)' : late ? " (refaite : l'heure annoncée aurait été fausse)" : stale ? ' (file ou réglage changé)' : ''), { kind: k, role: pf.role || '', pour: nx.title, a_t: t, reste: remaining });
-      pf.promise = prepareAnnouncement(s, k, cur, nx, now + remaining * 1000).catch((e) => { dlog('annonce', 'préparation ratée : ' + e.message); return null; });
+      dlog('annonce', 'préparation' + (late ? " (refaite : l'heure annoncée aurait été fausse)" : stale ? ' (file ou réglage changé)' : ''), { kind: k, role: pf.role || '', pour: nx.title, a_t: t, reste: remaining });
+      pf.promise = prepareAnnouncement(s, k, cur, nx, now + remaining * 1000, { voice: 'later' }).catch((e) => { dlog('annonce', 'préparation ratée : ' + e.message); return null; });
       pf.promise.then((r) => {
         pf.ready = r;
-        dlog('annonce', 'prête en ' + (Date.now() - now) + ' ms', r ? { kind: r.kind, voix: r.audio ? r.audio.byteLength + ' octets' : 'ordinateur', info: r.info } : null);
+        dlog('annonce', 'texte prêt en ' + (Date.now() - now) + ' ms', r ? { kind: r.kind, info: r.info } : null);
       });
     }
     s.prefetch = pf;
@@ -224,12 +238,12 @@ function engineTick(s) {
 
   // Annonce sur le fondu : la voix démarre sur la fin du titre et fait le pont avec le suivant.
   const pfr = s.prefetch;
-  if (settings.radio && settings.announceAt !== 'intro' && pfr && pfr.kind === 'talkover' && pfr.ready && pfr.ready.text &&
+  if (settings.radio && settings.announceAt !== 'intro' && pfr && pfr.kind === 'talkover' && pfr.ready && pfr.ready.text && pfr.ready.voiced &&
       nx && pfr.key === nx.key && !s.fadeVoice && !s.announcing && !ps.paused && dur > 30) {
-    const lead = Math.max(fade, 2) + 2.5;
+    const lead = fadeVoiceLead(fade, pfr.ready);
     if (remaining <= lead && remaining > 1) {
       const fv = { key: pfr.key, finished: false };
-      dlog('annonce', 'voix sur le fondu', { reste: remaining, fondu: fade });
+      dlog('annonce', 'voix sur le fondu', { reste: remaining, fondu: fade, avance: lead, duree_voix: voiceSeconds(pfr.ready) });
       s.fadeVoice = fv;
       s.announcing = true;
       callSafe('fadeTo', 0.3, 0.8);
@@ -280,6 +294,24 @@ function engineTick(s) {
     callSafe('fadeTo', 0, Math.max(0.3, remaining - 1.5));
   }
   if ((dur && remaining <= 0.35) || ps.state === 0 || (ps.held && ps.held.id === cur.videoId)) advance('ended');
+}
+
+// Texte de l'annonce suivante : écrit après 20 s d'écoute. Voix : fabriquée quand il reste moins de 75 s (Gemini
+// met 5 à 15 s, 40 s au pire), ou tout de suite si le titre est déjà près de sa fin.
+const TEXT_AFTER = 20;
+const VOICE_LEAD = 75;
+// Durée d'une annonce : celle de la voix Gemini, sinon estimée d'après le texte (2,6 mots par seconde).
+function voiceSeconds(ann) {
+  const d = ann && ann.audio ? wavSeconds(ann.audio) : 0;
+  return d > 0 ? d : Math.max(2, String((ann && ann.text) || '').trim().split(/\s+/).length / 2.6);
+}
+// Avance de la voix sur la fin du titre (2.36). Elle partait toujours 8,5 s avant la fin, quelle que soit sa
+// longueur : une annonce de 30 s débordait de plus de 20 s sur le titre suivant, chant compris. Elle part
+// maintenant d'autant plus tôt qu'elle est longue : 60 % de sa durée sur la fin du titre, le reste sur l'intro du
+// suivant, sans jamais couvrir plus des 22 dernières secondes.
+function fadeVoiceLead(fade, ann) {
+  const base = Math.max(fade, 2) + 2.5;
+  return Math.max(base, Math.min(22, voiceSeconds(ann) * 0.6));
 }
 
 // Fondu enchaîné réel autorisé pour ce passage ? Pas avant un interlude (la musique s'arrête),

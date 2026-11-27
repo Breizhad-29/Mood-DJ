@@ -12,7 +12,7 @@ const C = MDJ_CORE;
 const WHERE = 'dans ce navigateur';
 const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
 const LOOKAHEAD = 5;
-const VERSION = '2.34.0';
+const VERSION = '2.36.0';
 // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
 // titres des styles ajoutés par l'IA (applyStyleSet).
 const BASE_CATALOG = CATALOG.slice();
@@ -41,7 +41,9 @@ const DEFAULT_SETTINGS = {
   hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
   voiceEngine: 'systeme',
   geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
-  anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare', chat: 'parfois', presetRev: 0
+  anecdotes: 'souvent', programme: true, aiPower: 'normal', aiCap: 'auto', hostPersona: '', cohostPersona: '', stationLore: '', loreLevel: 'discret', duoRelation: '', hostVoiceNote: '', cohostVoiceNote: '', hostCities: null, hostLore: '', cohostLore: '', hostPicks: 'rare', chat: 'parfois', presetRev: 0,
+  // voiceChosen : l'auditeur a choisi lui-même son moteur de voix ; voiceOffered : la bascule lui a déjà été proposée.
+  voiceChosen: false, voiceOffered: false
 };
 const DEFAULT_SEL = {
   style: 'rock', sub: 'all', moment: 'route', energy: 3, mood: null, era: 'all', prompt: '',
@@ -327,16 +329,34 @@ const saveCache = debounce(() => {
   store({ resolveCache: cache });
 }, 2000);
 
+// 2.36 : une première clé Gemini vient d'être enregistrée. Tant que l'auditeur n'a pas choisi lui-même son moteur
+// de voix, Mood DJ passe aux voix Gemini : sinon la voix de l'ordinateur restait, sans duo, et il fallait trouver le réglage.
+function geminiVoicesByDefault() {
+  if (settings.voiceEngine !== 'systeme' || settings.voiceChosen) return;
+  settings.voiceEngine = 'gemini';
+  settings.voiceOffered = true;
+  saveSettings();
+  dlog('session', 'voix Gemini activées (première clé Gemini enregistrée)');
+  toast('Clé Gemini enregistrée : les animateurs passent aux voix Gemini, avec le duo.', { label: 'Garder la voix de l’ordinateur', fn: () => { settings.voiceEngine = 'systeme'; settings.voiceChosen = true; saveSettings(); render(); } }, 14000);
+}
+// Clé Gemini déjà là avant la 2.36, voix de l'ordinateur : on ne change rien d'office (c'est peut-être un choix),
+// mais on le propose une fois.
+function offerGeminiVoices() {
+  if (!hasGemini || settings.voiceEngine !== 'systeme' || settings.voiceChosen || settings.voiceOffered) return;
+  settings.voiceOffered = true;
+  saveSettings();
+  toast('Tu as une clé Gemini, mais c’est la voix de l’ordinateur qui parle : pas de duo.', { label: 'Passer aux voix Gemini', fn: () => { settings.voiceEngine = 'gemini'; settings.voiceChosen = true; saveSettings(); render(); toast('Voix Gemini activées.'); } }, 20000);
+}
 try {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.apiKey) { hasClaude = !!changes.apiKey.newValue; syncTextKey(); render(); }
     // Consommation du jour, tenue par le service : affichée au prochain affichage des Réglages.
     if (area === 'local' && changes.aiUsage) aiUsage = changes.aiUsage.newValue || null;
-    if (area === 'local' && changes.geminiKey) { hasGemini1 = !!changes.geminiKey.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); render(); }
+    if (area === 'local' && changes.geminiKey) { const had = hasGemini; hasGemini1 = !!changes.geminiKey.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); if (!had && hasGemini) geminiVoicesByDefault(); render(); }
     if (area === 'local' && changes.lastfmKey) { hasLastfm = !!changes.lastfmKey.newValue; render(); }
     if (area === 'local' && changes.setlistfmKey) { hasSetlist = !!changes.setlistfmKey.newValue; render(); }
     if (area === 'local' && changes.ticketmasterKey) { hasTicketmaster = !!changes.ticketmasterKey.newValue; render(); }
     if (area === 'local' && changes.discogsToken) { hasDiscogs = !!changes.discogsToken.newValue; render(); }
-    if (area === 'local' && changes.geminiKey2) { hasGemini2 = !!changes.geminiKey2.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); render(); }
+    if (area === 'local' && changes.geminiKey2) { const had = hasGemini; hasGemini2 = !!changes.geminiKey2.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); if (!had && hasGemini) geminiVoicesByDefault(); render(); }
   });
 } catch (e) { /* ignore */ }

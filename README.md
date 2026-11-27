@@ -22,7 +22,7 @@ Sans clé, Mood DJ fonctionne quand même, mais en version réduite : catalogue 
 Les clés se saisissent dans la page sécurisée de l'extension (Réglages › Clés API) :
 
 - **Claude** (Anthropic) ou **Gemini** (Google) : les textes des animateurs, les sélections décrites en toutes lettres, l'ajout de styles.
-- **Gemini** : les voix des animateurs, en solo ou en duo. Clé gratuite sur [aistudio.google.com](https://aistudio.google.com) (bouton « Get API key »).
+- **Gemini** : les voix des animateurs, en solo ou en duo. Clé gratuite sur [aistudio.google.com](https://aistudio.google.com) (bouton « Get API key »). Seule, la clé gratuite permet d'essayer chaque jour : elle a une limite, qui se recharge toutes les 24 heures. Avec une clé payante en plus, les deux se relaient pour une écoute prolongée : la gratuite passe toujours en premier, la payante prend le relais sans rien interrompre.
 - **Last.fm, Discogs, Setlist.fm, Ticketmaster** : des anecdotes et des dates de concerts en plus.
 
 Avec une clé Claude ou Gemini, chaque animateur a sa personnalité et se souvient de ce qu'il raconte d'une émission à l'autre. Le réglage **Puissance de l'IA** (Économe, Normale ou Pleine puissance) et un plafond d'appels par heure permettent de choisir entre des animateurs plus vivants et une consommation plus faible.

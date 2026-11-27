@@ -72,7 +72,8 @@ function parseJsonText(t) {
 const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'];
 // --------------------------------------------------- consommation du jour
 // Estimation en dollars des appels à Claude (tarifs par million de mots-jetons : entrée, sortie, lecture
-// du cache ; l'écriture en cache coûte 1,25 fois l'entrée), et nombre d'appels Gemini par clé.
+// du cache ; l'écriture en cache coûte 1,25 fois l'entrée pour 5 minutes, 2 fois pour une heure), et nombre
+// d'appels Gemini par clé.
 const CLAUDE_PRICES = { 'claude-sonnet-5-5': [2, 10, 0.1], 'claude-opus-5-5': [4, 20, 0.2], 'claude-haiku-5-5': [0.1, 0.5, 0.01] };
 let usageMem = null;
 let usageLoad = null;
@@ -88,7 +89,10 @@ async function bumpUsage(fn) {
 function recordClaudeUsage(model, u) {
   const pr = CLAUDE_PRICES[Object.keys(CLAUDE_PRICES).find((k) => String(model || '').startsWith(k))] || CLAUDE_PRICES[DEFAULT_MODEL];
   const x = u || {};
-  const usd = ((x.input_tokens || 0) * pr[0] + (x.cache_creation_input_tokens || 0) * pr[0] * 1.25 + (x.cache_read_input_tokens || 0) * pr[2] + (x.output_tokens || 0) * pr[1]) / 1e6;
+  // L'API détaille l'écriture en cache par durée ; sans ce détail, on compte comme un cache de 5 minutes.
+  const cc = x.cache_creation && typeof x.cache_creation === 'object' ? x.cache_creation : null;
+  const written = cc ? (cc.ephemeral_5m_input_tokens || 0) * 1.25 + (cc.ephemeral_1h_input_tokens || 0) * 2 : (x.cache_creation_input_tokens || 0) * 1.25;
+  const usd = ((x.input_tokens || 0) * pr[0] + written * pr[0] + (x.cache_read_input_tokens || 0) * pr[2] + (x.output_tokens || 0) * pr[1]) / 1e6;
   bumpUsage((m) => { m.claudeUsd += usd; m.claudeCalls++; });
 }
 
@@ -513,7 +517,7 @@ function personaLines(label, name, persona, city, story) {
 function memLines(label, memories) {
   const q = (x, n) => String(x || '').replace(/[«»"\n]/g, ' ').replace(/\s+/g, ' ').slice(0, n).trim();
   const out = [];
-  const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-12);
+  const mem = (Array.isArray(memories) ? memories : []).map((m) => q(m, 160)).filter(Boolean).slice(-16);
   if (mem.length) out.push((label ? 'CE QUE ' + label + ' A DÉJÀ RACONTÉ SUR SA PROPRE VIE' : 'CE QUE TU AS DÉJÀ RACONTÉ SUR TA PROPRE VIE') + " à l'antenne (reste cohérent ; une allusion de temps en temps, comme à une vieille blague, pas à chaque fois) :\n- " + mem.join('\n- '));
   return out;
 }
@@ -604,11 +608,20 @@ async function writeAnnouncement(p) {
   // Partie fixe des consignes (identité, langue, fiches, relation du duo, règles) : identique d'une annonce à
   // l'autre, elle est mise en cache par l'API Claude et relue bien moins cher. La partie variable vient après.
   const cohostName = String(p.cohost || 'Sam').slice(0, 40);
-  const duoB = !!(p.duo && pz.b);
+  // 2.36 : dans une émission à deux, la partie fixe est la même que l'annonce soit un dialogue, dite par A seul
+  // ou par B seul (les deux fiches et leur relation y sont toujours). Avant, chaque cas avait sa propre partie
+  // fixe : trois caches au lieu d'un, relus trop rarement pour être rentables. Qui parle est dit dans la demande.
+  const duoB = !!String(pz.b || '').trim();
+  const solo = !p.duo && duoB ? (p.solo === 'B' ? 'B' : 'A') : '';
+  const cstyleAll = HOST_STYLES[p.cohostStyle] || HOST_STYLES.decale;
   const stable = [
-    'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale écoutée sur YouTube Music. Ton style : " + style + '.',
+    duoB
+      ? "Tu écris ce que disent à l'antenne les deux animateurs de Mood DJ, une radio musicale écoutée sur YouTube Music. A = " + host + (who(p.hostGender) ? ', ' + who(p.hostGender) : '') + ', style ' + style +
+        '. B = ' + cohostName + (who(p.cohostGender) ? ', ' + who(p.cohostGender) : '') + ', style ' + cstyleAll +
+        ". Chaque demande dit qui parle : A seul, B seul, ou les deux en dialogue. Quand un seul parle, tu es cet animateur : dans la demande, « tu », c'est lui."
+      : 'Tu es ' + host + (p.hostGender === 'femme' ? ", l'animatrice de Mood DJ," : ", l'animateur de Mood DJ,") + " une radio musicale écoutée sur YouTube Music. Ton style : " + style + '.',
     radioLangRule(p.lang),
-    ...personaLines(p.duo ? 'A' : '', host, pz.a, pz.cityA, pz.storyA),
+    ...personaLines(p.duo || duoB ? 'A' : '', host, pz.a, pz.cityA, pz.storyA),
     ...(duoB ? personaLines('B', cohostName, pz.b, pz.cityB, pz.storyB) : []),
     ...(duoB && String(pz.relation || '').trim() ? ['LEUR RELATION (la bible du duo, à respecter, mais à faire vivre par petites touches, jamais à réciter) :\n' + String(pz.relation).slice(0, 4000).trim()] : []),
     "N'invente jamais de fait sur un artiste ou un morceau : une anecdote doit venir de la fiche fournie ou de ce que tu sais avec certitude, sinon donne plutôt un ressenti. Les animateurs, eux, peuvent avoir des goûts, des manies et des petits souvenirs du quotidien.",
@@ -621,10 +634,14 @@ async function writeAnnouncement(p) {
   ].join('\n');
   const variable = [
     emotionRules(p),
-    ...memLines(p.duo ? 'A' : '', power === 'eco' ? [] : pz.memA),
+    ...memLines(p.duo || duoB ? 'A' : '', power === 'eco' ? [] : pz.memA),
     ...(duoB ? memLines('B', power === 'eco' ? [] : pz.memB) : [])
   ].filter(Boolean).join('\n');
-  const system = [{ type: 'text', text: stable, cache_control: { type: 'ephemeral' } }].concat(variable ? [{ type: 'text', text: variable }] : []);
+  // Cache d'une heure. Avec le cache de 5 minutes, une émission qui parle tous les trois titres (une annonce toutes
+  // les dix minutes) payait l'écriture du cache à chaque annonce sans jamais le relire. L'écriture d'une heure coûte
+  // 2 fois l'entrée au lieu de 1,25, et se rembourse dès la troisième annonce de l'heure. sparse : émission qui ne
+  // parle presque jamais (seulement aux changements d'ambiance) ; aucun cache ne serait relu, on n'en écrit pas.
+  const system = [Object.assign({ type: 'text', text: stable }, p.sparse ? {} : { cache_control: { type: 'ephemeral', ttl: '1h' } })].concat(variable ? [{ type: 'text', text: variable }] : []);
   const rule = KIND_RULES[p.kind] || KIND_RULES.talkover;
   // En duo, la longueur est fixée par le format duo (nombre de répliques) : on retire celle du solo.
   // Longueurs revues après le journal du 24/11 : des pauses de 44 à 54 s et une « culture courte »
@@ -644,6 +661,12 @@ async function writeAnnouncement(p) {
   const extra = hookWords + answerWords + expressWords;
   const lines = [isProg ? stripLen(rule) + (p.duo ? '' : PROG_LEN[p.kind] || PROG_LEN.talkover)
     : p.duo || p.long ? stripLen(rule) + (p.long && !p.duo ? longRule : '') : rule];
+  // Émission à deux, un seul au micro : la demande dit lequel, et « tu », c'est lui.
+  if (solo) {
+    const fem = (solo === 'B' ? p.cohostGender : p.hostGender) === 'femme';
+    lines.unshift('CETTE FOIS, ' + solo + ' PARLE ' + (fem ? 'SEULE' : 'SEUL') + ' : tu es ' + (solo === 'B' ? cohostName : host) + ", et tout ce qui suit s'adresse à toi. " +
+      "Écris ton texte d'un seul bloc, à la première personne, sans « A: » ni « B: ». L'autre animateur n'est pas au micro : tu peux parler de lui, pas le faire parler.");
+  }
   if (extra && !p.duo) lines.push('Avec le jeu de cette intervention, tu as droit à ' + extra + ' mots de plus.');
   if (p.duo) {
     const cohost = String(p.cohost || 'Sam').slice(0, 40);
@@ -907,7 +930,16 @@ async function writeAnnouncement(p) {
   const { spoken: text, hidden } = p.hook || p.express ? splitHidden(raw) : { spoken: raw, hidden: {} };
   if (text.replace(/<[^<>]{1,25}>/g, '').trim().length < 15) throw new Error('annonce vide ou trop courte');
   const clean = (t) => t.replace(/^["«\s]+|["»\s]+$/g, '').replace(/\[[^\]]*\]|\*[^*]*\*/g, '').replace(/[ \t]+/g, ' ').trim();
-  const out = p.duo ? text.split('\n').map(clean).filter(Boolean).join('\n') : clean(text.replace(/\s+/g, ' '));
+  // Un seul au micro : si l'IA a quand même écrit « A: … » ou un dialogue, on ne garde que les lignes de celui qui
+  // parle, sans étiquette (elle serait lue à l'antenne).
+  const alone = (t) => {
+    const ls = String(t).split('\n').map((l) => l.trim()).filter(Boolean);
+    const lab = ls.map((l) => l.match(/^([AB])\s*[:：]\s*(.*)$/));
+    if (!lab.some(Boolean)) return t;
+    const mine = ls.map((l, i) => (lab[i] ? (lab[i][1] === (solo || 'A') ? lab[i][2] : '') : l)).filter(Boolean);
+    return (mine.length ? mine : ls.map((l, i) => (lab[i] ? lab[i][2] : l))).join(' ');
+  };
+  const out = p.duo ? text.split('\n').map(clean).filter(Boolean).join('\n') : clean(alone(text).replace(/\s+/g, ' '));
   if (mem && mem.souvenirs.length) hidden.souvenirs = mem.souvenirs.slice(0, 2);
   if (mem && mem.suivi) hidden.suivi = mem.suivi;
   if (mem && lore && mem.lore.length) hidden.lore = mem.lore.slice(0, 1);
@@ -1647,6 +1679,27 @@ let freeKeyRestUntil = 0;
 // Clé gratuite refusée par Google (supprimée, expirée, bloquée) : elle ne revient pas toute seule,
 // donc on ne la réessaie plus tant que c'est la même. Coller une nouvelle clé la remet en service.
 let refusedFreeKey = '';
+// Pourquoi la clé gratuite se repose : limite « jour » ou « minute » (pour le message quand la payante lâche aussi).
+let freeKeyRestKind = '';
+// 2.36 : la clé gratuite et la payante se complètent (la gratuite se recharge chaque jour, la payante prend le
+// relais). Tant qu'une des deux répond, rien n'est dit. Quand aucune ne répond, le message dit laquelle est dans
+// quel état, sans jamais présenter la limite de la gratuite comme une fin.
+const FREE_BACK = { jour: 'elle se recharge sous 24 heures', minute: 'elle revient dans une minute' };
+function explainKeys(e, has, used) {
+  if (!e || e.explained) return e;
+  const free = FREE_BACK[e.limit] ? e.limit : '';
+  // Seule la clé gratuite, à sa limite.
+  if (used === 'gratuite' && free && !has.paid) {
+    e.message = 'La clé Gemini gratuite a atteint sa limite ' + (free === 'jour' ? 'du jour' : 'par minute') + ' : ' + FREE_BACK[free] + '.' +
+      (free === 'jour' ? ' Une clé payante peut prendre le relais entre-temps (Réglages › Clés API).' : '');
+  } else if (used === 'payante' && has.free && Date.now() < freeKeyRestUntil && FREE_BACK[freeKeyRestKind]) {
+    // La gratuite se repose et la payante ne répond pas non plus : les deux sont à sec.
+    e.message = 'Les deux clés Gemini sont à sec. La gratuite a atteint sa limite ' + (freeKeyRestKind === 'jour' ? 'du jour' : 'par minute') + ' (' + FREE_BACK[freeKeyRestKind] +
+      '). La payante : ' + String(e.message || 'ne répond pas').replace(/\.$/, '') + '. Les voix Gemini reviendront toutes seules.';
+  }
+  e.explained = true;
+  return e;
+}
 async function speakGemini(p) {
   const { settings } = await chrome.storage.local.get(['settings']);
   return withGeminiKeys((key) => speakGeminiWith(key, p, settings));
@@ -1661,6 +1714,7 @@ async function withGeminiKeys(fn) {
   if (geminiKey && !freeDead && (Date.now() >= freeKeyRestUntil || !geminiKey2)) keys.push({ id: 'gratuite', key: geminiKey });
   if (geminiKey2) keys.push({ id: 'payante', key: geminiKey2 });
   if (!keys.length) throw new Error('Aucune clé Gemini enregistrée.');
+  const has = { free: !!geminiKey, paid: !!geminiKey2 };
   let last = null;
   for (let i = 0; i < keys.length; i++) {
     try {
@@ -1672,6 +1726,7 @@ async function withGeminiKeys(fn) {
       last = e;
       if (e.limit && keys[i].id === 'gratuite' && geminiKey2) {
         freeKeyRestUntil = Date.now() + (e.limit === 'jour' ? 3600000 : 60000);
+        freeKeyRestKind = e.limit;
         continue;
       }
       // On précise quelle clé est refusée ; si c'est la gratuite et qu'une payante existe, elle prend le relais.
@@ -1679,10 +1734,23 @@ async function withGeminiKeys(fn) {
         e.message = e.message.replace('Clé Gemini refusée', 'Clé Gemini ' + keys[i].id + ' refusée');
         if (i + 1 < keys.length) { if (keys[i].id === 'gratuite') refusedFreeKey = keys[i].key; continue; }
       }
-      throw e;
+      throw explainKeys(e, has, keys[i].id);
     }
   }
-  throw last;
+  throw explainKeys(last, has, keys[keys.length - 1].id);
+}
+
+// Découpe un texte à dire en morceaux de 700 caractères au plus, aux fins de phrase (sinon aux espaces).
+function splitSpeech(text) {
+  const out = [];
+  let cur = '';
+  for (const sent of String(text || '').split(/(?<=[.!?…])\s+/)) {
+    for (const part of sent.length > 700 ? sent.match(/.{1,700}(?:\s+|$)/g) || [sent] : [sent]) {
+      if (cur && (cur + ' ' + part).length > 700) { out.push(cur.trim()); cur = part; } else cur = cur ? cur + ' ' + part : part;
+    }
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
 }
 
 async function speakGeminiWith(apiKey, p, settings) {
@@ -1690,11 +1758,13 @@ async function speakGeminiWith(apiKey, p, settings) {
   const turns = (p.turns || []).filter((t) => t && t.text).slice(0, 12);
   if (!turns.length) throw new Error('Texte vide.');
   const duo = turns.some((t) => t.speaker === 'B');
-  const content = turns.map((t) => ({
+  // Une réplique trop longue est découpée aux phrases, en plusieurs morceaux du même animateur. Avant, elle était
+  // coupée net à 800 caractères : une chronique dite par un seul animateur s'arrêtait en plein mot.
+  const content = turns.flatMap((t) => splitSpeech(t.text).map((text) => ({
     type: 'text',
-    text: String(t.text).slice(0, 800),
+    text,
     annotations: [Object.assign({ type: 'speech_metadata', style: t.style || p.style || '' }, duo ? { speaker: t.speaker === 'B' ? 'B' : 'A' } : {})]
-  }));
+  }))).slice(0, 24);
   const speechConfig = duo
     ? { speakers: [{ speaker: 'A', voice: p.voiceA || 'Achird' }, { speaker: 'B', voice: p.voiceB || 'Sulafat' }] }
     : [{ voice: p.voiceA || 'Achird' }];

@@ -42,3 +42,16 @@ test('les fichiers du panneau se chargent dans l’ordre du manifest sans erreur
   assert.equal(typeof vm.runInContext('typeof render', ctx), 'string');
   assert.equal(vm.runInContext('typeof render', ctx), 'function');
 });
+
+// Le numéro affiché dans les Réglages et le journal (VERSION) était resté à 2.34.0 pendant toute la 2.35.
+test('le même numéro de version partout : manifest, panneau, notes de version, guide anglais', () => {
+  const version = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.json'), 'utf8')).version;
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  const etat = fs.readFileSync(path.join(DIR, 'mdj-etat.js'), 'utf8');
+  assert.equal((etat.match(/const VERSION = '([^']+)';/) || [])[1], version, 'VERSION dans mdj-etat.js');
+  const notes = fs.readFileSync(path.join(DIR, 'LISEZMOI.txt'), 'utf8');
+  assert.ok(notes.split('\n')[0].endsWith('version ' + version), 'première ligne de LISEZMOI.txt');
+  assert.ok(notes.includes('\n' + version + ' : '), 'notes de la version ' + version + ' dans LISEZMOI.txt');
+  const guide = fs.readFileSync(path.join(DIR, 'GUIDE-EN.md'), 'utf8');
+  assert.ok(guide.includes('Up to date with version ' + version + '.'), 'GUIDE-EN.md');
+});

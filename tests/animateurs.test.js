@@ -333,10 +333,84 @@ test('coanimateur seul à l’antenne : son humeur du jour est transmise', async
   assert.doesNotMatch(user, /running gag/i);
 });
 
+test('voix Gemini d’office à la première clé, sauf si l’auditeur a choisi lui-même', () => {
+  const p = loadPanel();
+  p.run("var __toasts = []; toast = (m) => { __toasts.push(m); }; hasGemini = true;");
+  p.run("Object.assign(settings, { voiceEngine: 'systeme', voiceChosen: false }); geminiVoicesByDefault();");
+  assert.equal(p.run('settings.voiceEngine'), 'gemini');
+  assert.equal(p.run('__toasts.length'), 1);
+  // Il avait choisi la voix de l'ordinateur : on n'y touche pas.
+  p.run("Object.assign(settings, { voiceEngine: 'systeme', voiceChosen: true }); geminiVoicesByDefault();");
+  assert.equal(p.run('settings.voiceEngine'), 'systeme');
+  // Clé déjà là avant la mise à jour : rien n'est changé d'office, la bascule est proposée une seule fois.
+  p.run("Object.assign(settings, { voiceEngine: 'systeme', voiceChosen: false, voiceOffered: false }); __toasts = []; offerGeminiVoices(); offerGeminiVoices();");
+  assert.equal(p.run('settings.voiceEngine'), 'systeme');
+  assert.equal(p.run('__toasts.length'), 1);
+});
+
 test('consignes dans une autre langue : on s’adresse à l’ensemble des auditeurs', async () => {
   const bg = loadBackground();
   await bg.run("writeAnnouncement({ kind: 'talkover', host: 'Alex', lang: 'en', next: 'X de Y' })");
   const system = bg.__calls[0].body.system.map((x) => x.text).join('\n');
   assert.match(system, /à l'ensemble des auditeurs \(au pluriel\)/);
   assert.doesNotMatch(system, /tutoiement/);
+});
+
+// ------------------------------------------------ 2.36 : la mémoire des animateurs
+test('souvenirs : cent par animateur, les quasi-doublons fusionnent, la version la plus complète reste', () => {
+  const p = loadPanel();
+  p.run("Object.assign(settings, { hostName: 'Jeff', cohostName: 'Laeti' }); hostMemory = { A: [], B: [], L: [] };");
+  p.run("rememberSelf('A', 'Jeff chante sous la douche'); rememberSelf('A', 'Jeff a peur des pigeons'); rememberSelf('A', 'Jeff chante toujours sous la douche le matin');");
+  // Le deuxième « douche » remplace le premier (plus complet) et repasse parmi les récents.
+  assert.deepEqual([...p.run('hostMemory.A.map((m) => m.t)')], ['Jeff a peur des pigeons', 'Jeff chante toujours sous la douche le matin']);
+  // Dans l'autre sens : la version courte arrive après, la longue est gardée.
+  p.run("rememberSelf('A', 'Jeff chante sous la douche');");
+  assert.deepEqual([...p.run('hostMemory.A.map((m) => m.t)')], ['Jeff a peur des pigeons', 'Jeff chante toujours sous la douche le matin']);
+  // Un seul mot en commun (ou seulement le prénom) : deux souvenirs différents.
+  assert.equal(p.run("memAlike('Jeff a peur des pigeons', 'Jeff a peur du vide')"), false);
+  assert.equal(p.run("memAlike('Jeff adore le reggae', 'Jeff a un vieux pulp')"), false);
+  assert.equal(p.run("memAlike('Laeti a un chat nommé Larsen', 'Laeti a un chat, Larsen, nommé comme ça à cause du micro')"), true);
+  // Prudence : deux mots sur trois en commun ne suffisent pas, on préfère un doublon à un souvenir perdu.
+  assert.equal(p.run("memAlike('Laeti adore le chocolat noir', 'Laeti adore le café noir')"), false);
+  // Cent au plus : le plus ancien s'en va.
+  p.run("hostMemory.A = []; for (let i = 0; i < 130; i++) rememberSelf('A', 'souvenir numero ' + i + ' objet' + i * 7);");
+  assert.equal(p.run('hostMemory.A.length'), 100);
+  assert.match(p.run('hostMemory.A[0].t'), /numero 30 /);
+  assert.equal(p.run("cleanMemories(Array.from({ length: 150 }, (_, i) => ({ t: 'x' + i, at: i }))).length"), 100);
+});
+
+test('souvenirs rappelés à l’IA : les dix derniers à chaque fois, les anciens à tour de rôle', () => {
+  const p = loadPanel();
+  p.run("hostMemory = { A: Array.from({ length: 40 }, (_, i) => ({ t: 's' + i, at: i })), B: [{ t: 'seul', at: 1 }], L: [] }; var __s = { variety: {} };");
+  const seen = new Set();
+  for (let i = 0; i < 8; i++) {
+    const list = [...p.run("memFor('A', __s)")];
+    assert.equal(list.length, 14);
+    assert.deepEqual(list.slice(-10), Array.from({ length: 10 }, (_, k) => 's' + (30 + k)), 'les dix plus récents, dans l’ordre, à la fin');
+    for (const t of list.slice(0, 4)) seen.add(t);
+  }
+  // Huit annonces × quatre anciens : les trente anciens sont tous ressortis au moins une fois.
+  assert.equal(seen.size, 30);
+  assert.deepEqual([...p.run("memFor('B', __s)")], ['seul']);
+  // Mode Éco : pas de souvenirs envoyés.
+  p.run("settings.aiPower = 'eco';");
+  assert.deepEqual([...p.run("memFor('A', __s)")], []);
+});
+
+test('détail du jour : la fiche et les souvenirs passent chacun leur tour, cent souvenirs ne noient pas la fiche', () => {
+  const p = loadPanel();
+  p.run("Object.assign(settings, { hostName: 'Jeff', cohostName: 'Laeti', hostPersona: 'Il collectionne les vieux pulps. Il répare lui-même son camion. Il déteste le café froid.', cohostPersona: '' });" +
+    "hostMemory = { A: Array.from({ length: 100 }, (_, i) => ({ t: 'souvenir ' + i, at: i })), B: [], L: [] };");
+  let file = 0;
+  let mem = 0;
+  for (let i = 0; i < 400; i++) {
+    const f = p.run("ficheFocus({ variety: {} }, 'interlude', ['A'], Date.now()).facet");
+    if (!f) continue;
+    if (/^souvenir \d+$/.test(f.text)) mem++; else file++;
+  }
+  assert.ok(file > 60 && mem > 60, 'fiche ' + file + ', souvenirs ' + mem);
+  // Dans une même émission, un détail ne revient pas tant qu'il en reste de nouveaux.
+  p.run("var __s2 = { variety: {} }; var __got = []; for (let i = 0; i < 200 && __got.length < 20; i++) { const f = ficheFocus(__s2, 'interlude', ['A'], Date.now()).facet; if (f) __got.push(f.text); }");
+  const got = [...p.run('__got')];
+  assert.equal(new Set(got).size, got.length, got.join(' | '));
 });

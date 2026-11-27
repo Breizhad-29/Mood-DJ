@@ -132,7 +132,9 @@ const GUEST_ANGLES = {
   depart: "Dernière intervention de l'invité : un dernier mot d'expert sur le titre suivant, A le remercie, et c'est l'invité qui lance le titre (« je vous laisse avec… »)."
 };
 
-async function prepareAnnouncement(s, kind, prev, next, atMs) {
+// opts.voice === 'later' : le texte est écrit tout de suite, la voix seulement quand on la demande (ann.voice()).
+// Préparée dès le début du titre, la voix était payée puis jetée chaque fois qu'un titre était zappé (2.36).
+async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   const now = atMs || Date.now();
   const tp = timeParts(new Date(now));
   const role = roleFor(s, next);
@@ -301,12 +303,14 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
   // Dosage des fiches, dynamique du dialogue et humeur du jour : tirés par Mood DJ (voir ficheFocus).
   const focus = live && !s.demo ? ficheFocus(s, kind, speakers, now) : null;
   const dyn = live && duo && !gTalks && !s.demo ? pickDynamic(s, plan.angle, emo) : null;
-  const who = soloB ? { name: c.cohost, style: settings.cohostStyle, gender: hostGenders().cohost } : { name: c.host, style: settings.hostStyle, gender: hostGenders().host };
+  // Émission à deux sans invité au micro : les deux fiches partent toujours, que l'annonce soit un dialogue ou dite
+  // par un seul. La partie fixe des consignes est alors la même pour toutes les annonces, et son cache sert à chacune.
+  const team = duoShow && !gTalks;
   let memory = null;
   if (live) {
     try {
       text = await withTimeout(claude('announce', {
-        kind, host: who.name, style: who.style, time: tp.time, partOfDay: tp.part, lang: radioLang(),
+        kind, host: c.host, style: settings.hostStyle, solo: duo ? '' : soloB ? 'B' : 'A', sparse: settings.radioFreq === 'change', time: tp.time, partOfDay: tp.part, lang: radioLang(),
         ambiance: oldAmb || (plan.momentOk || (s.sel && s.sel.prompt && s.sel.prompt.trim()) ? c.ambiance : styleText(s.sel)),
         change: ch ? { from: ch.from, to: ch.to } : null,
         previous: prev ? desc(prev) : '', next: desc(next), trend: c.trend,
@@ -317,12 +321,12 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
         role: plan.free ? null : plan.role, programme: progShown ? progShown.map(desc) : null, programmeCycle: settings.radioFreq === 'every', told,
         rubrique: rub ? rub.name : '', hook: pub(hook), hookFacts, hookAnswer: pub(hookAnswer), express, ephemeride: eph, episode, stats, local,
         duo, cohost: gTalks ? guest.name : c.cohost, cohostStyle: gTalks ? guest.style : settings.cohostStyle,
-        hostGender: who.gender, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
+        hostGender: hostGenders().host, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
         show: s.show ? { name: s.show.name, wake: !!s.show.wake } : null,
         dedic: dedic ? { to: dedic.to, msg: dedic.msg, from: dedic.from || c.listener, request: dedic.request } : null,
         guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost } : null,
         tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
-        power: aiPower(), persona: personaPayload(duo, gTalks, s, soloB), lore: s.demo ? null : lorePayload(s, kind, plan.angle && plan.angle.id === 'bavardage' ? (plan.angle.lore === 'focus' ? 'focus' : true) : false),
+        power: aiPower(), persona: personaPayload(duo, gTalks, s, team), lore: s.demo ? null : lorePayload(s, kind, plan.angle && plan.angle.id === 'bavardage' ? (plan.angle.lore === 'focus' ? 'focus' : true) : false),
         focus, dynamic: dyn ? dyn.txt : '', cuts: duo && !gTalks ? plan.cuts : undefined,
         ...(picks ? picks.view : {})
       }), aiTimeout(12000));
@@ -383,6 +387,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
     { heure: plan.sayTime, meteo: plan.sayWeather, station: plan.sayStation, moment: plan.momentOk, annee: plan.yearOk, fiche: factSrc || false, deja_raconte: told.length,
       rubrique: rub ? rub.name : '', jeu: hook ? hook.type + ' (' + hook.truth + ')' : express ? 'express (' + express.truth + ')' : hookAnswer ? 'réponse' : '', feuilleton: episode ? episode.n : 0,
       clin_oeil: [stats ? 'stats' : '', local ? 'local' : ''].filter(Boolean).join('+'), eviter: plan.avoid.join(', ') });
+  // La voix : fabriquée une seule fois, tout de suite ou plus tard selon l'appelant.
+  const synth = async () => {
   let audio = null;
   let engine = '';
   let voiceInfo = "voix de l'ordinateur";
@@ -413,11 +419,18 @@ async function prepareAnnouncement(s, kind, prev, next, atMs) {
       voiceWarn(s, 'Voix Gemini : ' + e.message);
     }
   }
-  return { text: plain, audio, engine, s, kind, role: plan.free ? null : plan.role, saysTime: !!(plan.sayTime || plan.sayWeather), info: 'texte : ' + textInfo + ' · ' + voiceInfo + (useGemini() ? ' · émotions ' + (EMO_NAMES[emo] || emo) + (emotionSetting() === 'auto' ? ' (auto)' : '') : ''),
+  return { audio, engine, voiceInfo };
+  };
+  const infoOf = (voiceInfo) => 'texte : ' + textInfo + ' · ' + voiceInfo + (useGemini() ? ' · émotions ' + (EMO_NAMES[emo] || emo) + (emotionSetting() === 'auto' ? ' (auto)' : '') : '');
+  const ann = { text: plain, audio: null, engine: '', voiced: false, voiceP: null, s, kind, role: plan.free ? null : plan.role, saysTime: !!(plan.sayTime || plan.sayWeather), info: infoOf('voix à venir'),
     hook, hookAnswered: hookAnswer ? hookAnswer.id : null, scoreAfter: (hookAnswer && hookAnswer.score) || (express && express.score) || null,
     express, rubrique: fromClaude && rub ? rub.name : '', sting: fromClaude && gTalks && gPhase === 'arrivee' ? 'invite' : fromClaude && rub ? rub.sting : '',
     guestPhase: fromClaude ? gPhase : '', guestName: guest ? guest.name : '', sfx, dedic,
     memory: fromClaude ? memory : null, pickRefs: fromClaude && picks ? picks.refs : null, solo: duo ? '' : soloB ? 'B' : 'A' };
+  // ann.voice() : fabrique la voix (une seule fois, même demandée de plusieurs endroits) et rend l'annonce complète.
+  ann.voice = () => ann.voiceP || (ann.voiceP = synth().then((v) => { ann.audio = v.audio; ann.engine = v.engine; ann.info = infoOf(v.voiceInfo); ann.voiced = true; return ann; }));
+  if (!opts || opts.voice !== 'later') await ann.voice();
+  return ann;
 }
 
 async function getAnnouncement(s, kind, prev, next) {
@@ -426,7 +439,8 @@ async function getAnnouncement(s, kind, prev, next) {
   for (const pf of [s.prefetch, s.startPrefetch]) {
     if (!fits(pf)) continue;
     const r = await pf.promise;
-    if (r) return r;
+    // La voix d'une annonce préparée à l'avance n'est peut-être pas encore faite : on l'attend ici.
+    if (r) return r.voice ? r.voice() : r;
   }
   return prepareAnnouncement(s, kind, prev, next);
 }
@@ -436,6 +450,7 @@ const ROLE_NAMES = { programme: 'Programme', chronique: 'Chronique', culture: 'C
 async function sayIt(ann, opts) {
   const o = opts || {};
   if (!ann || !ann.text) { dlog('annonce', 'rien à dire (texte vide)'); return; }
+  if (ann.voice && !ann.voiced) await ann.voice();
   const s = ann.s;
   if (s && ann.hookAnswered && s.hook && s.hook.id === ann.hookAnswered) {
     if (ann.scoreAfter) s.score = ann.scoreAfter;
@@ -572,6 +587,8 @@ function wavSeconds(buf) {
 // Le titre suivant démarre doucement sous les derniers mots, et le fond sonore s'efface en même temps.
 const RAMP_LEAD = 3;
 async function startRamp(s, next) {
+  // Émission arrêtée entre-temps : le titre suivant ne démarre pas.
+  if (session !== s || s.status !== 'playing') return;
   s.ramping = next;
   next.announceKind = null;
   if (settings.radioBed) callSafe('bedStop', RAMP_LEAD + 1);
@@ -579,7 +596,7 @@ async function startRamp(s, next) {
   await playTrack(s, next, { silent: true });
   const t0 = Date.now();
   while (session === s && s.current === next && Date.now() - t0 < 6000 && !(ps.videoId === next.videoId && (ps.time || 0) > 0.15 && !ps.paused)) await sleep(100);
-  if (session !== s || s.current !== next) return;
+  if (session !== s || s.current !== next || s.status !== 'playing') return;
   next.fadedIn = true;
   next.fadeInAt = Date.now();
   callSafe('fadeTo', 0.3, 1.5);
@@ -688,7 +705,8 @@ async function runInterlude(s, prev, next) {
     const early = await Promise.race([annP, sleep(250).then(() => null)]);
     let jinglePlayed = false;
     if (settings.jingles && !(early && early.sting)) { await jingle(s, s.transitions % 3); jinglePlayed = true; }
-    if (settings.radioBed) callSafe('bedStart', 0.45, kitOpts());
+    // « Suivant » pendant le jingle : le fond sonore ne démarre pas (il tournait ensuite sur les titres suivants).
+    if (settings.radioBed && !s.skipInterlude) callSafe('bedStart', 0.45, kitOpts());
     // Pas plus de 20 s de blanc si l'annonce n'est pas prête.
     const tA = Date.now();
     const ann = await Promise.race([annP, sleep(20000).then(() => null), abortP]);
@@ -714,6 +732,8 @@ async function runInterlude(s, prev, next) {
     }
   } finally {
     clearInterval(guard);
+    // Interlude coupé ou émission arrêtée : plus de fond sonore, quoi qu'il se soit passé au-dessus.
+    if (settings.radioBed && (s.skipInterlude || session !== s || s.status !== 'playing')) callSafe('bedStop', 0.3);
     dlog('interlude', 'fin après ' + (Date.now() - tI) + ' ms', { remis_en_pause: reguards, coupe: !!s.skipInterlude });
     s.inInterlude = false;
     s.abortInterlude = null;
@@ -915,14 +935,31 @@ async function onTrackStarted(s, track) {
     const prev = kind === 'intro' ? null : (s.played[s.played.length - 1] || null);
     s.announcing = true;
     try {
-      callSafe('fadeTo', 0.28, 0.8);
       const annP = getAnnouncement(s, kind, prev, track);
+      // 2.36 : la voix n'est plus fabriquée d'avance (« Suivant » en plein titre : le texte est prêt, pas la voix).
+      // Si l'annonce n'est pas prête tout de suite, le titre joue à plein volume et ne baisse qu'au moment où
+      // l'animateur parle ; avant, la musique attendait baissée, jusqu'à 15 s.
+      const NOT_YET = {};
+      const quick = kind === 'talkover' ? await Promise.race([annP, sleep(350).then(() => NOT_YET)]) : null;
+      const waiting = quick === NOT_YET;
+      if (session !== s || s.current !== track) return;
+      if (waiting) callSafe('fadeTo', 1, fadeIn || 1.2);
+      else callSafe('fadeTo', 0.28, 0.8);
       if (kind === 'intro' && settings.jingles) await jingle(s, 0);
-      // Sur un titre déjà lancé, la musique baissée n'attend pas plus de 15 s : sinon, pas d'annonce.
-      const ann = kind === 'talkover' ? await Promise.race([annP, sleep(15000).then(() => null)]) : await annP;
+      // Sur un titre déjà lancé, l'annonce n'est pas attendue plus de 15 s : sinon, pas d'annonce.
+      const ann = kind !== 'talkover' ? await annP : waiting ? await Promise.race([annP, sleep(15000).then(() => null)]) : quick;
       if (session !== s || s.current !== track) return;
       if (!ann) { dlog('annonce', 'annonce pas prête après 15 s : titre lancé sans elle'); radioLog(s, 'Annonce trop longue à préparer : titre lancé sans elle.'); }
-      else await sayIt(ann);
+      else {
+        if (waiting) {
+          if (track.fadingOut || s.timerFading) return;
+          dlog('annonce', 'voix prête après le démarrage du titre : la musique baisse maintenant');
+          callSafe('fadeTo', 0.28, 0.8);
+          await sleep(600);
+          if (session !== s || s.current !== track) return;
+        }
+        await sayIt(ann);
+      }
     } finally {
       s.announcing = false;
     }
@@ -1076,14 +1113,21 @@ async function endSession(reason, fadeSecs) {
   if (!s || s.status === 'ended') return;
   dlog('session', 'fin (' + reason + ')', snapshot());
   s.status = 'ending';
+  // L'animateur se tait tout de suite (voix, fond sonore), et un interlude en cours est abandonné : avant, « Arrêter »
+  // laissait la voix finir, et le titre suivant pouvait encore démarrer après l'arrêt.
+  hush();
+  s.skipInterlude = true;
+  if (s.abortInterlude) s.abortInterlude();
+  if (s.fadeVoice) { s.fadeVoice = null; s.announcing = false; }
   callSafe('xfadeDrop', 'fin de session');
   if (fadeSecs > 0) {
     await callSafe('fadeTo', 0, fadeSecs);
     await sleep(fadeSecs * 1000 + 150);
   }
   if (reason !== 'stop') await callSafe('pause');
-  // Fin normale d'une sélection (durée atteinte, minuterie) : les animateurs font le bilan.
-  if (reason === 'fin' || reason === 'timer') await playRecap(s).catch((e) => dlog('annonce', 'bilan raté : ' + e.message));
+  // Fin normale d'une sélection (durée atteinte) : les animateurs font le bilan. Pas après la minuterie : la
+  // musique venait de s'éteindre en fondu, et les animateurs reprenaient la parole à plein volume.
+  if (reason === 'fin') await playRecap(s).catch((e) => dlog('annonce', 'bilan raté : ' + e.message));
   // Une nouvelle émission a démarré pendant le bilan : on clôt l'ancienne sans toucher au lecteur.
   if (session !== s) {
     if (s.current) { s.playedSec += s.current.lastTime || 0; s.played.push(s.current); remember(s.current); s.current = null; }
@@ -1141,6 +1185,10 @@ async function suspend(message) {
   const s = session;
   if (!s || s.status !== 'playing') return;
   s.status = 'suspended';
+  hush();
+  s.skipInterlude = true;
+  if (s.abortInterlude) s.abortInterlude();
+  if (s.fadeVoice) { s.fadeVoice = null; s.announcing = false; }
   callSafe('xfadeDrop', 'Mood DJ en pause');
   if (s.current) { s.queue.unshift(s.current); s.current = null; }
   await callSafe('fadeTo', 1, 0.5);

@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.35.0.
+Up to date with version 2.36.0.
 
 ---
 
@@ -159,14 +159,14 @@ Radio mode adds a host (or two) who talk between tracks. Most of it is in Settin
 - **Host styles**: Warm, Quirky, Late-night voice, Pro FM, General-interest radio, Sports commentator, TV presenter, Rock'n'roll, Learned music buff, Hyped morning show, Nostalgic storyteller, Deadpan, Zen. The style changes how the AI writes and, with Gemini, the voice's tone and default voice. With the computer voice, only the text changes.
 - **What makes the hosts talk?**:
   - **Computer**: voices installed on your computer — free and instant, but more robotic, no duo. To add voices: Windows, Settings › Time & language › Speech; Mac, System Settings › Accessibility › Spoken Content › System voice.
-  - **Gemini**: 30 natural Google voices, male or female, solo or duo. If Gemini doesn't answer or your credits run out, the computer voice takes over: the radio never goes silent.
+  - **Gemini**: 30 natural Google voices, male or female, solo or duo. If Gemini doesn't answer or your credits run out, the computer voice takes over: the radio never goes silent. When you save your first Gemini key, the hosts switch to the Gemini voices by themselves (a button in the message keeps the computer voice).
 
 ### Personality and memories
 
 With a Claude or Gemini key, each host has a **Personality**: tastes, a quirk, a bit of their life and, in a duo, a role (the organised one and the improviser, the veteran and the newcomer…). It is drawn at random the first time; you can rewrite it freely, or click **New personality**.
 
 - The AI uses it in small touches, never all at once.
-- When a host reveals something new about themselves on air ("I saw them live in 1998, in the rain"), Mood DJ remembers it, and the hosts refer back to it in later shows, like an old running joke. **Forget memories** clears them.
+- When a host reveals something new about themselves on air ("I saw them live in 1998, in the rain"), Mood DJ remembers it, and the hosts refer back to it in later shows, like an old running joke. Up to 100 memories are kept per host; the AI gets the 10 most recent plus a few older ones in rotation, and two near-identical memories are merged. **Show memories** lists them, most recent first, with a × button to forget a single one; **Forget memories** clears them all.
 - In a duo, a topic left hanging at one interlude can come back at the next one.
 - In **Economy** mode (see API keys › AI power), memories are neither recalled nor saved.
 
@@ -293,7 +293,7 @@ Played with the lineup on Every track:
 
 ### End-of-show recap
 
-Settings › The show › **End-of-show recap** (on by default): when a selection ends (length reached or timer), the hosts wrap up over a background bed — a memory or two, the guests, the game score and the next show on the schedule.
+Settings › The show › **End-of-show recap** (on by default): when a selection reaches its length, the hosts wrap up over a background bed — a memory or two, the guests, the game score and the next show on the schedule.
 
 ### Test buttons
 
@@ -403,7 +403,7 @@ Settings › **API keys** › **Enter key…**, or the remote › **API keys**. 
 
 - Free key: on [aistudio.google.com](https://aistudio.google.com), **Get API key** button, in a project **without billing**. A Google AI Pro subscription does not include a key, but the free key is enough.
 - On the free tier, quotas are limited and Google may use the text sent to improve its products.
-- Optional **paid key, as backup**: used when the free key hits its limit (per minute or per day).
+- Optional **paid key, as backup**: used when the free key hits its limit (per minute or per day). The two keys take turns: the free one refills every day, the paid one covers the gap. As long as one of them answers, nothing is shown; when neither does, the message says which key is in which state and when the free one comes back.
 - **Gemini model** for texts: Gemini 3.8 Flash (fast, recommended) or Gemini 4 Argon (newer, more expensive). If Google renames a model, Mood DJ picks the latest Flash by itself. For voices: Gemini 3.8 Flash TTS (best quality) or Flash-Lite TTS (more economical).
 - If Google refuses a key, the message says which one (free or paid) and why. If the free key is refused and a paid one is saved, the paid one takes over.
 - Error 402: the key's Google project uses prepaid billing with no credit. Free fix: create a key in a **new** project without billing. Paid fix: add credits at aistudio.google.com/billing ($5 minimum).
