@@ -683,7 +683,9 @@ async function writeAnnouncement(p) {
     const facet = fo.facet && fq(fo.facet.text, 420);
     // Une fiche que Mood DJ n'a pas su découper (autre alphabet, pas de phrases) n'est pas dosée : rien n'est interdit.
     if (facet || fo.hasFacets !== false) bits.push(facet ? "Un seul détail personnel peut affleurer, en passant et seulement s'il vient naturellement" + of(fo.facet.who) + ' : ' + facet + " Rien d'autre des fiches (autre goût, manie, objet, souvenir, ancien métier)."
-      : 'Aucun détail personnel cette fois : ni goût, ni manie, ni objet, ni souvenir, ni ancien métier.');
+      : 'Aucun détail personnel tiré des fiches cette fois : ni leurs goûts, ni leurs manies, ni leurs objets, ni leurs souvenirs, ni leur ancien métier.');
+    // Un aveu, une manie chambrée, un souvenir demandé par l'angle : ce n'est pas un « détail des fiches ».
+    if (p.angle && bits.length > 1) bits.push("Le sujet imposé par l'angle de cette intervention n'est pas concerné : il reste le sujet.");
     const tic = fo.tic && fq(fo.tic.text, 70);
     if (tic || fo.hasSayings !== false) bits.push(tic ? 'Expression fétiche : une seule au plus, « ' + tic + ' »' + of(fo.tic.who) + ', et seulement si elle tombe juste.'
       : 'Aucune expression fétiche des fiches (les tics entre guillemets) cette fois.');
@@ -704,7 +706,9 @@ async function writeAnnouncement(p) {
     const facts = (Array.isArray(lore.memories) ? lore.memories : []).map((m) => q(m, 200)).filter(Boolean).slice(-10);
     lines.push("L'UNIVERS DE LA STATION (le « lore » de l'émission, que les auditeurs fidèles connaissent) : " + q(lore.text, 1500) +
       (facts.length ? "\nCe qui s'est déjà passé à l'antenne dans cet univers (reste cohérent) :\n- " + facts.join('\n- ') : '') +
-      "\nCette fois, glisse UNE référence à cet univers (un personnage, un objet du studio, une légende, " + (p.duo ? 'leur histoire commune' : 'ton histoire avec ton coanimateur, absent aujourd\'hui') + " ou l'intrigue en cours), en passant, comme une blague entre habitués : une réplique ou une demi-phrase, jamais une explication ni un résumé. " +
+      (lore.focus
+        ? "\nCette fois, le bavardage porte sur cet univers : sers-t'en pour le sujet imposé, par petites touches concrètes (un personnage, un objet du studio, l'intrigue en cours), comme un potin entre habitués, sans l'expliquer ni le résumer. "
+        : "\nCette fois, glisse UNE référence à cet univers (un personnage, un objet du studio, une légende, " + (p.duo ? 'leur histoire commune' : 'ton histoire avec ton coanimateur, absent aujourd\'hui') + " ou l'intrigue en cours), en passant, comme une blague entre habitués : une réplique ou une demi-phrase, jamais une explication ni un résumé. ") +
       "Tu peux faire avancer un tout petit peu l'intrigue en cours. Ne contredis jamais cet univers, et la musique reste le sujet principal.");
   }
   // Le choix d'un animateur : il l'annonce lui-même, avant on le fait attendre, après on en reparle.

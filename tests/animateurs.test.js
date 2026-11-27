@@ -167,27 +167,62 @@ test('programme : une part des interventions devient une conversation, jamais de
   assert.equal(p.run('__n'), 0);
 });
 
-test('bavardage : 150 sujets sans doublon, aucun sujet « entre eux » pour un animateur seul, jamais deux bavardages rapprochés', () => {
+test('bavardage : 260 sujets sans doublon en six formats, rien « entre eux » pour un animateur seul, jamais deux bavardages rapprochés', () => {
   const p = loadPanel();
   const duo = [...p.run('CHAT_DUO')];
   const solo = [...p.run('CHAT_SOLO')];
-  assert.equal(duo.length, 150);
-  assert.equal(new Set(duo).size, 150);
-  assert.equal(solo.length, 130);
+  const pools = JSON.parse(JSON.stringify(p.run('CHAT_POOL')));
+  const all = duo.concat(...Object.values(pools));
+  assert.equal(duo.length, 145);
+  assert.equal(solo.length, 125);
+  assert.equal(all.length, 260);
+  assert.equal(new Set(all).size, 260);
+  assert.deepEqual([...p.run('CHAT_FORMATS.map((f) => f.id)')], ['papotage', 'dilemme', 'minijeu', 'rubrique', 'nouvelles', 'auditeurs']);
   const between = [...p.run('CHAT_TOPICS.entreEux')];
   assert.ok(between.every((x) => !solo.includes(x)));
-  // Ni saison, ni météo, ni actualité, ni musique : le bavardage reste hors de ces sujets.
+  // Ni saison, ni météo, ni actualité, ni musique : le papotage reste hors de ces sujets.
   for (const x of duo) assert.doesNotMatch(x, /(^|[^a-zà-ÿ])(hiver|été|printemps|automne|météo|noël|actualité|chanson|concert)s?([^a-zà-ÿ]|$)/i, x);
-  // Seul à l'antenne (voix de l'ordinateur) : le sujet imposé vient des 130.
-  p.run("Object.assign(settings, { chat: 'souvent', radioFreq: 'every', programme: false, voiceEngine: 'systeme' }); var __s = { lastLines: [], played: [], queue: [] }; var __t = []; var __at = [];" +
-    "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s, 'talkover', null, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.topic); __at.push(i * 4); } }");
+  // Seul à l'antenne (voix de l'ordinateur), en parlant à chaque titre : ni mini-jeu ni sujet « entre eux ».
+  p.run("Object.assign(settings, { chat: 'souvent', radioFreq: 'every', programme: false, voiceEngine: 'systeme', loreLevel: 'discret' }); var __s = { lastLines: [], played: [], queue: [] }; var __t = []; var __f = []; var __at = [];" +
+    "for (var i = 0; i < 600; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.topic); __f.push(pl.angle.format); __at.push(i * 4); } }");
   const topics = [...p.run('__t')];
+  const formats = [...p.run('__f')];
   const at = [...p.run('__at')];
-  assert.ok(topics.length > 20, 'le bavardage sort : ' + topics.length);
-  assert.ok(topics.every((x) => solo.includes(x)));
+  assert.ok(topics.length > 30, 'le bavardage sort : ' + topics.length);
+  assert.ok(topics.every((x) => !between.includes(x) && !pools.minijeu.includes(x)));
   assert.equal(new Set(topics).size, topics.length, 'aucun sujet repris dans l’émission');
+  assert.ok(new Set(formats).size >= 4, 'plusieurs formats sortent : ' + [...new Set(formats)].join(', '));
+  assert.ok(!formats.includes('minijeu'));
+  for (let i = 1; i < formats.length; i++) assert.notEqual(formats[i], formats[i - 1], 'le même format deux fois de suite');
   // Sur « Souvent », au moins 20 minutes entre deux bavardages, même quand les animateurs parlent à chaque titre.
   for (let i = 1; i < at.length; i++) assert.ok(at[i] - at[i - 1] >= 20, 'écart de ' + (at[i] - at[i - 1]) + ' min');
+  // Univers de la station coupé : pas de « nouvelles de la station », qui s'appuient dessus.
+  p.run("settings.loreLevel = 'off'; var __s2 = { lastLines: [], played: [], queue: [] }; var __f2 = [];" +
+    "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s2, 'interlude', null, { title: 'C', artist: 'D', key: 'z' + i }, 2e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') __f2.push(pl.angle.format); }");
+  assert.ok(![...p.run('__f2')].includes('nouvelles'));
+});
+
+test('discussions autour de la musique : quinze types, sujets sans doublon, tirés sans reprise', () => {
+  const p = loadPanel();
+  const T = JSON.parse(JSON.stringify(p.run('ANGLE_TOPICS')));
+  const ids = [...p.run("ANGLES_DUO.filter((a) => !/^anecdote/.test(a.id) && a.id !== 'bavardage').map((a) => a.id)")];
+  assert.deepEqual(ids.slice().sort(), ['auditeur', 'aveu', 'chambre', 'coulisses', 'debat', 'defi', 'devinette', 'lien', 'mode_emploi', 'question', 'rappel', 'reaction', 'teaser', 'vanne', 'verdict']);
+  let n = 0;
+  for (const k of Object.keys(T)) {
+    assert.ok(ids.includes(k), k + ' a des sujets mais pas d’angle');
+    assert.equal(new Set(T[k]).size, T[k].length, 'doublon dans ' + k);
+    n += T[k].length;
+  }
+  assert.equal(n, 249);
+  // Un angle qui parle du titre qu'on vient d'écouter ne sort pas s'il n'y en a pas (début d'émission).
+  p.run("hasGemini = true; Object.assign(settings, { voiceEngine: 'gemini', duo: true, chat: 'off', programme: false, radioFreq: 'every' }); var __ids = {}; var __s = { lastLines: [], played: [], queue: [] };" +
+    "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s, 'interlude', null, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 6e5, null, 0, false); __ids[pl.angle.id] = 1; }");
+  const seen = Object.keys(JSON.parse(JSON.stringify(p.run('__ids'))));
+  for (const id of ['debat', 'coulisses', 'verdict', 'lien', 'reaction']) assert.ok(!seen.includes(id), id + ' sans titre précédent');
+  for (const id of ['mode_emploi', 'defi', 'aveu', 'teaser', 'question']) assert.ok(seen.includes(id), id + ' ne sort jamais');
+  // Le sujet imposé est ajouté à la consigne de l'angle, avec son intitulé.
+  p.run("var __pl; for (var i = 0; i < 300; i++) { __pl = planAnnouncement(__s, 'interlude', null, { title: 'C', artist: 'D', key: 'q' + i }, 3e12 + i * 6e5, null, 0, false); if (__pl.angle.id === 'defi') break; }");
+  assert.match(p.run('__pl.angle.txt'), /Défi imposé cette fois : /);
 });
 
 test('phrases toutes faites : on parle aux auditeurs (« vous »), sans prénom', () => {

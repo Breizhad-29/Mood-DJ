@@ -609,8 +609,8 @@ function b64ToBuffer(b64) {
 // l'heure et la météo ne reviennent que de temps en temps, et les mots déjà trop entendus
 // sont signalés à Claude pour qu'il les évite.
 const ANGLES_DUO = [
-  { id: 'chambre', w: 3, txt: "B chambre gentiment A (ses goûts musicaux, sa façon d'annoncer, une petite manie d'animateur) et A se défend avec humour, puis l'un des deux lance le titre suivant." },
-  { id: 'debat', w: 3, txt: "Petit désaccord amical sur le titre qu'on vient d'écouter ou sur son artiste : l'un adore, l'autre est moins convaincu, chacun défend son avis en une phrase, puis ils lancent le suivant." },
+  { id: 'chambre', w: 3, txt: "L'un des deux chambre gentiment l'autre (ses goûts musicaux, sa façon d'annoncer, une petite manie d'animateur) ; l'autre se défend avec humour, puis l'un des deux lance le titre suivant." },
+  { id: 'debat', w: 3, prev: true, txt: "Petit désaccord amical sur le titre qu'on vient d'écouter : l'un adore, l'autre est moins convaincu, chacun défend son avis en une phrase, puis ils lancent le suivant. Si tu ne connais pas précisément ce morceau, reste sur le ressenti et l'usage, sans décrire un instrument ni un passage." },
   { id: 'devinette', w: 2, facts: 'next', txt: "A fait deviner le titre suivant à B avec un indice sur l'artiste ou l'ambiance du morceau ; B tente une réponse, juste ou drôlement à côté, puis A dévoile le titre et l'artiste." },
   { id: 'anecdote', w: 2, facts: 'next', txt: "L'un raconte l'histoire vraie du titre suivant (pourquoi ou pour qui il a été écrit, à quelle occasion, ce qu'il raconte vraiment) ou une anecdote sur son groupe ; l'autre relance avec une question, une surprise ou une vanne, le premier complète, puis ils lancent le titre." },
   { id: 'anecdote_prev', w: 2, facts: 'prev', txt: "Ils reviennent sur le titre qu'on vient d'écouter en racontant son histoire vraie (pourquoi il a été écrit, pour quel événement, ce qu'il raconte) ou une anecdote sur son groupe ; l'autre réagit et relance, puis ils lancent le suivant." },
@@ -623,10 +623,18 @@ const ANGLES_DUO = [
   { id: 'anecdote_revanche', share: 0.6, facts: 'next', txt: "Si les fiches le disent : un échec devenu succès pour le titre suivant ou son groupe (refusé par les maisons de disques, flop à sa sortie puis culte, sauvé de justesse) ; sinon l'histoire du morceau. L'autre réagit, puis ils le lancent." },
   { id: 'anecdote_epoque', share: 0.6, facts: 'next', year: true, txt: "Retour sur l'année de sortie du titre suivant : un fait marquant et certain de cette année-là (actualité, mode, technologie, autre tube), relié au morceau si possible. L'autre réagit, puis ils lancent le titre." },
   { id: 'anecdote_lien', share: 0.6, facts: 'both', txt: "Un vrai lien entre l'artiste qu'on vient d'écouter et le suivant, d'après les fiches (un membre en commun, une première partie, une influence avouée, le même producteur, la même ville) ; à défaut, un point commun réel (époque, ville, style). Puis ils lancent le titre." },
-  { id: 'lien', w: 2, txt: "Ils trouvent un lien amusant ou inattendu entre le titre écouté et le suivant (thème, ambiance, artistes), puis lancent le suivant." },
+  { id: 'lien', w: 2, prev: true, txt: "Ils trouvent un lien amusant ou inattendu entre le titre écouté et le suivant (l'ambiance, l'énergie, le thème, les titres eux-mêmes), sans inventer de fait sur les artistes, puis lancent le suivant." },
   { id: 'vanne', w: 2, txt: "Une vanne bon enfant sur le style musical, ses clichés ou le titre du morceau suivant ; l'autre surenchérit, puis l'un des deux annonce le titre." },
-  { id: 'reaction', w: 2, facts: 'prev', txt: "Ils réagissent à chaud au titre qu'on vient d'écouter (la voix, le refrain, l'effet qu'il fait), avec des avis différents, puis enchaînent sur le suivant." },
-  { id: 'auditeur', w: 1, txt: "Ils s'adressent directement aux auditeurs, à tous ceux qui écoutent (ce qu'ils font sans doute en ce moment, une question complice lancée à la cantonade), puis lancent le titre." },
+  { id: 'reaction', w: 2, facts: 'prev', txt: "Ils réagissent à chaud au titre qu'on vient d'écouter, avec des avis différents, puis enchaînent sur le suivant. Si tu ne connais pas précisément ce morceau, reste sur le ressenti et l'usage, sans décrire un instrument ni un passage." },
+  { id: 'auditeur', w: 1, txt: "Ils s'adressent directement aux auditeurs, à tous ceux qui écoutent, d'une question complice ou d'une consigne lancée à la cantonade, puis lancent le titre." },
+  // Nouveaux types de discussion autour de la musique (2.35).
+  { id: 'mode_emploi', w: 2, txt: "Le mode d'emploi du titre suivant : l'un donne, avec le sérieux d'une notice, la façon de l'écouter ; l'autre ajoute une consigne ou en conteste une. Puis ils le lancent." },
+  { id: 'defi', w: 1.5, txt: "L'un lance à l'autre un petit défi à tenir pendant le titre suivant ; l'autre relève, négocie ou triche déjà. Puis ils lancent le titre." },
+  { id: 'aveu', w: 2, txt: "L'un fait un petit aveu musical, sans prétendre avoir rencontré un artiste ni assisté à un concert précis ; l'autre réagit selon son caractère (compatit, se moque gentiment, ou avoue pire). Puis ils lancent le titre suivant." },
+  { id: 'coulisses', w: 1.5, prev: true, txt: "Ils racontent ce qui s'est passé dans le studio pendant le titre qu'on vient d'écouter ; l'un accuse, l'autre nie, confirme ou en rajoute. Puis ils lancent le suivant." },
+  { id: 'teaser', w: 1.5, txt: "Ils font monter l'envie du titre suivant sans le nommer tout de suite ; l'autre s'impatiente ou essaie de deviner ; puis ils le nomment et le lancent." },
+  { id: 'verdict', w: 1.5, prev: true, txt: "Chacun donne sa note sur dix au titre qu'on vient d'écouter et la justifie en quelques mots : des notes généreuses (on ne descend jamais un titre de la programmation), mais jamais la même. Puis ils lancent le suivant." },
+  { id: 'question', w: 2, txt: "L'un pose à l'autre une question personnelle sur son rapport à la musique ; l'autre répond franchement en une ou deux phrases (sans faux souvenir avec un vrai artiste), puis retourne la question ou lance le titre suivant." },
   { id: 'bavardage', w: 2, txt: "Un moment de bavardage, hors musique : ils parlent d'autre chose, comme deux collègues entre deux disques, en quelques répliques légères et sans chercher la vanne à tout prix ; puis l'un des deux revient à la musique et lance le titre suivant." },
   { id: 'rappel', w: 1, history: true, txt: "Ils rebondissent sur une remarque d'une annonce précédente (voir la liste) comme un running gag, puis passent au titre suivant." }
 ];
@@ -647,52 +655,88 @@ const ANGLES_SOLO = [
   { id: 'anecdote_epoque', share: 0.6, facts: 'next', year: true, txt: "Un fait marquant et certain de l'année de sortie du titre suivant (actualité, mode, technologie, autre tube), relié au morceau si possible, puis annonce-le." },
   { id: 'anecdote_lien', share: 0.6, facts: 'both', txt: "Un vrai lien entre l'artiste qu'on vient d'écouter et le suivant d'après les fiches (membre commun, première partie, influence, même ville) ; à défaut un point commun réel. Puis annonce le titre." },
   { id: 'vanne', w: 1, txt: "Un trait d'humour léger sur le titre ou l'artiste suivant." },
+  { id: 'mode_emploi', w: 1.5, txt: "Le mode d'emploi du titre suivant, donné avec le sérieux d'une notice : la façon de l'écouter. Puis annonce-le." },
+  { id: 'aveu', w: 1, txt: "Un petit aveu musical, glissé aux auditeurs comme une confidence (sans prétendre avoir rencontré un artiste ni assisté à un concert précis), puis annonce le titre suivant." },
+  { id: 'coulisses', w: 1, prev: true, txt: "Raconte en une phrase ce qui s'est passé dans le studio pendant le titre qu'on vient d'écouter, puis annonce le suivant." },
   { id: 'bavardage', w: 2, solo: true, txt: "Un mot de bavardage, hors musique, comme une confidence glissée à l'antenne ; puis reviens à la musique et annonce le titre suivant." }
 ];
 // Sujets précis pour les angles qui finissent sinon toujours pareil (la même vanne trois fois
 // dans la soirée) : un sujet est tiré au sort à chaque fois, sans reprise dans la session.
-// Bavardage (2.35) : 150 sujets hors musique, sans saison, sans actualité et sans lieu précis, rangés par famille.
-// Les six premières familles (130 sujets) valent pour un animateur seul comme pour un duo ; « entreEux » demande deux animateurs.
+// Bavardage, hors musique (2.35). « Papotage » : 145 sujets sans saison, sans actualité et sans lieu précis, rangés
+// par famille ; les cinq premières familles valent pour un animateur seul comme pour un duo, « entreEux » demande
+// deux animateurs. Cinq autres formats ont chacun leurs sujets (CHAT_POOL) : en tout, 260 sujets hors musique.
 const CHAT_TOPICS = {
   quotidien: ["le repas raté (ou réussi) du jour", "la nuit trop courte de la veille", "le café ou le thé du moment, et la tasse de trop", "un rêve bizarre fait cette nuit", "ce qu'il y a de prévu en sortant du studio", "le réveil qui n'a pas sonné", "une course oubliée, encore", "les clés perdues, puis retrouvées au pire endroit", "un vêtement mis à l'envers sans s'en rendre compte", "la lessive qui attend depuis trop longtemps", "un téléphone à trois pour cent de batterie", "la liste de choses à faire qui ne raccourcit jamais", "le seul plat qu'on sait vraiment faire", "la sieste, pour ou contre", "le petit-déjeuner idéal", "un objet acheté sans raison et jamais utilisé", "une notice de montage impossible à suivre", "le tiroir fourre-tout que tout le monde a chez soi", "une plante qu'on essaie de garder en vie", "le grignotage de fin de soirée", "un mot de passe oublié pour la dixième fois", "le rangement toujours remis à demain", "une recette tentée après l'avoir vue en vidéo", "la tasse préférée, et pourquoi on n'en change pas", "ce qu'on trouve au fond de ses poches aujourd'hui"],
   studio: ["un petit objet du studio qui a disparu", "un bruit bizarre ou une petite panne dans le studio", "un message reçu d'un collègue ou d'un proche de la station", "un petit rituel d'avant-émission", "ce qui traîne sur la table du studio", "le chauffage du studio, éternel sujet de discorde", "la chaise du studio qui grince", "un câble dont personne ne sait à quoi il sert", "le bouton de la console qu'il ne faut surtout pas toucher", "le casque qui a rendu l'âme", "un mot mystérieux retrouvé collé sur la console", "la réserve de biscuits du studio, et qui la vide", "la lumière du studio, trop forte ou trop faible", "une vieille affiche accrochée au mur", "le stylo qui ne marche jamais quand il faut", "un carton jamais déballé dans un coin", "la pendule du studio, toujours un peu en avance", "un micro capricieux", "la meilleure place du studio, que tout le monde se dispute", "une odeur inexpliquée dans le studio", "la bouilloire ou la cafetière du studio, et ses humeurs", "le ménage du studio, et à qui c'est le tour", "une mise à jour du matériel qui a tout déréglé", "les objets oubliés par les visiteurs", "ce qu'on voit par la fenêtre du studio, sans dire où", "ce qu'un collègue écoute en boucle hors antenne", "le carnet où quelqu'un note tout", "un vieil objet retrouvé au fond d'un tiroir du studio", "le porte-bonheur du studio", "le voyant rouge de l'antenne, et ce qu'on fait quand il s'éteint"],
   soi: ["le métier d'avant la radio", "un souvenir d'enfance lié à un long trajet", "le pire talent caché", "une bonne résolution déjà abandonnée", "une chose apprise cette semaine", "ce qui fait rire en ce moment", "le métier rêvé quand on était enfant", "une peur un peu ridicule", "une collection commencée et jamais finie", "un sport tenté une seule fois", "le plus beau raté en cuisine", "une langue qu'on aurait aimé parler", "un surnom d'enfance", "la matière détestée à l'école", "un petit plaisir un peu honteux, qui n'a rien de musical", "un objet gardé depuis toujours", "le pire cadeau jamais reçu", "le meilleur conseil jamais reçu", "une superstition qu'on respecte quand même", "un talent parfaitement inutile", "ce qu'on ferait d'une journée sans rien de prévu", "un jeu d'enfance auquel on rejouerait bien", "une manie de rangement", "une chose qu'on ne sait toujours pas faire à son âge", "le premier petit boulot", "une habitude prise récemment", "ce qu'on emporte toujours en voyage", "une invention qu'on aimerait voir exister", "le sens de l'orientation, ou son absence", "une petite victoire de la semaine"],
   jeux: ["un débat absurde : le superpouvoir le plus inutile", "un débat absurde : la pire invention du quotidien", "un top 3 improbable, improvisé", "ce qu'on emporterait sur une île déserte (pas de disque)", "un débat absurde : le meilleur moment de la journée", "un débat absurde : chat ou chien, sans se fâcher", "un débat absurde : le meilleur parfum de glace", "un débat absurde : la meilleure place dans une voiture", "un débat absurde : sucré ou salé au petit-déjeuner", "un débat absurde : escalier ou ascenseur", "un débat absurde : l'ananas sur la pizza", "l'époque où on aimerait passer une semaine", "le métier qu'on ferait pendant une seule journée", "pouvoir revenir dix secondes en arrière : pour quoi faire", "trois objets pour décrire quelqu'un", "le pire nom possible pour un animal de compagnie", "inventer une fête qui n'existe pas", "le mot le plus drôle de la langue", "la devise que pourrait avoir le studio", "le classement des jours de la semaine", "une règle à ajouter à un jeu de société", "le meilleur bruit du quotidien", "la question à poser à un extraterrestre", "un sport qui devrait exister", "le pire superhéros imaginable"],
   culture: ["un film ou une série vus récemment, sans rien divulguer", "un jeu vidéo ou un jeu de société du moment", "un livre ou une bande dessinée en cours", "un film vu dix fois sans s'en lasser", "le méchant de fiction préféré", "une série jamais terminée", "un dessin animé d'enfance", "un livre commencé trois fois", "le pire film vu jusqu'au bout", "une réplique de film qu'on ressort à tout propos", "un personnage de fiction avec qui on partirait en voyage", "un jeu auquel on triche un peu", "un documentaire qui a fait changer d'avis", "le héros de fiction le plus agaçant", "une fin d'histoire qu'on aurait écrite autrement, sans rien divulguer"],
-  auditeurs: ["une question lancée aux auditeurs, sans attendre de réponse", "un petit défi lancé aux auditeurs d'ici la fin du prochain titre", "un merci à ceux qui écoutent depuis longtemps", "un sondage pour rire auprès des auditeurs", "le conseil du jour aux auditeurs, parfaitement inutile"],
   entreEux: ["la tenue de l'autre aujourd'hui", "un mot que l'un des deux n'arrive jamais à prononcer", "le dernier fou rire hors antenne", "un compliment sincère, pour une fois", "un pari stupide entre eux", "ce que l'un a emprunté à l'autre et jamais rendu", "la fois où l'un a sauvé la mise à l'autre", "qui arrive toujours le premier, et qui le dernier", "le défaut de l'autre qu'on finit par trouver attachant", "un secret de polichinelle entre eux", "ce que l'un sait faire et que l'autre lui envie", "qui range, et qui dérange", "le souvenir de leur première émission ensemble", "un désaccord vieux de plusieurs années, toujours pas réglé", "ce que l'un mange et que l'autre ne supporte pas", "qui conduit, et qui lit la carte", "le cadeau que l'un devrait offrir à l'autre", "l'imitation que l'un fait de l'autre", "ce qu'ils feraient s'ils échangeaient leurs places une journée", "la dette d'honneur que l'un doit encore à l'autre"]
 };
-const CHAT_SOLO = [].concat(CHAT_TOPICS.quotidien, CHAT_TOPICS.studio, CHAT_TOPICS.soi, CHAT_TOPICS.jeux, CHAT_TOPICS.culture, CHAT_TOPICS.auditeurs);
+const CHAT_SOLO = [].concat(CHAT_TOPICS.quotidien, CHAT_TOPICS.studio, CHAT_TOPICS.soi, CHAT_TOPICS.jeux, CHAT_TOPICS.culture);
 const CHAT_DUO = CHAT_SOLO.concat(CHAT_TOPICS.entreEux);
-const ANGLE_TOPICS = {
-  chambre: ['un plaisir coupable musical inavouable', "ce qu'il ou elle boit pendant l'émission", 'sa façon de taper du pied à contretemps', 'sa manie de chanter faux les refrains',
-    'son attachement à un vieux matériel (platine, casque, vieil ampli)', 'son retard au début de l\'émission', 'ses jeux de mots ratés', 'sa playlist de sport',
-    'ses théories farfelues sur les groupes', 'un karaoké raté', 'sa manie de noter les solos de guitare', 'son air de connaisseur quand il ou elle ne connaît pas',
-    'le grignotage en douce pendant les chansons', 'sa tenue imaginée ce soir', 'son premier concert', 'sa façon de danser', 'sa façon d\'annoncer les titres'],
-  debat: ['la voix', 'le solo', 'la longueur du morceau', 'les paroles', 'le refrain', 'la batterie', 'la pochette de l\'album', 'la version live ou studio', "l'intro",
-    'le son de la production', 'le meilleur album du groupe', 'si ça passe en soirée', "à quelle heure il faut l'écouter", 'la basse', 'le titre du morceau'],
-  reaction: ['la voix', 'le riff', 'le refrain', 'la batterie', 'la fin du morceau', "l'énergie", 'les paroles', 'le son', "l'intro"],
-  vanne: ['les clichés du style', 'le titre du morceau', 'le nom du groupe', 'les coiffures de l\'époque', 'les tenues de scène', 'la longueur des solos', 'les fans du genre',
-    "l'heure tardive", 'les pochettes de disques', 'les clips de l\'époque'],
-  bavardage: CHAT_DUO
+const CHAT_POOL = {
+  dilemme: ["ne plus jamais manger de fromage, ou ne plus jamais manger de chocolat", "avoir toujours trop chaud, ou toujours trop froid", "parler toutes les langues, ou parler aux animaux", "vivre sans téléphone, ou sans chaussures", "être toujours en avance d'une heure, ou en retard de dix minutes", "voler à un mètre du sol, ou être invisible seulement quand personne ne regarde", "éternuer des paillettes, ou rire comme une porte qui grince", "ne manger que des pâtes, ou ne plus jamais en manger", "être annoncé par un crieur à chaque entrée dans une pièce, ou applaudi à chaque sortie", "tout savoir sur un seul sujet, ou un peu sur tout", "la montagne sans jamais redescendre, ou la mer sans jamais se baigner", "des mains à la place des pieds, ou des pieds à la place des mains", "dire tout ce qu'on pense, ou ne plus jamais donner son avis", "revivre toujours le même lundi, ou sauter tous les week-ends", "un dragon de la taille d'un chat, ou un chat de la taille d'un dragon", "ne plus jamais faire la queue, ou ne plus jamais chercher ses clés", "une mémoire parfaite, ou pouvoir tout oublier à volonté", "vivre dans un phare, ou sur une péniche", "se téléporter mais arriver toujours en retard, ou voler mais très lentement", "être célèbre pour une chose ridicule, ou inconnu pour une chose géniale", "ne parler qu'en rimes, ou ne parler qu'en questions", "un café toujours trop chaud, ou toujours tiède", "connaître la fin de tous les films, ou ne jamais voir la fin d'aucun", "un caillou dans la chaussure pour toujours, ou une manche toujours mouillée", "un jardin sans maison, ou une maison sans fenêtres", "être le meilleur du monde à un jeu que personne ne connaît, ou moyen à tout", "vivre cent ans dans le passé, ou cent ans dans le futur", "un robot qui fait le ménage mais commente tout, ou pas de robot", "ne plus jamais avoir sommeil, ou ne plus jamais avoir faim", "le petit-déjeuner à tous les repas, ou plus jamais de petit-déjeuner", "savoir réparer tout ce qui casse, ou ne jamais rien casser", "toujours dire la vérité, ou toujours mentir très mal", "un sac sans fond impossible à ranger, ou des poches minuscules toujours pleines", "lire deux fois plus vite, ou tout retenir du premier coup", "un double qui fait toutes les corvées mais raconte tout, ou tout faire soi-même", "ne plus pouvoir s'asseoir, ou ne plus pouvoir rester debout", "une chambre dans une bibliothèque, ou dans une boulangerie", "mettre le monde sur pause cinq minutes par jour, ou l'accélérer pendant une heure", "être suivi partout par un canard affectueux, ou par une chèvre jalouse", "avoir un avis sur tout, ou ne jamais avoir d'avis sur rien"],
+  minijeu: ["ni oui ni non, pendant trois répliques", "le mot interdit : l'un impose un mot que l'autre ne doit plus dire", "trois mots pour décrire la journée, pas un de plus", "la phrase à finir : l'un commence, l'autre termine", "le portrait chinois express (si l'autre était un objet, un plat, un meuble)", "deviner à quoi pense l'autre en trois questions", "l'alphabet : chaque réplique commence par la lettre suivante", "vrai ou faux sur la vie du studio, ouvertement pour rire", "dire le plus de choses possible en une seule phrase", "pierre, feuille, ciseaux, raconté à la radio", "le jeu des contraires : répondre l'inverse de ce qu'on pense", "inventer la définition d'un mot qui n'existe pas", "le téléphone arabe à deux", "celui qui rit a perdu", "ne répondre que par des questions"],
+  rubrique: ["l'horoscope du studio, ouvertement farfelu", "le conseil pratique du jour, parfaitement inutile", "le mot du jour, inventé de toutes pièces", "la minute philosophie de comptoir", "le bulletin de santé de la cafetière", "le bulletin du studio (température, humeur, taux de café), sans rapport avec le vrai temps qu'il fait", "les petites annonces du studio (objet perdu, chaise à donner)", "le classement de la semaine dans le studio", "le record du monde le plus inutile, inventé pour l'occasion", "la recette express impossible à réussir", "le point circulation dans le couloir du studio", "la bonne résolution de la semaine, à ne surtout pas tenir", "le flash info du studio, où rien d'important ne s'est passé", "la leçon de savoir-vivre à l'antenne", "le dicton du jour, inventé", "la question existentielle de la semaine", "le bilan sportif de l'équipe (monter l'escalier compte)", "le guide de survie en studio", "l'objet du mois, élu à l'unanimité moins une voix", "la minute bricolage, sans outil et sans résultat"],
+  nouvelles: ["quelqu'un de la station a fait parler de lui aujourd'hui", "un objet du studio a encore fait des siennes", "l'affaire en cours à la station a un peu avancé", "quelqu'un de la station a laissé un mot", "une petite réparation de fortune", "une visite surprise hors antenne", "un pari en cours dans l'équipe", "la dernière lubie de quelqu'un de l'équipe", "ce que l'équipe prépare en secret", "une vieille histoire de la station qui ressort", "une dispute pour rire dans l'équipe, et qui l'a gagnée", "un coup de fil reçu hors antenne", "ce que quelqu'un a cuisiné pour toute l'équipe", "un objet de la station qu'il faudrait remplacer depuis longtemps", "le rangement du studio, encore repoussé", "une idée d'émission spéciale lancée par quelqu'un de l'équipe", "un souvenir commun de leurs débuts", "une nouvelle règle dans le studio", "un petit exploit de quelqu'un de l'équipe", "ce que quelqu'un de l'équipe a oublié au studio"],
+  auditeurs: ["une question lancée aux auditeurs, sans attendre de réponse", "un petit défi lancé aux auditeurs d'ici la fin du prochain titre", "un merci à ceux qui écoutent depuis longtemps", "un sondage pour rire auprès des auditeurs", "le conseil du jour aux auditeurs, parfaitement inutile", "une devinette posée aux auditeurs, avec la réponse à la prochaine intervention", "un vote à main levée, invisible à la radio", "la permission officielle de ne rien faire pendant trois minutes", "un mot pour ceux qui viennent d'arriver", "un mot pour ceux qui sont là depuis le début", "une excuse officielle, offerte aux auditeurs, pour être en retard", "un engagement solennel pris devant les auditeurs", "un secret confié aux auditeurs, à ne pas répéter", "un compliment collectif aux auditeurs", "une consigne de sécurité absurde", "une question de goût posée aux auditeurs, hors musique", "une minute de gratitude, sans ironie", "un pari pris avec les auditeurs", "le mot de passe du jour, pour les habitués", "une promesse faite aux auditeurs, à tenir plus tard dans l'émission"]
 };
+// Les formats du bavardage : le même angle « bavardage » (donc la même fréquence), mais six façons de le faire.
+// duoOnly : il faut deux animateurs ; long : pas par-dessus une intro ; lore : s'appuie sur l'univers de la station.
+const CHAT_FORMATS = [
+  { id: 'papotage', w: 5,
+    duo: "Un moment de bavardage, hors musique : ils parlent d'autre chose, comme deux collègues entre deux disques, en quelques répliques légères et sans chercher la vanne à tout prix ; puis l'un des deux revient à la musique et lance le titre suivant. Sujet imposé cette fois :",
+    solo: "Un mot de bavardage, hors musique, comme une confidence glissée à l'antenne ; puis reviens à la musique et annonce le titre suivant. Sujet imposé cette fois :" },
+  { id: 'dilemme', w: 2,
+    duo: "Un « tu préfères », hors musique : l'un soumet à l'autre un dilemme absurde, l'autre choisit et se justifie avec le plus grand sérieux, puis renvoie la question en une ligne ; ensuite l'un des deux revient à la musique et lance le titre suivant. Le dilemme :",
+    solo: "Un dilemme absurde, hors musique, soumis aux auditeurs : réponds-y toi-même avec le plus grand sérieux, en une ou deux phrases, puis annonce le titre suivant. Le dilemme :" },
+  { id: 'minijeu', w: 1.5, duoOnly: true, long: true,
+    duo: "Un mini-jeu express entre eux, hors musique, en trois ou quatre répliques : l'un des deux le perd, ou le fait dérailler ; puis ils lancent le titre suivant. Le jeu :" },
+  { id: 'rubrique', w: 1.5,
+    duo: "Une fausse rubrique, hors musique, annoncée avec le plus grand sérieux et ouvertement farfelue (personne ne doit pouvoir la croire vraie, et aucun fait réel n'y est affirmé) : l'un la présente, l'autre joue le jeu ou la démonte ; puis ils lancent le titre suivant. La rubrique :",
+    solo: "Une fausse rubrique, hors musique, annoncée avec le plus grand sérieux et ouvertement farfelue (personne ne doit pouvoir la croire vraie, et aucun fait réel n'y est affirmé), en deux phrases ; puis annonce le titre suivant. La rubrique :" },
+  { id: 'nouvelles', w: 2, lore: true,
+    duo: "Des nouvelles de la vie de la station, hors antenne et hors musique, racontées comme un petit potin entre collègues, en s'appuyant sur l'univers de la station ; puis ils lancent le titre suivant. Le sujet :",
+    solo: "Des nouvelles de la vie de la station, hors antenne et hors musique, glissées comme un petit potin, en t'appuyant sur l'univers de la station ; puis annonce le titre suivant. Le sujet :" },
+  { id: 'auditeurs', w: 1.5,
+    duo: "Un mot directement pour les auditeurs, pour tous ceux qui écoutent, hors musique ; l'autre renchérit ou tempère ; puis ils lancent le titre suivant. Le sujet :",
+    solo: "Un mot directement pour les auditeurs, pour tous ceux qui écoutent, hors musique ; puis annonce le titre suivant. Le sujet :" }
+];
+// Discussions autour de la musique : sujets imposés, tirés sans reprise dans l'émission (51 avant la 2.35, 249 depuis).
+// Les sujets tiennent au ressenti et à l'usage d'un titre plus qu'à sa technique : l'IA n'entend pas le morceau.
+const ANGLE_TOPICS = {
+  chambre: ["un plaisir coupable musical inavouable", "ce qu'il ou elle boit pendant l'émission", "sa façon de taper du pied à contretemps", "sa manie de chanter faux les refrains", "son attachement à un vieux matériel (platine, casque, vieil ampli)", "son retard au début de l'émission", "ses jeux de mots ratés", "sa playlist de sport", "ses théories farfelues sur les groupes", "un karaoké raté", "sa manie de noter les solos de guitare", "son air de connaisseur quand il ou elle ne connaît pas", "le grignotage en douce pendant les chansons", "sa tenue imaginée aujourd'hui", "son premier concert", "sa façon de danser", "sa façon d'annoncer les titres", "sa façon de monter le son sans prévenir", "ses transitions un peu trop longues", "sa mémoire des dates, qu'il ou elle étale volontiers", "ses imitations de chanteurs", "sa batterie imaginaire sur le bord de la table", "sa mauvaise foi sur un style qu'il ou elle prétend détester", "ses pronostics musicaux jamais vérifiés", "son sifflement approximatif", "sa façon de fermer les yeux sur les ballades", "son classement des meilleurs albums, refait chaque semaine", "ses histoires qui commencent toujours pareil", "son casque réglé beaucoup trop fort", "sa manie de finir les phrases des chansons", "son grand sérieux quand il ou elle parle du vrai son", "sa nostalgie du c'était mieux avant", "ses fredonnements pendant que l'autre parle", "sa façon de présenter chaque titre comme le meilleur de tous les temps", "son incapacité à retenir les paroles", "ses solos de guitare imaginaire", "ses surnoms pour tous les groupes", "sa collection de billets de concert", "son vocabulaire de spécialiste", "ses silences dramatiques avant d'annoncer un titre"],
+  debat: ["en voiture ou au casque", "à fond ou en sourdine", "pour danser ou pour rester assis", "à chanter à tue-tête ou à écouter sans un mot", "chanson de début ou de fin de soirée", "une fois suffit, ou deux fois de suite", "seul ou à plusieurs", "le matin ou tard le soir", "tube ou chef-d'œuvre", "trop entendu ou jamais assez", "meilleur sur scène ou sur disque (question de goût, sans rien affirmer)", "le refrain ou les couplets", "le titre du morceau, bien ou mal choisi", "a-t-il bien vieilli", "à passer à un mariage, ou surtout pas", "pour la route ou pour le canapé", "pour se donner du courage ou pour souffler", "pour le ménage ou pour le sport", "à mettre en réveil, ou surtout pas", "au karaoké : facile ou piège", "les yeux fermés ou en faisant autre chose", "plaisir coupable ou fierté assumée", "en entier ou juste le refrain", "pour un départ ou pour un retour", "à siffler ou impossible à siffler", "pour les lundis ou pour les vendredis", "slow ou pas slow", "pour un trajet court ou pour un long voyage", "ce qu'on fait pendant le refrain", "la voix", "la longueur du morceau", "le début du morceau", "le solo, s'il y en a un", "la batterie", "la basse", "le son de la production"],
+  reaction: ["l'effet que ça fait", "l'envie que ça donne", "le frisson, ou pas", "la voix", "le refrain qui reste en tête", "l'énergie", "le volume auquel on l'a écouté", "le moment où on a monté le son", "qui a chanté par-dessus", "qui a tapé du pied", "l'humeur dans le studio après le morceau", "ce qu'on aurait envie de faire maintenant", "le silence juste après", "un seul mot pour le résumer", "le sourire que ça met", "la nostalgie que ça réveille", "l'envie de le remettre tout de suite", "ce qui reste en tête après", "la tête que faisait l'autre", "le riff, s'il y en a un", "la batterie", "le son", "le début du morceau", "la fin du morceau"],
+  vanne: ["les clichés du style", "le titre du morceau", "le nom du groupe", "les coiffures de l'époque", "les tenues de scène", "la longueur des solos", "les fans du genre", "l'heure qu'il est", "les pochettes de disques", "les clips de l'époque", "les danses de l'époque", "les noms d'albums à rallonge", "le premier rang des concerts", "le karaoké", "les reprises de fin de mariage", "les sonneries de téléphone", "les compilations de station-service", "le slow", "les chorégraphies", "les rappels en concert", "la boule à facettes", "les briquets et les téléphones levés", "les solos de batterie", "les chœurs qui font oh oh oh", "les intros interminables", "les fins en fondu", "les faux adieux à la scène", "les titres avec une parenthèse", "les groupes qui se reforment", "les pantalons de l'époque", "le synthé porté en bandoulière", "la guitare à deux manches", "les medleys", "les versions longues"],
+  devinette: ["un indice sur l'ambiance du morceau", "trois mots, pas un de plus", "le jeu du chaud ou froid", "par élimination", "un indice sur l'époque", "un indice sur le titre lui-même, façon charade", "un mime sonore décrit à la radio", "un indice volontairement trop facile"],
+  lien: ["l'énergie qui monte ou qui retombe", "les titres des deux morceaux", "ce qu'on fait en les écoutant", "le contraste entre les deux", "l'époque de chacun", "le même état d'esprit", "un mot qui irait aux deux", "l'ordre dans lequel il faut les écouter", "ce que le premier prépare pour le second", "le fil de l'émission"],
+  auditeur: ["une question sur leur façon d'écouter (casque, enceintes, voiture)", "un petit défi pendant le prochain titre", "la consigne du moment (monter le son, chanter, ne rien faire)", "un pari sur ceux qui chantent déjà", "un merci, simplement", "une invitation à rester pour la suite", "une promesse pour la suite de l'émission", "un secret de programmation glissé à mi-voix", "un rendez-vous donné pour plus tard dans l'émission", "un conseil d'écoute", "une dédicace collective, à tous ceux qui écoutent", "la permission officielle de chanter faux"],
+  mode_emploi: ["le volume", "le lieu", "la position (assis, debout, allongé)", "avec qui", "ce qu'il faut avoir sous la main", "ce qu'il est interdit de faire pendant", "la préparation", "la dose recommandée", "les effets secondaires", "les contre-indications"],
+  defi: ["ne pas chanter le refrain", "ne pas taper du pied", "deviner la durée du morceau à dix secondes près", "tenir sans monter le son", "ne pas faire de batterie sur la table", "annoncer le prochain titre sans reprendre son souffle", "siffler l'air sans se tromper", "rester assis jusqu'au bout", "ne faire aucun commentaire avant la fin", "reconnaître le morceau en moins de trois secondes", "ne pas dire un mot précis jusqu'à la prochaine intervention", "garder le silence complet pendant tout le titre", "compter les refrains", "mimer le morceau sans bouger les bras", "trouver trois adjectifs avant la fin"],
+  aveu: ["un style qu'il ou elle prétend ne pas aimer", "ce qu'il ou elle chante sous la douche", "un instrument abandonné au bout de trois leçons", "son vrai niveau au karaoké", "des paroles chantées de travers depuis toujours (sans en citer)", "ne pas savoir siffler", "ne pas savoir taper dans les mains en rythme", "pleurer sur les ballades", "écouter le même morceau dix fois de suite", "couper les morceaux avant la fin", "lire les notes de pochette en entier", "la musique un peu honteuse du ménage", "danser seul dans sa cuisine", "ne jamais retenir les titres", "confondre deux groupes depuis des années", "avoir fait semblant de connaître un groupe", "chanter plus fort que la radio en voiture", "le premier disque acheté, et pourquoi", "une danse jamais maîtrisée", "applaudir toujours au mauvais moment", "ne pas reconnaître les instruments à l'oreille", "monter le son dès que personne ne regarde"],
+  coulisses: ["qui chantait", "qui dansait", "qui a renversé quelque chose", "qui regardait ailleurs", "qui a monté le son en douce", "ce qui a failli tomber", "qui a fait la batterie sur la table", "qui a quitté le studio en courant", "ce qu'on a mangé en cachette", "le fou rire étouffé"],
+  question: ["son premier souvenir de musique", "la musique de ses quinze ans", "l'instrument qu'il ou elle aurait voulu jouer", "ce qu'il ou elle écoute pour se donner du courage", "ce qu'il ou elle écoute quand ça ne va pas", "la musique pour cuisiner", "chanter ou siffler", "casque ou enceintes", "vinyle, cassette ou rien du tout", "la première fois qu'il ou elle a dansé en public", "ce qu'il ou elle fredonne sans s'en rendre compte", "un style appris à aimer sur le tard", "un style auquel il ou elle ne comprend rien", "la musique du dimanche matin", "la musique pour conduire la nuit", "le silence, pour ou contre", "ce qu'il ou elle écoute en travaillant", "la musique du réveil idéal (un style, pas un titre)", "la musique qu'il ou elle n'ose pas mettre devant les autres", "le son qui le ou la calme tout de suite"],
+  teaser: ["une sensation", "un indice d'ambiance", "une promesse", "un seul mot", "l'effet annoncé sur les épaules et sur les pieds", "ce que ça va faire dans le studio", "un avertissement solennel", "un compte à rebours"]
+};
+const TOPIC_LABEL = {"devinette": "Forme imposée cette fois", "lien": "Lien imposé cette fois", "mode_emploi": "Point de la notice imposé cette fois", "defi": "Défi imposé cette fois", "aveu": "Aveu imposé cette fois", "coulisses": "Détail imposé cette fois", "question": "Question imposée cette fois", "teaser": "Forme imposée cette fois"};
 // Bavardage et discussions libres (réglage « Bavardage ») : jamais, parfois, souvent.
-// - poids de l'angle « bavardage » parmi les angles de conversation ;
-// - part des interventions où une conversation libre prend la place du programme (« Un titre sur trois »)
-//   ou de la culture courte (« À chaque titre »). Sur « Jamais », le programme garde toute la place, comme avant.
-// Mesuré par simulation : avec un poids de 2, un vrai bavardage ne sortait que toutes les 5 à 7 heures sur
-// « Parfois ». Dans un créneau de conversation libre (CHAT_FREE_W), il pèse maintenant environ un tiers des
-// tirages ; hors programme, où chaque intervention tire dans toute la liste, il reste plus léger (CHAT_W).
+// CHAT_SHARE : chance qu'un programme (« Un titre sur trois ») ou une culture courte (« À chaque titre ») laisse la
+//   place à une conversation libre. Jamais deux de suite : la part réelle est p / (1 + p), soit une sur trois et une
+//   sur deux. Sur « Jamais », le programme garde toute la place, comme avant.
+// CHAT_FREE_RATIO, CHAT_RATIO : poids du bavardage hors musique, en proportion du poids total des autres angles
+//   (dans un créneau de conversation libre, et hors programme). Un poids fixe l'aurait fait reculer à chaque nouveau
+//   type de discussion. Mesuré par simulation : environ un bavardage toutes les deux heures sur « Parfois », un par
+//   heure sur « Souvent ».
 // CHAT_GAP : jamais deux bavardages plus rapprochés que ça, quel que soit le rythme des interventions.
-const CHAT_W = { off: 0, parfois: 2.5, souvent: 7 };
-const CHAT_FREE_W = { off: 0, parfois: 11, souvent: 30 };
-const CHAT_GAP = { off: 0, parfois: 45 * 60e3, souvent: 20 * 60e3 };
-// Sujets de bavardage retenus d'une émission à l'autre (sur 150) : aucun ne revient avant une centaine d'autres.
-const CHAT_KEEP = 100;
-// Jamais deux conversations libres de suite : avec une chance p à chaque fois, la part réelle est p / (1 + p).
-// 0,5 donne donc une intervention sur trois, et 1 une sur deux (en alternance).
 const CHAT_SHARE = { off: 0, parfois: 0.5, souvent: 1 };
-const chatLevel = () => (CHAT_W[settings.chat] !== undefined ? settings.chat : 'parfois');
+const CHAT_FREE_RATIO = { off: 0, parfois: 0.5, souvent: 1.4 };
+const CHAT_RATIO = { off: 0, parfois: 0.11, souvent: 0.32 };
+const CHAT_GAP = { off: 0, parfois: 45 * 60e3, souvent: 20 * 60e3 };
+// Sujets de bavardage retenus d'une émission à l'autre (sur 260) : aucun ne revient avant une centaine d'autres.
+const CHAT_KEEP = 100;
+const chatLevel = () => (CHAT_SHARE[settings.chat] !== undefined ? settings.chat : 'parfois');
 // Dynamique d'un dialogue (2.35) : comment ils le jouent, tirée en plus de l'angle (de quoi ils parlent).
 // Sans elle, chaque dialogue recevait « ils se chambrent » : toujours le même ton.
 const DYNAMICS = [
@@ -708,7 +752,7 @@ const DYNAMICS = [
   { id: 'desaccord', txt: 'un vrai petit désaccord, courtois, que personne ne gagne' }
 ];
 // Ces angles portent déjà leur dynamique (chambrage, débat, vanne, devinette) : on n'en tire pas une autre.
-const OWN_DYNAMIC = new Set(['chambre', 'debat', 'vanne', 'devinette']);
+const OWN_DYNAMIC = new Set(['chambre', 'debat', 'vanne', 'devinette', 'defi', 'verdict']);
 function pickDynamic(s, angle, emo) {
   if (angle && OWN_DYNAMIC.has(angle.id)) return null;
   const v = s.variety;
@@ -722,20 +766,38 @@ function pickDynamic(s, angle, emo) {
   v.dyn = recent.concat([d.id]).slice(-3);
   return d;
 }
-function withTopic(s, angle) {
-  // Seul à l'antenne, pas de sujet « entre eux ».
-  const list = angle && (angle.id === 'bavardage' && angle.solo ? CHAT_SOLO : ANGLE_TOPICS[angle.id]);
-  if (!list) return angle;
+// Tire le sujet imposé d'un angle, sans reprise dans l'émission. Pour le bavardage, tire aussi le format.
+function drawTopic(s, key, list, keepAcross) {
   const v = s.variety;
   v.topics = v.topics || {};
-  const used = v.topics[angle.id] || [];
-  const before = angle.id === 'bavardage' ? airLog.chat : [];
+  const used = v.topics[key] || [];
+  const before = keepAcross ? airLog.chat : [];
   const unused = list.filter((x) => !used.includes(x));
   const free = unused.filter((x) => !before.includes(x));
   const topic = pick(free.length ? free : unused.length ? unused : list);
-  v.topics[angle.id] = (unused.length ? used : []).concat([topic]);
-  if (angle.id === 'bavardage' && !s.demo) { airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-CHAT_KEEP); store({ airLog }); }
-  return Object.assign({}, angle, { topic, txt: angle.txt + ' Sujet imposé cette fois : ' + topic + ' (un sujet déjà utilisé dans l\'émission ne doit pas revenir).' });
+  v.topics[key] = (unused.length ? used : []).concat([topic]);
+  if (keepAcross && !s.demo) { airLog.chat = airLog.chat.filter((x) => x !== topic).concat([topic]).slice(-CHAT_KEEP); store({ airLog }); }
+  return topic;
+}
+function chatAngle(s, angle, kind) {
+  const v = s.variety;
+  const solo = !!angle.solo;
+  const last = v.chatFormats || [];
+  const ok = (f) => !(f.duoOnly && solo) && !(f.long && kind === 'talkover') && !(f.lore && (loreLevel() === 'off' || aiPower() === 'eco'));
+  const pool = CHAT_FORMATS.filter((f) => ok(f) && !last.includes(f.id));
+  const use = pool.length ? pool : CHAT_FORMATS.filter(ok);
+  let r = Math.random() * use.reduce((n, f) => n + f.w, 0);
+  const fmt = use.find((f) => (r -= f.w) <= 0) || use[0];
+  v.chatFormats = [fmt.id];
+  const topic = drawTopic(s, 'bavardage', fmt.id === 'papotage' ? (solo ? CHAT_SOLO : CHAT_DUO) : CHAT_POOL[fmt.id], true);
+  return Object.assign({}, angle, { format: fmt.id, lore: fmt.lore ? 'focus' : '', topic, txt: (solo ? fmt.solo : fmt.duo) + ' ' + topic + '.' });
+}
+function withTopic(s, angle, kind) {
+  if (angle && angle.id === 'bavardage') return chatAngle(s, angle, kind);
+  const list = angle && ANGLE_TOPICS[angle.id];
+  if (!list) return angle;
+  const topic = drawTopic(s, angle.id, list, false);
+  return Object.assign({}, angle, { topic, txt: angle.txt + ' ' + (TOPIC_LABEL[angle.id] || 'Sujet imposé cette fois') + ' : ' + topic + ' (déjà utilisé dans l\'émission, il ne doit pas revenir).' });
 }
 
 const STOP_WORDS = new Set(('alors aussi avant avec avoir bien cette cela comme dans deux elle elles encore entre fait faire juste leurs maintenant mais même parce petit petite place pour quand quoi sans sont suite tout toute toujours très vient voilà votre ' +
@@ -749,8 +811,11 @@ const STOP4 = new Set(('avec pour dans mais elle vous nous tout tous bien très 
 // Place des anecdotes selon le réglage (Rarement, Souvent, Très souvent).
 // Poids de chacun des quatre angles « anecdote » (histoire du titre suivant, du précédent,
 // film/série/événement, culture du style).
-const ANECDOTE_WEIGHT = { rare: 0.2, souvent: 1.5, max: 4 };
-const angleWeight = (a) => (/^anecdote/.test(a.id) ? (ANECDOTE_WEIGHT[settings.anecdotes] || 3) * (a.share || 1) * (a.norm || 1) : a.id === 'bavardage' ? CHAT_W[chatLevel()] : a.w);
+// 2.35 : sept types de discussion de plus dans la liste ; les poids des anecdotes sont relevés d'autant, pour que
+// « Souvent » reste environ une intervention sur quatre et « Très souvent » une sur deux.
+const ANECDOTE_WEIGHT = { rare: 0.35, souvent: 2.6, max: 7 };
+// Le bavardage n'a pas de poids fixe : il est calculé à chaque tirage (chatWeights).
+const angleWeight = (a) => (/^anecdote/.test(a.id) ? (ANECDOTE_WEIGHT[settings.anecdotes] || 3) * (a.share || 1) * (a.norm || 1) : a.id === 'bavardage' ? 0 : a.w);
 function pickAngle(list, recent, ok, weight) {
   const wf = weight || angleWeight;
   const pool = list.filter((a) => ok(a) && !recent.includes(a.id));
@@ -801,7 +866,7 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
   const lines = (s.lastLines || []).slice(-6);
   const duoOn = settings.voiceEngine === 'gemini' && hasGemini && settings.duo;
   const duo = duoOn && (kind !== 'talkover' || Math.random() < 0.4);
-  const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year)) &&
+  const okA = (a) => (!a.history || lines.length >= 2) && (a.facts !== 'prev' || !!prev) && (a.facts !== 'both' || !!prev) && (!a.year || !!(next && next.year)) && (!a.prev || !!prev) &&
     (a.id !== 'bavardage' || (chatLevel() !== 'off' && (s.demo || now - (v.chatAt || 0) >= CHAT_GAP[chatLevel()])));
   const list = duo ? ANGLES_DUO : ANGLES_SOLO;
   // Conversation libre (2.35). Avec le programme activé, les angles de discussion (chambrage, débat, devinette,
@@ -814,13 +879,20 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
   let angle;
   // À la place d'une culture courte (déjà une anecdote) : une conversation. À la place d'un programme : une
   // conversation ou une anecdote, selon le réglage « Anecdotes », qui n'avait aucun effet avec le programme.
-  if (free) angle = pickAngle(role === 'culture' ? list.filter((a) => !isAnecdote(a)) : list, v.angles.slice(-3), okA, (a) => (a.id === 'bavardage' ? CHAT_FREE_W[chatLevel()] : angleWeight(a)));
+  const recent = v.angles.slice(-3);
+  // Poids du bavardage : une proportion du poids des autres angles encore possibles à ce tirage.
+  const chatWeights = (pool, ratio) => {
+    const others = pool.filter((a) => okA(a) && a.id !== 'bavardage' && !recent.includes(a.id)).reduce((n, a) => n + angleWeight(a), 0);
+    return (a) => (a.id === 'bavardage' ? ratio * others : angleWeight(a));
+  };
+  const talk = role === 'culture' ? list.filter((a) => !isAnecdote(a)) : list;
+  if (free) angle = pickAngle(talk, recent, okA, chatWeights(talk, CHAT_FREE_RATIO[chatLevel()]));
   else if (role === 'programme' && progLen >= 2) angle = { id: 'programme', txt: duo ? PROGRAMME_ANGLE.duo : PROGRAMME_ANGLE.solo };
   else if (role === 'chronique') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => a.share || 1);
   else if (role === 'culture') angle = pickAngle(list.filter(isAnecdote), v.angles.slice(-3), okA, (a) => CULTURE_W[a.id] || 0.6);
-  else angle = kind === 'intro' ? null : pickAngle(list, v.angles.slice(-3), okA);
+  else angle = kind === 'intro' ? null : pickAngle(list, recent, okA, chatWeights(list, CHAT_RATIO[chatLevel()]));
   if (angle && angle.id === 'bavardage') v.chatAt = now;
-  angle = withTopic(s, angle);
+  angle = withTopic(s, angle, kind);
   const min = 60000;
   const plan = {
     duo, angle,
@@ -842,6 +914,8 @@ function planAnnouncement(s, kind, prev, next, atMs, role, progLen, noFree) {
     if (duo) plan.turns = kind === 'talkover' ? 3 : pick([4, 5, 5, 6]);
   }
   if (angle && angle.id === 'programme' && duo) plan.turns = kind === 'interlude' ? 4 : 3;
+  // Un mini-jeu ou un dilemme demande au moins quatre répliques.
+  if (duo && angle && (angle.format === 'minijeu' || angle.format === 'dilemme') && kind !== 'talkover') plan.turns = Math.max(plan.turns, 4);
   plan.role = role || null;
   const skip = new Set([prev, next].concat((s.played || []).slice(-8)).filter(Boolean).flatMap((t) => (t.title + ' ' + t.artist).toLowerCase().split(/[^a-zàâçéèêëîïôûùüÿœ]+/)));
   // Les prénoms des animateurs et leurs expressions fétiches ne sont pas des « mots trop entendus » : les

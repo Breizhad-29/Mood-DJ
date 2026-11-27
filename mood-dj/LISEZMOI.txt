@@ -30,15 +30,25 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   coupée s'arrête net, et la voix Gemini reçoit l'indication d'enchaîner
   sans pause. Les deux voix ne se superposent pas encore (version à venir).
 - Bavardage et discussions (Réglages › L'émission) : Jamais, Parfois,
-  Souvent. Avec le programme, les angles de conversation (désaccord,
-  devinette, vanne, réaction à chaud…) ne sortaient presque jamais : chaque
-  intervention était un programme ou une anecdote. Une intervention sur
-  trois (Parfois) ou sur deux (Souvent) devient une vraie conversation, ou
-  un moment de bavardage hors musique : 150 sujets rangés en 7 familles
-  (le quotidien, le studio, eux-mêmes, débats et jeux, culture, les
-  auditeurs, entre eux), jamais repris avant une centaine d'autres. Sur
+  Souvent. Avec le programme, les angles de conversation ne sortaient
+  presque jamais : chaque intervention était un programme ou une anecdote.
+  Une intervention sur trois (Parfois) ou sur deux (Souvent) devient une
+  vraie conversation. Sur « Jamais », tout reste comme avant.
+- Discussions autour de la musique : 15 types au lieu de 8. Aux anciens
+  (chambrage, désaccord, devinette, lien, vanne, réaction à chaud, mot aux
+  auditeurs, rappel) s'ajoutent le mode d'emploi du titre, le défi, l'aveu
+  musical, les coulisses du studio, le teaser, le verdict (une note sur
+  dix) et la question personnelle. 249 sujets imposés au lieu de 51, qui
+  tiennent au ressenti et à l'usage d'un titre plus qu'à sa technique :
+  l'IA n'entend pas le morceau.
+- Bavardage hors musique : 6 formats et 260 sujets. Le papotage (145
+  sujets : le quotidien, le studio, eux-mêmes, débats et jeux, culture,
+  entre eux), le « tu préfères » (40 dilemmes), le mini-jeu express (15),
+  la fausse rubrique (20), les nouvelles de la station, qui s'appuient sur
+  son univers (20), et le mot aux auditeurs (20). Jamais deux fois le même
+  format de suite, aucun sujet repris avant une centaine d'autres. Sur
   « Parfois », un bavardage toutes les deux heures environ ; sur
-  « Souvent », un par heure environ, jamais à moins de 20 minutes. Sur « Jamais », tout reste comme avant.
+  « Souvent », un par heure environ, jamais à moins de 20 minutes.
 - En duo, une annonce dite par un seul animateur alterne entre les deux ;
   avant, c'était toujours l'animateur principal. Le coanimateur lance
   maintenant lui-même ses propres choix.
@@ -62,7 +72,7 @@ MOOD DJ POUR YOUTUBE MUSIC — version 2.35.0
   les petits mots de 4 lettres ne sont comptés qu'en français. Une fiche
   que Mood DJ ne sait pas découper (autre alphabet) n'est pas dosée : elle
   est suivie comme avant.
-- 15 nouveaux tests (41 en tout).
+- 16 nouveaux tests (42 en tout).
 
 2.34.0 : UNE COMMUNICATION AVEC L'IA PLUS FIABLE
 - Réponses structurées : quand l'IA doit choisir (sélection décrite en

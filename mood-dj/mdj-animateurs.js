@@ -478,7 +478,8 @@ const LORE_CHANCE = { discret: 0.15, regulier: 0.3, fort: 0.5 };
 const loreLevel = () => (LORE_CHANCE[settings.loreLevel] || settings.loreLevel === 'off' ? settings.loreLevel : 'discret');
 // Une référence à l'univers pour cette intervention ? Tirée au sort selon le dosage, jamais deux fois de
 // suite, plus souvent à l'ouverture, et par-dessus une intro seulement en « Très présent ».
-// chat : un moment de bavardage puise volontiers dans l'univers (le studio, ses objets, ses personnages).
+// chat : un moment de bavardage puise volontiers dans l'univers (le studio, ses objets, ses personnages) ;
+// chat === 'focus' : des nouvelles de la station, l'univers est le sujet même du bavardage.
 function lorePayload(s, kind, chat) {
   const lvl = loreLevel();
   if (lvl === 'off' || aiPower() === 'eco') return null;
@@ -487,11 +488,12 @@ function lorePayload(s, kind, chat) {
   if (kind === 'intro' || kind === 'outro') chance = Math.min(1, chance * 2);
   if (kind === 'talkover' && lvl !== 'fort') chance = 0;
   if (chat) chance = Math.max(chance, 0.6);
-  const go = !v.loreLast && Math.random() < chance;
+  // « focus » : le bavardage porte sur la vie de la station, l'univers en est le sujet.
+  const go = chat === 'focus' || (!v.loreLast && Math.random() < chance);
   v.loreLast = go;
   if (!go) return null;
   ensureLore();
-  return { text: loreNames(settings.stationLore), memories: (hostMemory.L || []).slice(-10).map((m) => m.t) };
+  return { text: loreNames(settings.stationLore), memories: (hostMemory.L || []).slice(-10).map((m) => m.t), focus: chat === 'focus' };
 }
 const aiPower = () => (settings.aiPower === 'eco' || settings.aiPower === 'max' ? settings.aiPower : 'normal');
 // Délai laissé à l'IA : la pleine puissance réfléchit plus longtemps (l'annonce est préparée à l'avance).
