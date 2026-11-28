@@ -494,8 +494,10 @@ function tabReglages() {
     seg([['off', 'Jamais'], ['rare', 'Rarement'], ['souvent', 'Souvent']], settings.guestFreq || 'rare', (id) => { settings.guestFreq = id; saveSettings(); render(); }, 'Spécialiste invité'),
     h('div', { class: 'muted' }, (settings.guestFreq === 'off' ? "Pas d'invité dans l'émission." :
       (settings.guestFreq === 'souvent' ? 'Environ toutes les 30 minutes' : 'Environ une fois par heure') +
-      ", un spécialiste du style qui passe (critique de jazz, producteur de beats, DJ, musicologue…) vient en studio pour deux ou trois interventions, à la place de " +
-      ((settings.cohostName || 'Sam').trim() || 'Sam') + ". L'animateur l'annonce, l'accueille, puis il repart en lançant un titre. Chaque spécialité garde son invité d'une émission à l'autre.") +
+      ", un spécialiste du style qui passe (critique de jazz, producteur de beats, DJ, musicologue…) vient en studio pour deux ou trois interventions" +
+      // 2.42 : l'invité ne prend plus toujours la place du second animateur.
+      (duoOnAir() ? ', à la place de l’un des deux animateurs : chacun le reçoit à son tour' : '') +
+      ". L'animateur l'annonce, l'accueille, puis il repart en lançant un titre. Chaque spécialité garde son invité d'une émission à l'autre.") +
       (useGemini() && hasKey ? '' : ' Il faut les voix Gemini.')),
     // 2.41 : avec le duo Jeff & Laeti, deux personnages de leur univers passent aussi au micro.
     isJeffLaeti() ? h('div', { class: 'row' },

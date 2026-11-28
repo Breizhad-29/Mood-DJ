@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.41.0.
+Up to date with version 2.42.0.
 
 ---
 
@@ -277,11 +277,12 @@ Settings › The show › **Host emotions** (with the Gemini voices), with a **T
 
 From time to time, a specialist of the style playing drops by (rock specialist, jazz critic, DJ, musicologist, film critic for soundtracks…).
 
-- The host announces them, welcomes them with a jingle; the guest takes the co-host's place for two or three segments, talks as an expert, then leaves by introducing a track.
+- The host announces them, welcomes them with a jingle; the guest takes the place of one of the two hosts for two or three segments, talks as an expert, then leaves by introducing a track.
+- With two hosts, each welcomes guests in turn: a returning guest meets the host who did not welcome them last time, and a newcomer meets the host who did not welcome the previous guest. The welcoming host keeps their own voice, personality, memories and track picks. No true-or-false bet is played while a guest is talking: the bet and the score belong to the two hosts.
 - Each speciality keeps its guest from one show to the next (same name, voice, style and quirk), and the host remembers them.
 - **Guest specialist**: Never, Rarely (about once an hour, default) or Often (about every 30 minutes). **Past guests** lets you forget one: someone new will come for that speciality.
 - Needs an AI key for the texts and the Gemini voices. Guests use the same sources as the hosts and never claim to have met an artist.
-- **Camille and Arthur on air** (only with the Jeff & Laeti duo, on by default): two characters from the duo's world share the guest slot. Camille, the barmaid of the Ty Loup, the bar in Locronan (lively voice), takes about one guest slot in two and stays for one or two segments. Arthur, a regular of the Ty Loup (calm voice), takes about one in ten, never twice within twenty hours, and hardly stays. Each comes once per show at most; the other slots stay with the specialists. They are not music experts: they chat in their own way, no fact sheet is looked up for them, and the AI is told not to invent anything about their lives beyond their character sheet. **Test** plays Camille coming on air. In **Past guests**, forgetting one of them only resets their visit count.
+- **Camille and Arthur on air** (only with the Jeff & Laeti duo, on by default): two characters from the duo's world share the guest slot. Camille, the barmaid of the Ty Loup, the bar in Locronan (lively voice), takes about one guest slot in two and stays for one or two segments. Arthur, a regular of the Ty Loup (calm voice), takes about one in ten, never twice within twenty hours, and hardly stays. His first visit is with Jeff, then he alternates like any guest. Each comes once per show at most; the other slots stay with the specialists. They are not music experts: they chat in their own way, no fact sheet is looked up for them, and the AI is told not to invent anything about their lives beyond their character sheet. **Test** plays Camille coming on air. In **Past guests**, forgetting one of them only resets their visit count.
 
 ### True or false
 

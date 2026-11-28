@@ -141,11 +141,14 @@ test('le jeu : un type de conversation parmi les autres, au rang d’un aveu ; p
       "for (var i = 0; i < 1500; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i, year: 1999 }, 1e12 + i * 2e5, 'culture', 0, false); if (pl.angle.id === 'jeu') __n++; }");
     return p.run('__n');
   };
-  const some = share('parfois');
+  // Trois séries de 1500 tirages par niveau. Mesuré sur 120 séries : 56 à 100 jeux par série sur « Parfois », 118 à
+  // 164 sur « Souvent ». Avec une seule série et un seuil à 1,5 fois, ce test échouait une fois sur soixante-quinze.
+  const three = (games) => share(games) + share(games) + share(games);
+  const some = three('parfois');
   // Poids 2 sur une cinquantaine : quelques pour cent des conversations autour de la musique, pas une sur deux.
-  assert.ok(some > 20 && some < 110, 'parfois : ' + some + ' sur 1500');
-  const often = share('souvent');
-  assert.ok(often > some * 1.5 && often < 260, 'souvent : ' + often + ' sur 1500');
+  assert.ok(some > 100 && some < 360, 'parfois : ' + some + ' sur 4500');
+  const often = three('souvent');
+  assert.ok(often > some * 1.4 && often < 640, 'souvent : ' + often + ' sur 4500, parfois : ' + some);
   assert.equal(share('off'), 0);
   // Sans IA pour l'écrire, ou tant qu'un jeu attend sa réponse : pas de nouveau jeu.
   assert.equal(share('souvent', 'hasKey = false;'), 0);

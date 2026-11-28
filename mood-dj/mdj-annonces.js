@@ -67,13 +67,37 @@ function roleFem(r) {
     .replace('producteur', 'productrice').replace('passionné', 'passionnée').replace('historien', 'historienne').replace('ingénieur', 'ingénieure')
     .replace('bluesman et guitariste', 'chanteuse de blues et guitariste');
 }
+// Émission à deux voix : les deux animateurs sont à l'antenne.
+const duoOnAir = () => useGemini() && !!settings.duo;
+const hostNames = () => ({ A: (settings.hostName || 'Alex').trim() || 'Alex', B: (settings.cohostName || 'Sam').trim() || 'Sam' });
 function guestVoice(g, own) {
-  const host = geminiVoices().a;
+  const gv = geminiVoices();
+  // Ni la voix de l'animateur qui reçoit l'invité, ni celle de l'absent : l'un ou l'autre peut le recevoir (2.42).
+  const taken = duoOnAir() ? [gv.a, gv.b] : [gv.a];
   let v = settings.guestVoices && settings.guestVoices[g.name];
   // own : la voix choisie pour un personnage du duo (Camille, Arthur).
   if (!v) v = own || (GEMINI_DEFAULTS[g.style] || GEMINI_DEFAULTS.erudit)[g.gender];
-  if (!v || v === host) v = (GEMINI_VOICES.find((x) => x[1] === g.gender && x[0] !== host) || [v])[0];
+  if (!v || taken.includes(v)) v = (GEMINI_VOICES.find((x) => x[1] === g.gender && !taken.includes(x[0])) || [v])[0];
   return v;
+}
+// Qui reçoit l'invité (2.42) : 'A' ou 'B'. Jusque-là c'était toujours le premier animateur, et le second cédait sa
+// place à chaque fois. D'une visite à l'autre, un invité tombe maintenant sur l'un puis sur l'autre ; un nouveau venu
+// est reçu par celui qui n'a pas reçu l'invité précédent. first : le prénom de l'animateur qu'un personnage rencontre
+// en premier (Arthur et Jeff). Retenu par prénom : l'auditeur peut inverser ses deux animateurs.
+function guestStay(key, first) {
+  if (!duoOnAir()) return 'A';
+  const n = hostNames();
+  const side = (name) => (name && name === n.B ? 'B' : name && name === n.A ? 'A' : '');
+  const other = (x) => (x === 'A' ? 'B' : 'A');
+  const all = learn.guests || {};
+  const p = all[key];
+  if (p && side(p.with)) return other(side(p.with));
+  // Déjà venu, mais avant la 2.42 : c'était avec le premier animateur.
+  if (p && p.visits > 0) return 'B';
+  if (side(first)) return side(first);
+  const last = Object.values(all).filter((x) => x && x.visits > 0).sort((a, b) => (b.last || 0) - (a.last || 0))[0];
+  if (!last) return 'A';
+  return side(last.with) ? other(side(last.with)) : 'B';
 }
 // Étape de l'invité pour la prochaine intervention ; crée l'invité quand c'est le moment.
 function guestPhaseFor(s, next) {
@@ -89,14 +113,14 @@ function guestPhaseFor(s, next) {
   if (c) {
     s.guest = castGuest(c, 'annonce');
     s.castSeen = (s.castSeen || []).concat([c.key]);
-    dlog('annonce', 'personnage prévu', { nom: c.name, visites: s.guest.visits, passages: s.guest.passages });
+    dlog('annonce', 'personnage prévu', { nom: c.name, visites: s.guest.visits, passages: s.guest.passages, recu_par: hostNames()[s.guest.stay] });
     return 'annonce';
   }
   const role = guestRoleFor(s, next);
   const g = guestProfile(role);
   s.guest = { phase: 'annonce', key: role[0], name: g.name, gender: g.gender, style: g.style, role: g.role, quirk: g.quirk,
-    visits: g.visits || 0, voice: guestVoice(g), passages: Math.random() < 0.5 ? 1 : 2, done: 0 };
-  dlog('annonce', 'invité prévu', { nom: g.name, specialite: g.role, style: g.style, visites: g.visits || 0 });
+    visits: g.visits || 0, voice: guestVoice(g), passages: Math.random() < 0.5 ? 1 : 2, done: 0, stay: guestStay(role[0]) };
+  dlog('annonce', 'invité prévu', { nom: g.name, specialite: g.role, style: g.style, visites: g.visits || 0, recu_par: hostNames()[s.guest.stay] });
   return 'annonce';
 }
 // Un personnage du duo en invité. Il est gardé comme les autres invités (nombre de passages, dernière venue).
@@ -105,7 +129,8 @@ function castGuest(c, phase) {
   const p = learn.guests[c.key] || (learn.guests[c.key] = { visits: 0 });
   Object.assign(p, { name: c.name, gender: c.gender, style: 'chaleureux', role: c.role, quirk: '' });
   return { phase, key: c.key, cast: c.key, name: c.name, gender: c.gender, style: 'chaleureux', role: c.role, quirk: '',
-    visits: p.visits || 0, voice: guestVoice({ name: c.name, gender: c.gender, style: 'chaleureux' }, c.voice), passages: pick(c.passages), done: 0 };
+    visits: p.visits || 0, voice: guestVoice({ name: c.name, gender: c.gender, style: 'chaleureux' }, c.voice), passages: pick(c.passages), done: 0,
+    stay: guestStay(c.key, c.first) };
 }
 const guestSpeaks = (phase) => phase === 'arrivee' || phase === 'passage' || phase === 'depart';
 // Une intervention avec l'invité a été dite : on passe à l'étape suivante.
@@ -120,12 +145,14 @@ function guestAdvance(s, phase) {
   else if (phase === 'passage') { g.done++; if (g.done >= g.passages) g.phase = 'depart'; }
   else if (phase === 'depart') {
     const p = learn.guests && learn.guests[g.key];
-    if (p) { p.visits = (p.visits || 0) + 1; p.last = Date.now(); }
+    const n = hostNames();
+    // with : l'animateur qui l'a reçu, pour que ce soit l'autre la prochaine fois.
+    if (p) { p.visits = (p.visits || 0) + 1; p.last = Date.now(); p.with = g.stay === 'B' ? n.B : n.A; }
     saveLearn();
     s.guestsSeen = (s.guestsSeen || 0) + 1;
     s.guest = null;
     s.guestNextAt = Date.now() + (GUEST_EVERY[settings.guestFreq] || 60) * 60e3;
-    radioLog(s, 'Invité : ' + g.name + (g.gender === 'femme' ? ' est repartie' : ' est reparti') + ', ' + ((settings.cohostName || 'Sam').trim() || 'Sam') + ' revient.');
+    radioLog(s, 'Invité : ' + g.name + (g.gender === 'femme' ? ' est repartie' : ' est reparti') + ', ' + (g.stay === 'B' ? n.A : n.B) + ' revient.');
     return;
   }
   radioLog(s, 'Invité : ' + g.name + ' (' + g.role + ')' + (g.phase === 'arrivee' ? ' arrive à la prochaine intervention.' : g.phase === 'depart' ? ' repart à la prochaine intervention.' : ' est en studio.'));
@@ -162,6 +189,9 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   const gPhase = kind === 'intro' ? '' : guestPhaseFor(s, next);
   const guest = gPhase && s.guest ? s.guest : null;
   const gTalks = !!(guest && guestSpeaks(gPhase));
+  // L'invité est reçu par le second animateur (2.42) : pour cette intervention, c'est lui que l'IA appelle « A »,
+  // avec son prénom, sa fiche, ses souvenirs, ses choix de titres et sa voix. Le premier a quitté le micro.
+  const stayB = gTalks && guest.stay === 'B' && duoOnAir();
   // Dédicace ou demande sur ce titre : lue juste avant lui.
   const dedic = next && next.dedic && !next.dedic.done && kind !== 'intro' ? next.dedic : null;
   const plan = planAnnouncement(s, kind, prev, next, atMs, role, progList ? progList.length : 0, !!(gTalks || dedic || hookDue(s, next) || (next && next.pick)));
@@ -188,7 +218,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
     if (plan.opener === 'B' && gPhase === 'arrivee') plan.opener = 'A';
   } else if (gTalks) {
     plan.duo = true;
-    if (plan.angle && (plan.angle.id === 'programme' || plan.angle.facts)) plan.angle = Object.assign({}, plan.angle, { txt: plan.angle.txt + ' ' + GUEST_ANGLES[gPhase] });
+    // Pas de vrai ou faux pendant qu'un invité parle (2.42) : le pari et le score sont ceux des deux animateurs.
+    if (plan.angle && plan.angle.id !== 'jeu' && (plan.angle.id === 'programme' || plan.angle.facts)) plan.angle = Object.assign({}, plan.angle, { txt: plan.angle.txt + ' ' + GUEST_ANGLES[gPhase] });
     else plan.angle = { id: 'invite_' + gPhase, txt: GUEST_ANGLES[gPhase], facts: 'next' };
     plan.turns = Math.max(plan.turns || 0, gPhase === 'arrivee' ? 4 : 3);
     if (gPhase === 'arrivee') plan.long = true;
@@ -203,7 +234,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   const duoShow = settings.voiceEngine === 'gemini' && hasGemini && settings.duo;
   const soloB = !duo && duoShow && !s.demo && kind !== 'intro' && (next && next.pick ? next.pick.who === 'B' : Math.random() < (v.soloLast === 'B' ? 0.25 : v.soloLast === 'A' ? 0.75 : 0.5));
   if (!duo && duoShow && !s.demo) v.soloLast = soloB ? 'B' : 'A';
-  const speakers = duo ? (gTalks ? ['A'] : ['A', 'B']) : [soloB ? 'B' : 'A'];
+  const speakers = duo ? (gTalks ? [stayB ? 'B' : 'A'] : ['A', 'B']) : [soloB ? 'B' : 'A'];
   const live = !!(settings.claudeAnnounce && hasKey);
   const desc = (t) => spokenTitle(t.title) + ' de ' + t.artist + (t.year ? ' (' + t.year + ')' : '');
   let inProg = programmeOn() && (role === 'chronique' || role === 'culture') && !plan.free;
@@ -237,7 +268,9 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   let hookAnswer = null;
   if (hookDue(s, next)) {
     hookAnswer = Object.assign({}, s.hook);
-    if (s.hook.type === 'pari' && duo && s.hook.bet) {
+    // Un invité au micro : le pari était celui de l'animateur absent. La réponse est donnée, sans pari ni score.
+    if (gTalks) { hookAnswer.bet = null; hookAnswer.won = null; }
+    else if (s.hook.type === 'pari' && duo && s.hook.bet) {
       hookAnswer.score = scoreAfter(s, s.hook.won);
       if (!s.hook.won && Math.random() < 0.35) hookAnswer.gage = pick(GAGES);
     }
@@ -317,7 +350,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   let hookFacts = '';
   if (plan.angle && plan.angle.id === 'jeu') {
     const gameOn = live && !s.hook && !hookAnswer && !eph && !ch;
-    if (gameOn && upcoming && settings.radioFreq === 'every') {
+    // Pas de question en suspens quand un invité est annoncé : sa réponse tomberait pendant sa visite.
+    if (gameOn && !guest && upcoming && settings.radioFreq === 'every') {
       const t2 = upcoming[1];
       const f = await factsFor(t2);
       if (f.text) {
@@ -365,9 +399,13 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   let textInfo = 'phrases toutes faites';
   const t0 = Date.now();
   // Seul à l'antenne, un animateur ne parle que de ses propres choix (il ne dirait pas « mon choix » pour celui de l'autre).
-  const picks = live && !s.demo ? pickPayload(s, prev, next, duo, gTalks, soloB) : null;
+  const picks = live && !s.demo ? pickPayload(s, prev, next, duo, gTalks, soloB, stayB) : null;
   // Dosage des fiches, dynamique du dialogue et humeur du jour : tirés par Mood DJ (voir ficheFocus).
   const focus = live && !s.demo ? ficheFocus(s, kind, speakers, now) : null;
+  // Pour l'IA, celui qui reçoit l'invité est « A » : son expression, son détail et son humeur changent d'étiquette.
+  const asA = (x) => (x ? Object.assign({}, x, { who: 'A' }) : null);
+  const focusView = stayB && focus ? Object.assign({}, focus, { tic: asA(focus.tic), facet: asA(focus.facet), mood: { A: focus.mood.B, B: '' } }) : focus;
+  const me = stayB ? { name: c.cohost, style: settings.cohostStyle, gender: hostGenders().cohost } : { name: c.host, style: settings.hostStyle, gender: hostGenders().host };
   const dyn = live && duo && !gTalks && !s.demo ? pickDynamic(s, plan.angle, emo) : null;
   // Émission à deux sans invité au micro : les deux fiches partent toujours, que l'annonce soit un dialogue ou dite
   // par un seul. La partie fixe des consignes est alors la même pour toutes les annonces, et son cache sert à chacune.
@@ -376,7 +414,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   if (live) {
     try {
       text = await withTimeout(claude('announce', {
-        kind, host: c.host, style: settings.hostStyle, solo: duo ? '' : soloB ? 'B' : 'A', sparse: settings.radioFreq === 'change', time: tp.time, partOfDay: tp.part, lang: radioLang(),
+        kind, host: me.name, style: me.style, solo: duo ? '' : soloB ? 'B' : 'A', sparse: settings.radioFreq === 'change', time: tp.time, partOfDay: tp.part, lang: radioLang(),
         ambiance: oldAmb || (plan.momentOk || (s.sel && s.sel.prompt && s.sel.prompt.trim()) ? c.ambiance : styleText(s.sel)),
         change: ch ? { from: ch.from, to: ch.to } : null,
         previous: prev ? desc(prev) : '', next: desc(next), trend: c.trend,
@@ -387,13 +425,13 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
         role: plan.free ? null : plan.role, programme: progShown ? progShown.map(desc) : null, upcoming: upcoming ? upcoming.map(desc) : null, chatMode: !!plan.free, chatShow: !!(plan.free && chatAlways()), pivot: plan.pivot || '', programmeCycle: settings.radioFreq === 'every', told,
         rubrique: rub ? rub.name : '', hook: pub(hook), hookFacts, hookAnswer: pub(hookAnswer), express, ephemeride: eph, episode, stats, local,
         duo, cohost: gTalks ? guest.name : c.cohost, cohostStyle: gTalks ? guest.style : settings.cohostStyle,
-        hostGender: hostGenders().host, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
+        hostGender: me.gender, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
         show: s.show ? { name: s.show.name, wake: !!s.show.wake } : null,
         dedic: dedic ? { to: dedic.to, msg: dedic.msg, from: dedic.from || c.listener, request: dedic.request } : null,
-        guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost, cast: !!cast, fiche: cast ? cast.fiche : '' } : null,
+        guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: stayB ? c.host : c.cohost, cast: !!cast, fiche: cast ? cast.fiche : '' } : null,
         tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
-        power: aiPower(), persona: personaPayload(duo, gTalks, s, team), lore: s.demo ? null : lorePayload(s, kind, plan.angle && plan.angle.id === 'bavardage' ? (plan.angle.lore === 'focus' ? 'focus' : true) : false),
-        focus, dynamic: dyn ? dyn.txt : '', cuts: duo && !gTalks ? plan.cuts : undefined,
+        power: aiPower(), persona: personaPayload(duo, gTalks, s, team, stayB), lore: s.demo ? null : lorePayload(s, kind, plan.angle && plan.angle.id === 'bavardage' ? (plan.angle.lore === 'focus' ? 'focus' : true) : false),
+        focus: focusView, dynamic: dyn ? dyn.txt : '', cuts: duo && !gTalks ? plan.cuts : undefined,
         ...(picks ? picks.view : {})
       }), aiTimeout(12000));
       textInfo = 'Claude (' + secs(Date.now() - t0) + ')';
@@ -407,7 +445,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
         memory = {
           // Seul à l'antenne, B écrit ses souvenirs sous « SOUVENIR A » (« toi ») : ils lui reviennent.
           souvenirs: (Array.isArray(hidden.souvenirs) ? hidden.souvenirs : []).filter((m) => m && (m.who === 'A' || (m.who === 'B' && !gTalks)))
-            .map((m) => (soloB ? { who: 'B', text: m.text } : m)),
+            // Même chose pour le second animateur quand c'est lui qui reçoit l'invité (il était « A » dans le texte).
+            .map((m) => (soloB || stayB ? { who: 'B', text: m.text } : m)),
           lore: Array.isArray(hidden.lore) ? hidden.lore : [],
           thread: duo ? String(hidden.suivi || '').slice(0, 200) : null
         };
@@ -470,6 +509,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
       const gv = geminiVoices();
       // L'invité parle avec sa propre voix, seulement si Claude a bien écrit son passage.
       const gVoice = gTalks && fromClaude;
+      // Les répliques « A » sont alors celles du second animateur : sa voix et sa direction.
+      const asB = soloB || (gVoice && stayB);
       const styleB = gVoice ? (cast ? cast.voiceStyle : (GEMINI_STYLES[guest.style] || gv.styleB) + ', a guest expert visiting the studio') : gv.styleB;
       // Déchaîné : la voix elle-même est poussée (énergie, écarts de ton et de volume), pas seulement
       // le texte. Sans ça, l'indication de jeu de chaque réplique était lissée par le style de base, et
@@ -480,8 +521,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
       const line = (e) => (!e ? '' : lvl === 'intime' ? '. Delivery for this line, softly and intimately: ' + e : lvl === 'dechaine' ? '. Delivery for this line, played BIG and exaggerated, far more intense than a normal radio host: ' + e : '. Delivery for this line: ' + e);
       const cutIn = '. This line interrupts the other speaker: jump in immediately, no pause before it';
       const cutOff = '. This line gets cut off by the other speaker: stop abruptly on the last word, no falling intonation, no trailing pause';
-      const styled = turns.map((t, i) => Object.assign({}, t, { text: voiceCutText(turns, i), style: base(t.speaker === 'B' ? styleB : soloB ? gv.styleB : gv.styleA) + line(t.emotion) + (t.cut ? cutIn : '') + (turns[i + 1] && turns[i + 1].cut ? cutOff : '') }));
-      const r = await withTimeout(claude('gemini-tts', { turns: styled, voiceA: soloB ? gv.b : gv.a, voiceB: gVoice ? guest.voice : gv.b, style: soloB ? gv.styleB : gv.styleA }), duo || kind === 'interlude' ? 40000 : 25000);
+      const styled = turns.map((t, i) => Object.assign({}, t, { text: voiceCutText(turns, i), style: base(t.speaker === 'B' ? styleB : asB ? gv.styleB : gv.styleA) + line(t.emotion) + (t.cut ? cutIn : '') + (turns[i + 1] && turns[i + 1].cut ? cutOff : '') }));
+      const r = await withTimeout(claude('gemini-tts', { turns: styled, voiceA: asB ? gv.b : gv.a, voiceB: gVoice ? guest.voice : gv.b, style: asB ? gv.styleB : gv.styleA }), duo || kind === 'interlude' ? 40000 : 25000);
       audio = b64ToBuffer(r.b64);
       voiceInfo = 'Gemini' + (duo ? ' en duo' : '') + ' (' + secs(Date.now() - t1) + (r.cle && hasGemini2 ? ', clé ' + r.cle : '') + ')';
     } catch (e) {
@@ -902,7 +943,7 @@ async function demoAnnouncement(what) {
       const role = guestRoleFor(fake, next);
       const g = guestProfile(role);
       fake.guest = { phase: 'arrivee', key: role[0], name: g.name, gender: g.gender, style: g.style, role: g.role, quirk: g.quirk,
-        visits: g.visits || 0, voice: guestVoice(g), passages: 1, done: 0 };
+        visits: g.visits || 0, voice: guestVoice(g), passages: 1, done: 0, stay: guestStay(role[0]) };
     }
     const ann = await prepareAnnouncement(fake, kind, prev, next);
     if (kind === 'interlude') {

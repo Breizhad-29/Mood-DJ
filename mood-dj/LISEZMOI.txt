@@ -1,5 +1,43 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.41.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.42.0
 ============================================
+
+2.42.0 : L'INVITÉ EST REÇU PAR L'UN, PUIS PAR L'AUTRE
+- Avant : un invité prenait toujours la place du second animateur. Avec
+  Laeti en premier et Jeff en second, c'était Jeff qui sortait à chaque
+  fois, et Arthur ne le croisait jamais.
+- D'une visite à l'autre, un invité (spécialiste ou personnage) est
+  maintenant reçu par l'animateur qui ne l'avait pas reçu la fois d'avant.
+  Un nouveau venu est reçu par celui qui n'a pas reçu l'invité précédent.
+- Arthur commence par Jeff, où que Jeff soit placé. Ensuite il alterne
+  comme les autres.
+- Un invité déjà venu avant cette version (donc avec le premier
+  animateur) est reçu par le second à sa prochaine visite.
+- L'animateur qui reçoit garde tout ce qui est à lui : son prénom, sa
+  fiche, ses souvenirs, son humeur du jour, ses expressions, ses choix de
+  titres, sa voix et sa direction de voix. Ce qu'il retient de l'échange
+  va dans ses souvenirs à lui.
+- C'est retenu par prénom : inverser les deux animateurs dans les
+  réglages ne casse pas l'alternance.
+- Émission à un seul animateur : rien ne change.
+- La voix de l'invité n'est plus jamais celle d'un des deux animateurs
+  (avant, seule celle du premier était écartée).
+- Jeux : plus de vrai ou faux avec pari pendant qu'un invité parle. Le
+  pari et le score sont ceux des deux animateurs ; jusque-là le pari
+  était attribué à l'invité et le point compté pour le second animateur.
+  Aucune question en suspens n'est lancée quand un invité est annoncé, et
+  si une réponse tombe quand même pendant sa visite, elle est donnée sans
+  pari ni score.
+- Réglages › L'émission : l'explication de « Spécialiste invité » dit que
+  chacun reçoit l'invité à son tour. Sa fin n'était pas traduite en
+  anglais : elle l'est.
+- Un test tiré au sort (la fréquence du jeu) échouait sans raison une fois
+  sur soixante-quinze : ses seuils sont refaits d'après 120 séries
+  mesurées (aucun échec sur 150 passages).
+- Essayé sur de vrais textes et de vraies voix, avec Laeti en premier :
+  Arthur reçu par Jeff, Camille reçue par Laeti. La deuxième visite de
+  Camille (reçue par Jeff) a été essayée en texte seulement. Rien n'a été
+  écouté dans Chrome sur YouTube Music.
+- 9 nouveaux tests (94 en tout).
 
 2.41.0 : CAMILLE ET ARTHUR PASSENT AU MICRO
 - Avec le duo Jeff & Laeti, deux personnages de leur univers passent à

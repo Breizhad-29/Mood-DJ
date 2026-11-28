@@ -118,7 +118,8 @@ const CAST_JEFF_LAETI = [
       'Elle a connu Jeff, Laeti et Anna quand ils sont passés au bar : elle les a percés à jour en dix minutes, et s’est fait payer ses renseignements en bières. ' +
       'Très complice avec Arthur, un habitué sur qui elle veille : on ne lui fera jamais dire où il est ni ce qu’il fait. ' +
       'À l’antenne, elle parle de musique comme au comptoir : ce qui fait chanter la salle, ce qui la vide, ce qu’on passe en fin de service.' },
-  { key: 'perso:arthur', name: 'Arthur', gender: 'homme', voice: 'Schedar', weight: 1, restHours: 20, passages: [0, 1],
+  // first : Arthur s'entend d'emblée avec Jeff, c'est lui qui le reçoit la première fois.
+  { key: 'perso:arthur', name: 'Arthur', gender: 'homme', voice: 'Schedar', weight: 1, restHours: 20, passages: [0, 1], first: 'Jeff',
     role: 'un habitué du Ty Loup, qui vend des pièces de travaux publics à Douarnenez',
     voiceStyle: 'calm man with dry, caustic humor, a natural storyteller who takes his time, understated, a hint of a smile in the voice, natural everyday spoken French',
     fiche: 'Arthur. La trentaine. Il vend des pièces de travaux publics à Douarnenez et a grandi dans une ferme, à Plonévez-Porzay. ' +
@@ -430,9 +431,13 @@ function logPickOutcome(t) {
 }
 // Ce que l'annonce doit savoir des choix des animateurs (le titre suivant, le précédent, un à venir).
 // Les références (refs) ne sont marquées « faites » que quand l'annonce passe vraiment (sayIt).
-function pickPayload(s, prev, next, duo, guestTalks, soloB) {
-  const ok = (k) => k && (soloB && !duo ? k.who === 'B' : !(k.who === 'B' && (!duo || guestTalks)));
-  const view = (k, extra) => Object.assign({ who: k.who, name: k.name, kind: k.kind, why: k.why }, extra || {});
+// stayB : un invité est au micro et c'est le second animateur qui le reçoit (2.42).
+function pickPayload(s, prev, next, duo, guestTalks, soloB, stayB) {
+  // Avec un invité, seuls les choix de l'animateur qui le reçoit sont évoqués : l'autre n'est pas là.
+  const gone = guestTalks ? (stayB ? 'A' : 'B') : '';
+  const ok = (k) => k && (soloB && !duo ? k.who === 'B' : !(k.who === gone || (k.who === 'B' && !duo)));
+  // Pour l'IA, celui qui reçoit l'invité est « A ».
+  const view = (k, extra) => Object.assign({ who: guestTalks && stayB ? 'A' : k.who, name: k.name, kind: k.kind, why: k.why }, extra || {});
   const now = next && ok(next.pick) ? view(next.pick) : null;
   // Après : le titre qu'on vient d'écouter, ou un choix passé plus tôt dont personne n'a encore reparlé.
   let afterRef = prev && ok(prev.pick) && !prev.pick.discussed ? prev.pick : null;
@@ -607,11 +612,15 @@ const aiTimeout = (ms) => (aiPower() === 'max' || slowModel() ? Math.max(ms, 450
 // Ce que l'IA reçoit sur les animateurs. guestTalks : l'invité remplace B, sans sa fiche.
 // team : émission à deux sans invité au micro. Les deux fiches et la relation partent alors toujours, même quand un
 // seul animateur parle : la partie fixe des consignes est la même pour toutes les annonces de l'émission.
-function personaPayload(duo, guestTalks, s, team) {
+// stayB : l'invité est reçu par le second animateur (2.42). C'est sa fiche qui part, à la place « A ».
+function personaPayload(duo, guestTalks, s, team, stayB) {
   ensurePersonas();
   const mem = (who) => memFor(who, s);
   const thread = s && s.variety && s.variety.thread ? s.variety.thread : '';
   const cities = hostCityPair();
+  if (guestTalks && stayB) {
+    return { a: settings.cohostPersona, memA: mem('B'), cityA: cities.b, storyA: settings.cohostLore || '', b: '', memB: [], cityB: '', storyB: '', relation: '', thread: duo ? thread : '' };
+  }
   const withB = (duo && !guestTalks) || !!team;
   return { a: settings.hostPersona, memA: mem('A'), cityA: cities.a, storyA: settings.hostLore || '', b: withB ? settings.cohostPersona : '', memB: withB ? mem('B') : [], cityB: withB ? cities.b : '',
     storyB: withB ? settings.cohostLore || '' : '',
