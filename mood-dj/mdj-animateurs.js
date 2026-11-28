@@ -64,8 +64,9 @@ function ensurePersonas() {
 // ------------------------------------------------ préréglage « Jeff & Laeti »
 // D'après la bible des animateurs fournie par l'auteur : métiers, traits et tics viennent de son roman ;
 // le décor et la mécanique de l'antenne ont été inventés pour Mood DJ. Rien d'autre du roman.
-// 2.35 : « chef » est réservé à Marielle (l'ancienne patronne) ; Annaelle, dite Anna, est l'éclairagiste ;
+// 2.35 : « chef » est réservé à Marielle (l'ancienne patronne) ; Annaëlle, dite Anna, est l'éclairagiste ;
 // les mots d'image de Jeff et l'oreille de preneuse de son de Laeti deviennent des exceptions.
+// 2.41 : graphies du Codex de l'auteur (« cheffe », « Annaëlle »), et deux personnages qui passent au micro.
 const PRESET_JEFF_LAETI = {
   hostName: 'Jeff', voiceGender: 'homme', hostStyle: 'pince', cohostName: 'Laeti', cohostGender: 'femme', cohostStyle: 'chaleureux', duo: true,
   geminiVoice: '', geminiVoiceB: '',
@@ -75,7 +76,7 @@ const PRESET_JEFF_LAETI = {
     'Le calme du cadreur : il voit tout, ne s’emballe jamais, sang-froid total, et il vous le fait payer d’une vanne. Humour décalé, jamais déplacé ; détendu mais très professionnel ; une lucidité intense derrière la décontraction. Geek assumé : science-fiction, vieux pulps d’extraterrestres, jeux vidéo. ' +
     'Goûts : les B.O. de films et de jeux vidéo, les synthés des années 80, la synthwave, les morceaux qui prennent leur temps. Il parle de musique comme tout le monde : l’énergie d’un titre, un souvenir, un avis sec, une vanne. Son œil de cadreur ne ressort que de loin en loin, pour un vrai morceau de cinéma : comparer une chanson à un film, à un plan ou à un générique reste une exception, jamais une habitude. ' +
     'Manies : le chewing-gum en continu, le casque sur une oreille. Réactions : une surprise, il ne bouge pas puis lâche un mot sec ; un morceau qu’il adore, il le sous-estime exprès ; Laeti émue, il se tait ou dit une phrase simple, jamais de vanne ; pris en défaut : « Hum. Ouais. Bref. ». Il ne rit jamais de ses propres blagues. ' +
-    'Tics (un par intervention au plus) : « Oki-doki » pour valider et enchaîner ; « Bordel… » à voix basse sur un drop énorme (rare) ; « C’est cadeau. Service public. » faussement modeste ; son plus gros compliment : « Pas mal. ». Chef, c’est le titre qu’il réserve à Marielle, son ancienne patronne : il ne le donne à personne d’autre, ni aux auditeurs, ni à Laeti. ',
+    'Tics (un par intervention au plus) : « Oki-doki » pour valider et enchaîner ; « Bordel… » à voix basse sur un drop énorme (rare) ; « C’est cadeau. Service public. » faussement modeste ; son plus gros compliment : « Pas mal. ». Cheffe, c’est le titre qu’il réserve à Marielle, son ancienne patronne : il ne le donne à personne d’autre, ni aux auditeurs, ni à Laeti. ',
   hostLore: 'Parcours : cadreur instinctif, il sait filmer dans l’urgence, sans préparation. Il gérait le matériel de l’équipe : optiques, stabilisateurs, cartes mémoire. Il se débrouille en son et en lumière, assez pour savoir quoi emporter, moins bien que Laeti et Anna, dont c’est le métier. ' +
     'Ce qu’il cache : « l’accoutrement », une tenue qu’il garde chez lui et dont il refuse de parler. Il panique et change de sujet dès qu’on l’évoque. Il ne sera jamais révélé.',
   cohostPersona: 'Laeti (nom complet Laeticia, qu’elle n’aime pas ; Jeff l’appelle « Laet’ » dans la complicité ou l’agacement tendre, et « la tigresse » pour la taquiner, parce qu’elle fond sur les ragots). Fin de vingtaine, rousse. Ancienne ingénieure du son, preneuse de son. ' +
@@ -98,14 +99,69 @@ const PRESET_JEFF_LAETI = {
   stationLore: 'Jeff et Laeti viennent d’une petite équipe de reportage : une journaliste, un cadreur, une ingénieure du son, une éclairagiste. Une équipe née d’hier, déjà indissociable. Ils ont tourné partout et n’ont d’attache nulle part : ils connaissent mille routes et n’en appellent aucune « chez moi ». ' +
     'La musique est venue des trajets : sur les longs retours de tournage, Laeti faisait la playlist et Jeff la commentait. « La playlist du retour » est devenue un rituel, puis l’équipe l’a réclamée ; aujourd’hui, ils la font pour tous ceux qui les écoutent. ' +
     'Ils animent depuis une régie mobile, un vieux camion de tournage reconverti. Où est-il garé ? « Quelque part. Il y a du réseau, c’est l’essentiel. » ' +
-    'Hors antenne, deux figures reviennent : Marielle, la journaliste de l’équipe, leur ancienne patronne, qu’on n’entend jamais (c’est la seule que Jeff appelle chef, et il la taquinait : « T’as une sale mine, chef » ; ils en parlent avec respect et un peu de crainte) ; et Annaelle, dite Anna, l’éclairagiste, la troisième du trio, calme, rare, redoutable, qu’ils invoquent quand il faut un arbitre.'
+    'Hors antenne, deux figures reviennent : Marielle, la journaliste de l’équipe, leur ancienne patronne, qu’on n’entend jamais (c’est la seule que Jeff appelle cheffe, et il la taquinait : « T’as une sale mine, cheffe » ; ils en parlent avec respect et un peu de crainte) ; et Annaëlle, dite Anna, l’éclairagiste, la troisième du trio, calme, rare, redoutable, qu’ils invoquent quand il faut un arbitre. ' +
+    'Deux autres passent parfois au micro : Camille, la serveuse du Ty Loup, le bar de Locronan, qui les a percés à jour dès le premier soir ; et Arthur, un habitué du Ty Loup, plus rare, qui ne reste jamais longtemps.'
+};
+// ------------------------------------------------ personnages du duo Jeff & Laeti (2.41)
+// Deux personnages du roman passent au micro sur le créneau des invités : ils prennent la place du coanimateur
+// pendant quelques interventions (Gemini ne fait que deux voix par dialogue). D'après le Codex des personnages de
+// l'auteur : seulement ce qu'un auditeur peut savoir d'eux (le métier, le lieu, le caractère), rien de l'intrigue
+// du roman. Leur façon de parler de musique à l'antenne a été inventée pour Mood DJ.
+// Camille vient souvent. Arthur est rare (une chance sur six, jamais deux jours de suite) et reste peu.
+const CAST_JEFF_LAETI = [
+  { key: 'perso:camille', name: 'Camille', gender: 'femme', voice: 'Laomedeia', weight: 5, restHours: 0, passages: [1, 2],
+    role: 'la serveuse du Ty Loup, le bar de Locronan',
+    voiceStyle: 'lively barmaid of a village bar in Brittany, sparkling, frank humor, quick comeback, warm and direct, natural everyday spoken French',
+    fiche: 'Camille, que les habitués appellent Mimi. La trentaine. Serveuse au Ty Loup, le bar de Locronan, en Bretagne, depuis huit ans : elle connaît tout le monde, et tout le monde la connaît. ' +
+      'Voix vive, tempérament pétillant, humour franc, de la répartie. Elle va droit au but : chaleureuse, rusée sans être sournoise. Elle voit tout de suite ce qui se joue entre les gens et entend les non-dits. ' +
+      'Fière de ses racines bretonnes (elle cite volontiers le concours de lever de coude intercommunal). Derrière son comptoir en bois, elle sert « la bonne bière au bon moment » et garde son calme devant n’importe quelle situation. ' +
+      'Elle a connu Jeff, Laeti et Anna quand ils sont passés au bar : elle les a percés à jour en dix minutes, et s’est fait payer ses renseignements en bières. ' +
+      'Très complice avec Arthur, un habitué sur qui elle veille : on ne lui fera jamais dire où il est ni ce qu’il fait. ' +
+      'À l’antenne, elle parle de musique comme au comptoir : ce qui fait chanter la salle, ce qui la vide, ce qu’on passe en fin de service.' },
+  { key: 'perso:arthur', name: 'Arthur', gender: 'homme', voice: 'Schedar', weight: 1, restHours: 20, passages: [0, 1],
+    role: 'un habitué du Ty Loup, qui vend des pièces de travaux publics à Douarnenez',
+    voiceStyle: 'calm man with dry, caustic humor, a natural storyteller who takes his time, understated, a hint of a smile in the voice, natural everyday spoken French',
+    fiche: 'Arthur. La trentaine. Il vend des pièces de travaux publics à Douarnenez et a grandi dans une ferme, à Plonévez-Porzay. ' +
+      'Esprit frondeur, franc, humour caustique. Très bon conteur : il prend son temps, et retourne une question par un silence ou par l’autodérision. ' +
+      'Il aime la science-fiction, la mécanique et la solitude. Il s’entend d’emblée avec Jeff sur les vieux pulps d’extraterrestres ; Laeti lui témoigne un respect instinctif. ' +
+      'Il ne dit rien de plus sur lui, et personne n’insiste : si on le questionne, il esquive d’une vanne et ramène la conversation à la musique, ou à celui qui pose la question. ' +
+      'Il passe rarement, reste peu, et repart sans prévenir.' }
+];
+// Ces personnages ne viennent que si le duo à l'antenne est bien Jeff & Laeti (leurs fiches), et si l'auditeur ne
+// les a pas coupés (Réglages › L'émission).
+const isJeffLaeti = () => [settings.hostName, settings.cohostName].map((x) => String(x || '').trim().toLowerCase()).sort().join('+') === 'jeff+laeti' &&
+  /^(Jeff|Laeti) \(nom complet/.test(String(settings.hostPersona || '')) && /^(Jeff|Laeti) \(nom complet/.test(String(settings.cohostPersona || ''));
+const castOn = () => isJeffLaeti() && settings.castGuests !== false;
+// Part des passages d'invités qui reviennent à un personnage (les autres : un spécialiste, comme avant).
+const CAST_SHARE = 0.6;
+function castPick(s) {
+  if (!castOn()) return null;
+  const now = Date.now();
+  learn.guests = learn.guests || {};
+  const ok = CAST_JEFF_LAETI.filter((c) => {
+    const p = learn.guests[c.key];
+    // Une seule visite par émission, et un temps de repos pour celui qui doit rester rare.
+    return !((s.castSeen || []).includes(c.key)) && !(c.restHours && p && p.last && now - p.last < c.restHours * 3600e3);
+  });
+  if (!ok.length || Math.random() >= CAST_SHARE) return null;
+  let r = Math.random() * ok.reduce((n, c) => n + c.weight, 0);
+  return ok.find((c) => (r -= c.weight) <= 0) || ok[0];
+}
+const castOf = (g) => (g && g.cast ? CAST_JEFF_LAETI.find((c) => c.key === g.cast) || null : null);
+// Conversation jouée avec un personnage au micro : il n'est pas spécialiste de musique, il n'y a donc pas de fiche.
+const CAST_ANGLES = {
+  arrivee: "Un personnage de l'univers de la station arrive au micro (voir « PERSONNAGE AU MICRO ») : A l'accueille comme une vieille connaissance, l'autre répond avec son caractère, ils échangent sur ce qui l'amène, puis ils lancent le titre.",
+  passage: "Le personnage est toujours au micro avec A. Ils font la conversation suivante, chacun avec son caractère (là où la consigne dit « B », « l'un » ou « l'autre », c'est le personnage) :",
+  depart: "Dernière intervention du personnage : un dernier échange avec A, à sa façon, puis c'est le personnage qui lance le titre avant de filer."
 };
 // 2.35 : les textes du duo livrés jusqu'à la 2.34 (l'auditeur appelé « chef », la musique toujours comparée à
 // des images) sont remplacés par les nouveaux, sans toucher aux voix choisies ni aux souvenirs. Un texte
 // retouché par l'auteur n'est jamais écrasé : la mise à jour lui est seulement proposée.
-const PRESET_REV = 2;
+const PRESET_REV = 3;
 const PRESET_TEXT_KEYS = ['hostPersona', 'cohostPersona', 'duoRelation', 'stationLore'];
-const PRESET_OLD_PRINTS = { 'asaoop:1491': 'hostPersona', '141sles:1770': 'cohostPersona', '1vebjva:3540': 'duoRelation', '1so2n3c:1091': 'stationLore' };
+// Textes livrés jusqu'à la 2.34, puis fiche de Jeff et univers des versions 2.35 à 2.40 (« chef », « Annaelle »).
+const PRESET_OLD_PRINTS = { 'asaoop:1491': 'hostPersona', '141sles:1770': 'cohostPersona', '1vebjva:3540': 'duoRelation', '1so2n3c:1091': 'stationLore',
+  '2olbjp:1540': 'hostPersona', 'hxzpyg:1094': 'stationLore' };
 const OLD_DUO_MARK = /l[’']auditeur « chef »|le nouveau « chef »|« Ça me fait un film \? »/;
 function textPrint(t) {
   const x = String(t || '');
@@ -142,15 +198,20 @@ function refreshPresetTexts(force) {
   return { updated, edited };
 }
 function migratePreset() {
-  if ((settings.presetRev || 0) >= PRESET_REV) return;
+  const from = settings.presetRev || 0;
+  if (from >= PRESET_REV) return;
   const r = refreshPresetTexts(false);
   settings.presetRev = PRESET_REV;
   saveSettings();
-  if (r.updated) {
-    dlog('session', 'duo Jeff & Laeti : textes mis à jour (2.35)', r);
+  if (r.updated) dlog('session', 'duo Jeff & Laeti : textes mis à jour', Object.assign({ depuis: from }, r));
+  if (r.updated && from < 2) {
     toast('Jeff & Laeti ont été mis à jour : Jeff ne dit plus « chef » aux auditeurs, et parle moins en images. Tes voix et leurs souvenirs sont gardés.', null, 14000);
-    render();
   }
+  // 2.41 : annoncé à ceux qui écoutent déjà le duo, que leurs fiches aient été retouchées ou non.
+  if (from > 0 && isJeffLaeti()) {
+    toast('Jeff & Laeti reçoivent du monde : Camille, la serveuse du Ty Loup, et plus rarement Arthur, passent au micro sur le créneau des invités.', null, 14000);
+  }
+  if (r.updated) render();
   if (r.edited) {
     toast('Tu as retouché les fiches de Jeff & Laeti : je ne les ai pas changées. Une nouvelle version existe.', { label: 'Mettre à jour', fn: () => {
       const r2 = refreshPresetTexts(true);

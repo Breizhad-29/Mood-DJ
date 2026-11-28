@@ -835,11 +835,26 @@ async function writeAnnouncement(p) {
     const quirk = g.quirk ? ' Sa petite manie, à glisser une fois de temps en temps : ' + String(g.quirk).slice(0, 120) + '.' : '';
     const sure = ' ' + gn + " parle en vrai spécialiste mais ne dit que ce que la fiche ou une connaissance certaine permet : jamais de faux souvenir avec un vrai artiste (" +
       (fem ? "elle ne l'a pas rencontré, elle n'était pas au concert" : "il ne l'a pas rencontré, il n'était pas au concert") + ').';
-    if (g.phase === 'annonce') {
+    // Personnage de l'univers de la station (2.41) : pas un spécialiste, quelqu'un que l'animateur connaît. Il parle
+    // avec son caractère, d'après sa fiche, et rien ne s'invente sur sa vie.
+    const fiche = g.cast ? String(g.fiche || '').replace(/\s+/g, ' ').slice(0, 1600) : '';
+    const keep = ' ' + gn + " n'est pas spécialiste de musique : " + (fem ? 'elle' : 'il') + " parle avec son caractère et son métier, sans rien affirmer sur un artiste ou un morceau. N'invente rien sur sa vie au-delà de sa fiche, et ne " +
+      (fem ? 'la' : 'le') + " fais jamais révéler ce qu'" + (fem ? 'elle' : 'il') + ' garde pour ' + (fem ? 'elle' : 'lui') + '.';
+    const known = Number(g.visits) > 0 ? ' ' + gn + " est déjà venu" + (fem ? 'e' : '') + " dans l'émission : inutile de " + (fem ? 'la' : 'le') + ' présenter longuement.' : '';
+    if (g.cast && g.phase === 'annonce') {
+      lines.push('PERSONNAGE À VENIR : glisse que dans quelques minutes, ' + gn + ', ' + gr + ', passe au micro. Une demi-phrase qui donne envie, sans ' + (fem ? 'la' : 'le') + ' faire parler : ' + (fem ? 'elle' : 'il') + ' n\'est pas encore là.');
+    } else if (g.cast && g.phase === 'arrivee') {
+      lines.push('PERSONNAGE AU MICRO : pour ce passage, B n\'est pas ' + away + ' : B = ' + gn + ', ' + (fem ? 'une femme' : 'un homme') + ', ' + gr + '. ' +
+        away + ' a quitté le micro quelques minutes : A le dit avec humour en une demi-phrase, puis accueille ' + gn + ' comme une vieille connaissance. Fiche de ' + gn + ' : ' + fiche + known + keep);
+    } else if (g.cast && g.phase === 'passage') {
+      lines.push('PERSONNAGE AU MICRO : B = ' + gn + ', ' + gr + ', toujours au micro à la place de ' + away + '. Fiche de ' + gn + ' : ' + fiche + keep);
+    } else if (g.cast && g.phase === 'depart') {
+      lines.push('DÉPART DU PERSONNAGE : dernière intervention de ' + gn + ' (B), ' + gr + '. Fiche de ' + gn + ' : ' + fiche + ' A ' + (fem ? 'la' : 'le') + ' salue, et c\'est ' + gn + ' qui lance le titre suivant avant de filer. ' + away + ' reviendra à la prochaine intervention.' + keep);
+    } else if (g.phase === 'annonce') {
       lines.push('INVITÉ À VENIR : glisse que dans quelques minutes, l\'émission reçoit ' + gn + ', ' + gr + (again ? ', qui revient nous voir' : '') + '. Une demi-phrase qui donne envie, sans ' + (fem ? 'la' : 'le') + ' faire parler : ' + (fem ? 'elle' : 'il') + ' n\'est pas encore là.');
     } else if (g.phase === 'arrivee') {
       lines.push('ARRIVÉE DE L\'INVITÉ : pour ce passage, B n\'est pas ' + away + ' : B = ' + gn + ', ' + (fem ? 'une femme' : 'un homme') + ', ' + gr + ', ' + (fem ? 'invitée' : 'invité') + ' en studio. ' +
-        away + ' s\'est éclipsé quelques minutes : A le dit avec humour en une demi-phrase. A accueille ' + gn + ', qui se présente en une phrase, puis donne tout de suite son regard d\'expert sur le titre suivant.' + again + quirk + sure);
+        away + ' a quitté le micro quelques minutes : A le dit avec humour en une demi-phrase. A accueille ' + gn + ', qui se présente en une phrase, puis donne tout de suite son regard d\'expert sur le titre suivant.' + again + quirk + sure);
     } else if (g.phase === 'passage') {
       lines.push('INVITÉ EN STUDIO : B = ' + gn + ', ' + gr + ', toujours en studio à la place de ' + away + '. ' + gn + ' parle en spécialiste : un détail que seul un connaisseur remarque, une anecdote tirée de la fiche, un avis tranché ; A réagit et peut ne pas être d\'accord.' + quirk + sure);
     } else if (g.phase === 'depart') {

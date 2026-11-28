@@ -14,13 +14,16 @@ test('duo Jeff & Laeti : « chef » réservé à Marielle, plus d’image à tou
   const p = loadPanel();
   const J = p.run('PRESET_JEFF_LAETI');
   const all = TEXTS.map((k) => J[k]).join('\n');
-  assert.doesNotMatch(all, /l’auditeur « chef »|nouveau « chef »|cheffe/);
+  assert.doesNotMatch(all, /l’auditeur « chef »|nouveau « chef »/);
   assert.doesNotMatch(all, /Ça me fait un film|regarde la musique|Mes J’aime|mode Découverte/);
   assert.doesNotMatch(J.cohostPersona, /appelle l’auditeur/);
-  assert.match(J.hostPersona, /Chef, c’est le titre qu’il réserve à Marielle/);
+  // 2.41 : les graphies du Codex de l'auteur (« cheffe », « Annaëlle »).
+  assert.match(J.hostPersona, /Cheffe, c’est le titre qu’il réserve à Marielle/);
   assert.match(J.stationLore, /Marielle, la journaliste/);
-  assert.match(J.stationLore, /Annaelle, dite Anna, l’éclairagiste/);
-  // « Chef » n'est pas entre guillemets : ce n'est pas une expression fétiche que Mood DJ pourrait proposer.
+  assert.match(J.stationLore, /« T’as une sale mine, cheffe »/);
+  assert.match(J.stationLore, /Annaëlle, dite Anna, l’éclairagiste/);
+  assert.doesNotMatch(all, /Annaelle/);
+  // « Cheffe » n'est pas entre guillemets dans la fiche : ce n'est pas une expression fétiche que Mood DJ pourrait proposer.
   assert.ok(!p.run('fileSayings(PRESET_JEFF_LAETI.hostPersona, "A")').some((x) => /chef/i.test(x.text)));
 });
 

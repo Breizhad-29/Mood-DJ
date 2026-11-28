@@ -497,6 +497,15 @@ function tabReglages() {
       ", un spécialiste du style qui passe (critique de jazz, producteur de beats, DJ, musicologue…) vient en studio pour deux ou trois interventions, à la place de " +
       ((settings.cohostName || 'Sam').trim() || 'Sam') + ". L'animateur l'annonce, l'accueille, puis il repart en lançant un titre. Chaque spécialité garde son invité d'une émission à l'autre.") +
       (useGemini() && hasKey ? '' : ' Il faut les voix Gemini.')),
+    // 2.41 : avec le duo Jeff & Laeti, deux personnages de leur univers passent aussi au micro.
+    isJeffLaeti() ? h('div', { class: 'row' },
+      h('div', { style: { flex: '1', minWidth: '0' } },
+        h('div', { class: 'label white' }, 'Camille et Arthur au micro'),
+        h('div', { class: 'muted' }, settings.guestFreq === 'off'
+          ? 'Mets « Spécialiste invité » sur Rarement ou Souvent pour qu’ils passent.'
+          : 'Avec Jeff & Laeti, environ un passage d’invité sur deux revient à Camille, la serveuse du Ty Loup. Arthur passe bien plus rarement, et ne reste pas. Ils ne sont pas spécialistes de musique : ils font la conversation, à leur façon.')),
+      h('button', { class: 'btn small', type: 'button', disabled: settings.castGuests === false, title: 'Écouter Camille arriver au micro', 'aria-label': 'Écouter Camille arriver au micro', onclick: () => demoAnnouncement('perso') }, 'Tester'),
+      switchBtn('Camille et Arthur au micro', settings.castGuests !== false, (v) => { settings.castGuests = v; saveSettings(); render(); })) : null,
     guestListView()];
   const gemOk = useGemini();
   const radioB = [

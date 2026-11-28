@@ -67,10 +67,11 @@ function roleFem(r) {
     .replace('producteur', 'productrice').replace('passionné', 'passionnée').replace('historien', 'historienne').replace('ingénieur', 'ingénieure')
     .replace('bluesman et guitariste', 'chanteuse de blues et guitariste');
 }
-function guestVoice(g) {
+function guestVoice(g, own) {
   const host = geminiVoices().a;
   let v = settings.guestVoices && settings.guestVoices[g.name];
-  if (!v) v = (GEMINI_DEFAULTS[g.style] || GEMINI_DEFAULTS.erudit)[g.gender];
+  // own : la voix choisie pour un personnage du duo (Camille, Arthur).
+  if (!v) v = own || (GEMINI_DEFAULTS[g.style] || GEMINI_DEFAULTS.erudit)[g.gender];
   if (!v || v === host) v = (GEMINI_VOICES.find((x) => x[1] === g.gender && x[0] !== host) || [v])[0];
   return v;
 }
@@ -83,12 +84,28 @@ function guestPhaseFor(s, next) {
   const every = (GUEST_EVERY[settings.guestFreq] || 60) * 60e3;
   if (!s.guestNextAt) s.guestNextAt = s.startedAt + Math.max(12 * 60e3, every * 0.45);
   if (now < s.guestNextAt || s.hook) return '';
+  // Avec le duo Jeff & Laeti, une partie des passages revient à un personnage de leur univers (2.41).
+  const c = castPick(s);
+  if (c) {
+    s.guest = castGuest(c, 'annonce');
+    s.castSeen = (s.castSeen || []).concat([c.key]);
+    dlog('annonce', 'personnage prévu', { nom: c.name, visites: s.guest.visits, passages: s.guest.passages });
+    return 'annonce';
+  }
   const role = guestRoleFor(s, next);
   const g = guestProfile(role);
   s.guest = { phase: 'annonce', key: role[0], name: g.name, gender: g.gender, style: g.style, role: g.role, quirk: g.quirk,
     visits: g.visits || 0, voice: guestVoice(g), passages: Math.random() < 0.5 ? 1 : 2, done: 0 };
   dlog('annonce', 'invité prévu', { nom: g.name, specialite: g.role, style: g.style, visites: g.visits || 0 });
   return 'annonce';
+}
+// Un personnage du duo en invité. Il est gardé comme les autres invités (nombre de passages, dernière venue).
+function castGuest(c, phase) {
+  learn.guests = learn.guests || {};
+  const p = learn.guests[c.key] || (learn.guests[c.key] = { visits: 0 });
+  Object.assign(p, { name: c.name, gender: c.gender, style: 'chaleureux', role: c.role, quirk: '' });
+  return { phase, key: c.key, cast: c.key, name: c.name, gender: c.gender, style: 'chaleureux', role: c.role, quirk: '',
+    visits: p.visits || 0, voice: guestVoice({ name: c.name, gender: c.gender, style: 'chaleureux' }, c.voice), passages: pick(c.passages), done: 0 };
 }
 const guestSpeaks = (phase) => phase === 'arrivee' || phase === 'passage' || phase === 'depart';
 // Une intervention avec l'invité a été dite : on passe à l'étape suivante.
@@ -122,7 +139,9 @@ function guestListView() {
     list.map(([key, g]) => h('div', { class: 'row' },
       h('span', { class: 'muted' }, g.name + ', ' + g.role + ' · ' + g.visits + ' passage' + (g.visits > 1 ? 's' : '')),
       h('button', {
-        class: 'x', type: 'button', 'aria-label': 'Oublier ' + g.name, title: 'Oublier ' + g.name + ' : un autre invité viendra pour cette spécialité',
+        class: 'x', type: 'button', 'aria-label': 'Oublier ' + g.name,
+        // Un personnage du duo (2.41) ne se remplace pas : l'oublier remet seulement ses passages à zéro.
+        title: 'Oublier ' + g.name + (/^perso:/.test(key) ? ' : ses passages repartent de zéro' : ' : un autre invité viendra pour cette spécialité'),
         onclick: () => { delete learn.guests[key]; saveLearn(); toast(g.name + (g.gender === 'femme' ? ' oubliée.' : ' oublié.'), null, 3000); render(); }
       }, icon('x', 14)))));
 }
@@ -152,7 +171,22 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
     plan.long = true;
     if (plan.duo) plan.turns = Math.max(plan.turns || 0, 4);
   }
-  if (gTalks) {
+  const cast = castOf(guest);
+  if (gTalks && cast) {
+    // Un personnage n'est pas un spécialiste : pas de fiche sur le titre, une conversation à sa façon. Le programme
+    // garde sa forme quand il s'ouvre ; ailleurs, la chronique ou la culture courte laissent la place.
+    plan.duo = true;
+    if (plan.angle && plan.angle.id === 'programme') plan.angle = Object.assign({}, plan.angle, { txt: plan.angle.txt + ' ' + CAST_ANGLES[gPhase] });
+    else {
+      const talk = gPhase === 'passage' ? otherAngle(s, kind, true, prev) : null;
+      plan.angle = { id: 'perso_' + gPhase, txt: CAST_ANGLES[gPhase] + (talk ? ' ' + talk.txt : ''), topic: talk ? talk.topic || '' : '' };
+      plan.long = false;
+      plan.free = true;
+      if (!plan.pivot) plan.pivot = drawPivot(s, false);
+    }
+    plan.turns = Math.max(plan.turns || 0, gPhase === 'arrivee' ? 4 : 3);
+    if (plan.opener === 'B' && gPhase === 'arrivee') plan.opener = 'A';
+  } else if (gTalks) {
     plan.duo = true;
     if (plan.angle && (plan.angle.id === 'programme' || plan.angle.facts)) plan.angle = Object.assign({}, plan.angle, { txt: plan.angle.txt + ' ' + GUEST_ANGLES[gPhase] });
     else plan.angle = { id: 'invite_' + gPhase, txt: GUEST_ANGLES[gPhase], facts: 'next' };
@@ -356,7 +390,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
         hostGender: hostGenders().host, cohostGender: gTalks ? guest.gender : hostGenders().cohost,
         show: s.show ? { name: s.show.name, wake: !!s.show.wake } : null,
         dedic: dedic ? { to: dedic.to, msg: dedic.msg, from: dedic.from || c.listener, request: dedic.request } : null,
-        guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost } : null,
+        guest: guest ? { phase: gPhase, name: guest.name, gender: guest.gender, role: guest.role, quirk: guest.quirk, visits: guest.visits, away: c.cohost, cast: !!cast, fiche: cast ? cast.fiche : '' } : null,
         tags: settings.voiceEngine === 'gemini' && hasGemini, emotion: emo, sfx: settings.sfx !== false, sing: !!settings.sing || s.demo === 'chant', singNow: s.demo === 'chant',
         power: aiPower(), persona: personaPayload(duo, gTalks, s, team), lore: s.demo ? null : lorePayload(s, kind, plan.angle && plan.angle.id === 'bavardage' ? (plan.angle.lore === 'focus' ? 'focus' : true) : false),
         focus, dynamic: dyn ? dyn.txt : '', cuts: duo && !gTalks ? plan.cuts : undefined,
@@ -436,7 +470,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
       const gv = geminiVoices();
       // L'invité parle avec sa propre voix, seulement si Claude a bien écrit son passage.
       const gVoice = gTalks && fromClaude;
-      const styleB = gVoice ? (GEMINI_STYLES[guest.style] || gv.styleB) + ', a guest expert visiting the studio' : gv.styleB;
+      const styleB = gVoice ? (cast ? cast.voiceStyle : (GEMINI_STYLES[guest.style] || gv.styleB) + ', a guest expert visiting the studio') : gv.styleB;
       // Déchaîné : la voix elle-même est poussée (énergie, écarts de ton et de volume), pas seulement
       // le texte. Sans ça, l'indication de jeu de chaque réplique était lissée par le style de base, et
       // « Déchaîné » sonnait plus sage qu'« Expressif » (où les rares indications ressortent).
@@ -844,8 +878,8 @@ async function demoAnnouncement(what) {
   if (demoBusy) { toast('Un exemple est déjà en préparation.', null, 2500); return; }
   if (session && session.announcing) { toast("L'animateur parle déjà : réessaie juste après.", null, 3000); return; }
   const live = settings.claudeAnnounce && hasKey;
-  if ((what === 'anecdote' || what === 'guest') && !live) { toast("Il faut la clé Claude (et « Claude écrit les annonces ») pour cet exemple.", null, 5000); return; }
-  if (what === 'guest' && !useGemini()) { toast("L'invité a besoin des voix Gemini : choisis Gemini dans Réglages › Voix.", null, 5000); return; }
+  if ((what === 'anecdote' || what === 'guest' || what === 'perso') && !live) { toast("Il faut la clé Claude (et « Claude écrit les annonces ») pour cet exemple.", null, 5000); return; }
+  if ((what === 'guest' || what === 'perso') && !useGemini()) { toast("L'invité a besoin des voix Gemini : choisis Gemini dans Réglages › Voix.", null, 5000); return; }
   if (what === 'chant') {
     if (!live) { toast("Pour le chant, il faut une IA pour les textes (clé Claude ou Gemini, et « L'IA écrit les annonces »).", null, 6000); return; }
     if (!useGemini()) { toast('Le chant a besoin des voix Gemini : choisis Gemini dans Réglages › Voix.', null, 5000); return; }
@@ -853,7 +887,7 @@ async function demoAnnouncement(what) {
   }
   demoBusy = true;
   try {
-    toast(what === 'anecdote' ? "Recherche d'une anecdote…" : what === 'guest' ? "L'invité arrive en studio…" : what === 'chant' ? 'Les animateurs chauffent leur voix…' : what === 'bavardage' ? 'Les animateurs cherchent de quoi parler…' : "Préparation de l'exemple…", null, 4000);
+    toast(what === 'anecdote' ? "Recherche d'une anecdote…" : what === 'guest' ? "L'invité arrive en studio…" : what === 'perso' ? 'Camille arrive au micro…' : what === 'chant' ? 'Les animateurs chauffent leur voix…' : what === 'bavardage' ? 'Les animateurs cherchent de quoi parler…' : "Préparation de l'exemple…", null, 4000);
     await callSafe('initAudio');
     await sleep(500);
     const fake = { id: 'demo', sel: session ? session.sel : sel, lastLines: session ? session.lastLines : [], played: [], queue: [], demo: what };
@@ -863,6 +897,7 @@ async function demoAnnouncement(what) {
     const prev = mk('Riders on the Storm', 'The Doors', 2, 1971, 'rock');
     const next = (what === 'anecdote' || what === 'guest') && cur ? cur : mk('Born to Run', 'Bruce Springsteen', 5, 1975, 'rock');
     const kind = what === 'talkover' ? 'talkover' : 'interlude';
+    if (what === 'perso') fake.guest = castGuest(CAST_JEFF_LAETI[0], 'arrivee');
     if (what === 'guest') {
       const role = guestRoleFor(fake, next);
       const g = guestProfile(role);

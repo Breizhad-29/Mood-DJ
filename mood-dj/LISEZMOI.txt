@@ -1,5 +1,43 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.40.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.41.0
 ============================================
+
+2.41.0 : CAMILLE ET ARTHUR PASSENT AU MICRO
+- Avec le duo Jeff & Laeti, deux personnages de leur univers passent à
+  l'antenne sur le créneau du spécialiste invité : Camille, la serveuse du
+  Ty Loup, le bar de Locronan (voix vive, Laomedeia), et Arthur, un
+  habitué du Ty Loup (voix posée, Schedar).
+- Camille vient souvent : environ un passage d'invité sur deux. Elle reste
+  une ou deux interventions après son arrivée, puis lance un titre et file.
+- Arthur est rare : environ un passage d'invité sur dix, jamais deux fois
+  en vingt heures. Il arrive, reste parfois une intervention, et repart.
+- Chacun ne vient qu'une fois par émission. Les autres passages restent
+  aux spécialistes (quatre sur dix).
+- Ce ne sont pas des spécialistes de musique : ils font la conversation, à
+  leur façon. Aucune fiche du titre n'est cherchée pour eux, et l'IA a pour
+  consigne de ne rien leur faire affirmer sur un artiste ou un morceau.
+- Leurs fiches viennent du Codex de l'auteur et ne disent rien de
+  l'intrigue du roman : le bar, Locronan, le métier, le caractère. L'IA a
+  pour consigne de ne rien inventer sur leur vie au-delà.
+- Comme tout invité, ils prennent la place du second animateur, qui
+  « quitte le micro quelques minutes » et revient après leur départ.
+- Réglages › L'émission › « Camille et Arthur au micro » : un interrupteur
+  (allumé d'office) et un bouton « Tester » pour entendre Camille arriver.
+  La ligne n'apparaît qu'avec les fiches du duo Jeff & Laeti, et ils ne
+  passent que si « Spécialiste invité » est sur Rarement ou Souvent.
+- Dans « Invités déjà venus », oublier Camille ou Arthur remet seulement
+  leurs passages à zéro.
+- Fiches du duo, graphies du Codex : « cheffe » (le titre que Jeff réserve
+  à Marielle) et « Annaëlle ». L'univers de la station mentionne Camille
+  et Arthur, pour que les animateurs puissent parler d'eux hors de leurs
+  visites. Les fiches que tu n'as pas retouchées sont mises à jour toutes
+  seules ; une fiche retouchée est laissée telle quelle.
+- Consignes de l'invité : l'animateur absent « a quitté le micro », une
+  tournure qui ne suppose plus que ce soit un homme.
+- Essayé sur de vrais textes et de vraies voix : l'arrivée de Camille et
+  celle d'Arthur, avec Laeti (30 s chacune, cinq répliques). L'annonce,
+  les passages et le départ ont été essayés en texte seulement. Rien n'a
+  été écouté dans Chrome sur YouTube Music.
+- 7 nouveaux tests (85 en tout).
 
 2.40.0 : DES DIALOGUES MOINS HACHÉS
 - Le constat. Dans les dialogues écrits par l'IA, un tiers des phrases

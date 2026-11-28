@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.40.0.
+Up to date with version 2.41.0.
 
 ---
 
@@ -281,6 +281,7 @@ From time to time, a specialist of the style playing drops by (rock specialist, 
 - Each speciality keeps its guest from one show to the next (same name, voice, style and quirk), and the host remembers them.
 - **Guest specialist**: Never, Rarely (about once an hour, default) or Often (about every 30 minutes). **Past guests** lets you forget one: someone new will come for that speciality.
 - Needs an AI key for the texts and the Gemini voices. Guests use the same sources as the hosts and never claim to have met an artist.
+- **Camille and Arthur on air** (only with the Jeff & Laeti duo, on by default): two characters from the duo's world share the guest slot. Camille, the barmaid of the Ty Loup, the bar in Locronan (lively voice), takes about one guest slot in two and stays for one or two segments. Arthur, a regular of the Ty Loup (calm voice), takes about one in ten, never twice within twenty hours, and hardly stays. Each comes once per show at most; the other slots stay with the specialists. They are not music experts: they chat in their own way, no fact sheet is looked up for them, and the AI is told not to invent anything about their lives beyond their character sheet. **Test** plays Camille coming on air. In **Past guests**, forgetting one of them only resets their visit count.
 
 ### True or false
 
@@ -298,7 +299,7 @@ Settings › The show › **End-of-show recap** (on by default): when a selectio
 
 ### Test buttons
 
-Settings › The show has **Test** buttons next to Interludes, Trivia, Guest specialist and Host emotions. The trivia and guest tests use the current track, or a classic if nothing is playing.
+Settings › The show has **Test** buttons next to Interludes, Trivia, Guest specialist, Camille and Arthur on air (Jeff & Laeti duo) and Host emotions. The trivia and guest tests use the current track, or a classic if nothing is playing.
 
 ---
 
