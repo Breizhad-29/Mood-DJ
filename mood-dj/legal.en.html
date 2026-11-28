@@ -31,7 +31,7 @@
 
   <section class="card" id="marques">
     <h2>2. Independence and trademarks</h2>
-    <p>Mood DJ is an independent project. It is not affiliated with, endorsed or supported by YouTube, Google, Anthropic, Last.fm, Discogs, Setlist.fm, Ticketmaster, Deezer, MusicBrainz, the Wikimedia Foundation or Open-Meteo.</p>
+    <p>Mood DJ is an independent project. It is not affiliated with, endorsed or supported by YouTube, Google, Anthropic, Last.fm, Discogs, Setlist.fm, Deezer, MusicBrainz, the Wikimedia Foundation or Open-Meteo.</p>
     <p>YouTube and YouTube Music are trademarks of Google LLC. Claude is a trademark of Anthropic PBC. Other names mentioned belong to their respective owners. They are used only to refer to the services the extension works with.</p>
   </section>
 
@@ -59,12 +59,12 @@
       <tr><th>Service</th><th>When</th><th>Data sent</th></tr>
       <tr><td>YouTube Music (Google)</td><td>Always, it is the page the extension runs on</td><td>Track searches, playback, likes, playlists created on your account. The embedded crossfade player also loads the current track from youtube.com.</td></tr>
       <tr><td>Claude (Anthropic)</td><td>With a Claude key</td><td>Chosen mood, tracks played and coming up, the hosts' names, personalities, relationship and memories, the station's universe, your first name if you entered it, city and weather, dedication text, trivia found.</td></tr>
-      <tr><td>Gemini (Google)</td><td>With a Gemini key</td><td>The text of the announcements to read, to produce the voice. If Gemini writes the scripts (your choice, or as a fallback for Claude): the same data as for Claude.</td></tr>
+      <tr><td>Gemini (Google)</td><td>With a Gemini key</td><td>The text of the announcements to read, to produce the voice. If Gemini writes the scripts (your choice, or as a fallback for Claude): the same data as for Claude. If “Upcoming concerts” is on: the artist's name, the track title and the chosen country, for a Google search run by Gemini.</td></tr>
       <tr><td>Open-Meteo</td><td>If weather is enabled</td><td>The name of the chosen city.</td></tr>
       <tr><td>Wikipedia, Wikidata, MusicBrainz, Deezer</td><td>For trivia</td><td>Artist names and track titles.</td></tr>
-      <tr><td>Last.fm, Discogs, Setlist.fm, Ticketmaster</td><td>With the service's key</td><td>Artist names and track titles (and, for Ticketmaster, the country chosen for concerts).</td></tr>
+      <tr><td>Last.fm, Discogs, Setlist.fm</td><td>With the service's key</td><td>Artist names and track titles.</td></tr>
     </table></div>
-    <p>Each service processes this data under its own privacy policy: <a href="https://policies.google.com/privacy" rel="noopener noreferrer" target="_blank">Google</a>, <a href="https://www.anthropic.com/legal/privacy" rel="noopener noreferrer" target="_blank">Anthropic</a>, <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" rel="noopener noreferrer" target="_blank">Wikimedia</a>, <a href="https://www.last.fm/legal/privacy" rel="noopener noreferrer" target="_blank">Last.fm</a>, <a href="https://www.discogs.com/privacy" rel="noopener noreferrer" target="_blank">Discogs</a>, <a href="https://www.ticketmaster.fr/fr/confidentialite" rel="noopener noreferrer" target="_blank">Ticketmaster</a>. API keys are only sent to the service they belong to, over HTTPS.</p>
+    <p>Each service processes this data under its own privacy policy: <a href="https://policies.google.com/privacy" rel="noopener noreferrer" target="_blank">Google</a>, <a href="https://www.anthropic.com/legal/privacy" rel="noopener noreferrer" target="_blank">Anthropic</a>, <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" rel="noopener noreferrer" target="_blank">Wikimedia</a>, <a href="https://www.last.fm/legal/privacy" rel="noopener noreferrer" target="_blank">Last.fm</a>, <a href="https://www.discogs.com/privacy" rel="noopener noreferrer" target="_blank">Discogs</a>. API keys are only sent to the service they belong to, over HTTPS.</p>
 
     <h3>Retention and deletion</h3>
     <p>Data is kept as long as the extension is installed. You can erase it at any time: in Settings (history, log, likes, blocklist, keys), or by uninstalling the extension, which deletes everything.</p>
@@ -94,7 +94,7 @@
       <li><strong>Last.fm</strong>: listener counts, tags and similar artists, via the Last.fm API (AudioScrobbler).</li>
       <li><strong>Discogs</strong>: releases and credits. Data provided by Discogs.</li>
       <li><strong>Setlist.fm</strong>: concert history, via the Setlist.fm API (non-commercial use).</li>
-      <li><strong>Ticketmaster</strong>: concert dates, via the Ticketmaster Discovery API.</li>
+      <li><strong>Google Search</strong>: concert dates announced online, found by Gemini with Google's search tool. The Now playing tab shows the search suggestions provided by Google.</li>
       <li><strong>Deezer</strong>: album information, via the Deezer API.</li>
       <li><strong>Open-Meteo</strong>: weather data from <a href="https://open-meteo.com" rel="noopener noreferrer" target="_blank">Open-Meteo.com</a>, under the <a href="https://creativecommons.org/licenses/by/4.0/deed.en" rel="noopener noreferrer" target="_blank">CC BY 4.0</a> license.</li>
       <li><strong>Track catalog</strong>: a list of artists, titles and years made for the extension. The music itself is streamed by YouTube Music, with rights managed by YouTube.</li>

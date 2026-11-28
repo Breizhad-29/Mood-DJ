@@ -1169,9 +1169,19 @@ function extCached(k, action, payload, ms) {
   return withTimeout(p, ms).catch(() => null);
 }
 const artistK = (name) => C.artistKey(mainArtist(name));
-// Prochains concerts de l'artiste (Ticketmaster), dans le pays choisi, sur les 9 prochains mois.
-// Gardés 2 jours ; proposés aux animateurs au plus une fois tous les 3 jours pour un même artiste.
+// Prochains concerts de l'artiste, dans le pays choisi, sur les 9 prochains mois : une recherche Google faite par
+// Gemini avec la clé Gemini de l'auditeur (2.43, à la place de Ticketmaster). Gardés 5 jours ; proposés aux
+// animateurs au plus une fois tous les 3 jours pour un même artiste. Chaque recherche peut être facturée par Google :
+// le service en lance douze par jour au plus, et une recherche qui échoue n'est pas retentée avant une demi-heure.
+const CONCERT_KEEP = 5 * 86400000;
+const CONCERT_WAIT = 9000;
+const concertsOn = () => settings.concerts === true && hasGemini;
 const concertLines = new Map();
+const concertAsks = new Map();
+let concertPause = 0;
+// Le dernier flash concert proposé aux animateurs : l'onglet En cours montre d'où viennent ses dates, avec les
+// « suggestions de recherche » que Google demande d'afficher à côté d'un résultat de sa recherche.
+let concertNote = null;
 async function concertsFor(t) {
   // Même titre redemandé (fiches préparées à l'avance, puis annonce) : même ligne.
   const kept = concertLines.get(t.key);
@@ -1180,37 +1190,88 @@ async function concertsFor(t) {
   if (line) concertLines.set(t.key, { at: Date.now(), line });
   return line;
 }
+// Les réponses de plus de 5 jours et les restes de Ticketmaster sont retirés de la mémoire des fiches.
+function pruneConcerts() {
+  const now = Date.now();
+  for (const k of Object.keys(wikiCache)) {
+    if (/^tm(said)?:/.test(k) || (k.startsWith('gsc:') && now - wikiCache[k].at > CONCERT_KEEP)) delete wikiCache[k];
+  }
+}
+// Une seule recherche à la fois par artiste. Sa réponse est gardée même si l'annonce ne l'a pas attendue jusqu'au bout.
+function concertSearch(k, t, country) {
+  let p = concertAsks.get(k);
+  if (p) return p;
+  p = claude('concerts', { artist: t.artist, title: t.title, country }).then((r) => {
+    // Plafond du jour atteint : on n'y revient pas avant une heure.
+    if (r && r.capped) { concertPause = Date.now() + 3600e3; dlog('annonce', 'concerts : plafond de recherches du jour atteint'); return null; }
+    if (!r || !Array.isArray(r.events)) return null;
+    pruneConcerts();
+    const c = wikiCache[k] = { at: Date.now(), events: r.events, suggest: typeof r.suggest === 'string' ? r.suggest : '', sources: Array.isArray(r.sources) ? r.sources.slice(0, 6) : [] };
+    saveWikiCache();
+    dlog('annonce', 'concerts : recherche faite', { artiste: t.artist, dates: r.events.length, cle: r.cle || '', sources: c.sources.join(', ') });
+    return c;
+  }).catch((e) => {
+    concertPause = Date.now() + 30 * 60e3;
+    dlog('annonce', 'concerts : ' + e.message + ' (nouvel essai dans une demi-heure)');
+    return null;
+  }).finally(() => { concertAsks.delete(k); });
+  concertAsks.set(k, p);
+  return p;
+}
+// Les dates, dites comme un animateur les dirait. Trois soirs ou plus dans la même ville le même mois : le mois
+// suffit (« plusieurs soirs en décembre à Paris »). C'est aussi là que la recherche se trompe parfois d'un jour.
+function concertItems(list, home) {
+  const near = (e) => (home && C.norm(e.city) === home ? ', près de chez toi' : '');
+  const fmt = (e) => {
+    const [y, m, d] = e.date.split('-').map(Number);
+    return dayLabel(new Date(y, m - 1, d)) + ' ' + y + ' à ' + e.city + (e.venue ? ' (' + e.venue + ')' : '') + (e.festival ? ', au festival ' + e.festival : '') + near(e);
+  };
+  // D'abord une date dans ta ville si elle existe, puis les plus proches dans le temps.
+  const sorted = list.slice().sort((a, b) => (home && C.norm(b.city) === home ? 1 : 0) - (home && C.norm(a.city) === home ? 1 : 0) || a.date.localeCompare(b.date));
+  const groups = [];
+  for (const e of sorted) {
+    const gk = C.norm(e.city) + '|' + e.date.slice(0, 7);
+    const g = groups.find((x) => x.k === gk);
+    if (g) g.list.push(e); else groups.push({ k: gk, list: [e] });
+  }
+  const out = [];
+  for (const g of groups) {
+    const e = g.list[0];
+    const [y, m] = e.date.split('-').map(Number);
+    if (g.list.length >= 3) out.push('plusieurs soirs en ' + MONTHS[m - 1] + ' ' + y + ' à ' + e.city + (e.venue ? ' (' + e.venue + ')' : '') + near(e));
+    else for (const x of g.list) out.push(fmt(x));
+  }
+  return out.slice(0, 4);
+}
 async function concertsLine(t) {
   const ak = artistK(t.artist);
   const country = settings.concertCountry === 'all' ? '' : (settings.concertCountry || 'FR');
-  const k = 'tm:' + ak + '|' + country;
-  const saidK = 'tmsaid:' + ak;
+  const k = 'gsc:' + ak + '|' + country;
+  const saidK = 'gscsaid:' + ak;
   if (wikiCache[saidK] && Date.now() - wikiCache[saidK].at < 3 * 86400000) return '';
   let c = wikiCache[k];
-  if (!c || Date.now() - c.at > 2 * 86400000) {
-    const r = await withTimeout(claude('concerts', { artist: t.artist, country }), 5000).catch(() => null);
-    if (!r) return '';
-    c = wikiCache[k] = { at: Date.now(), events: Array.isArray(r.events) ? r.events : [] };
-    saveWikiCache();
+  if (!c || Date.now() - c.at > CONCERT_KEEP) {
+    if (Date.now() < concertPause) return '';
+    c = await withTimeout(concertSearch(k, t, country), CONCERT_WAIT).catch(() => null);
+    if (!c) return '';
   }
-  const limit = new Date(Date.now() + 270 * 86400000).toISOString().slice(0, 10);
-  const home = C.norm(settings.weatherCity || '');
-  const fmt = (e) => {
-    const [y, m, d] = e.date.split('-').map(Number);
-    const near = home && C.norm(e.city) === home;
-    return dayLabel(new Date(y, m - 1, d)) + ' ' + y + ' à ' + e.city + (e.venue ? ' (' + e.venue + ')' : '') + (e.festival ? ', au festival ' + e.festival : '') + (near ? ', près de chez toi' : '');
-  };
-  const list = (c.events || []).filter((e) => e.date <= limit);
+  const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const today = iso(Date.now());
+  const limit = iso(Date.now() + 270 * 86400000);
+  // Gardées cinq jours : une date passée entre-temps ne s'annonce plus.
+  const list = (c.events || []).filter((e) => e && typeof e.date === 'string' && e.city && e.date >= today && e.date <= limit);
   if (!list.length) return '';
-  // D'abord une date dans ta ville si elle existe, puis les plus proches dans le temps.
-  const sorted = list.slice().sort((a, b) => (home && C.norm(b.city) === home ? 1 : 0) - (home && C.norm(a.city) === home ? 1 : 0) || a.date.localeCompare(b.date)).slice(0, 4);
+  const items = concertItems(list, C.norm(settings.weatherCity || ''));
   wikiCache[saidK] = { at: Date.now() };
   saveWikiCache();
-  return 'Concerts à venir de ' + t.artist + ' (Ticketmaster, nous sommes le ' + dayLabel(new Date()) + ' ' + new Date().getFullYear() + ') : ' + sorted.map(fmt).join(' ; ') + '.';
+  concertNote = { artist: t.artist, at: Date.now(), suggest: c.suggest || '', sources: c.sources || [] };
+  return 'Concerts à venir de ' + t.artist + " (d'après une recherche en ligne, à présenter comme annoncés ; nous sommes le " + dayLabel(new Date()) + ' ' + new Date().getFullYear() + ') : ' + items.join(' ; ') + '.';
 }
 // Toutes les fiches d'un titre : page YouTube Music de l'artiste, son article Wikipédia, l'article du morceau,
 // puis les faits MusicBrainz, Wikidata et Deezer.
-async function factsFor(t) {
+// opts.concerts === false : sans les prochains concerts (fiches préparées d'avance, jeux). Leur recherche peut
+// être facturée et le flash n'est proposé qu'une fois tous les trois jours : on ne la lance que pour le dire.
+async function factsFor(t, opts) {
   if (!t) return { text: '', src: '' };
   const ak = artistK(t.artist);
   const [about, wiki0, song0, mbA, mbR, dz, lfm, dg] = await Promise.all([
@@ -1222,8 +1283,8 @@ async function factsFor(t) {
     hasLastfm ? extCached('lfm:' + t.key, 'lastfm', { artist: t.artist, title: t.title }, 5000) : null,
     hasDiscogs ? extCached('dg:' + t.key, 'discogs', { artist: t.artist, title: t.title }, 6000) : null
   ]);
-  // Concerts : prochaines dates (Ticketmaster, gardées 2 jours) et place du morceau sur scène (Setlist.fm).
-  const concertsP = hasTicketmaster ? concertsFor(t) : Promise.resolve('');
+  // Concerts : prochaines dates (recherche Google de Gemini, gardées 5 jours) et place du morceau sur scène (Setlist.fm).
+  const concertsP = concertsOn() && !(opts && opts.concerts === false) ? concertsFor(t) : Promise.resolve('');
   const setlistP = hasSetlist && mbA && mbA.mbid
     ? extCached('sl:' + mbA.mbid + '|' + t.key, 'setlist', { mbid: mbA.mbid, artist: t.artist, title: t.title }, 5000)
     : Promise.resolve(null);

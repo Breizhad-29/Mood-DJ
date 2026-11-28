@@ -19,10 +19,7 @@ const KEYS = [
     help: 'Clique sur « Générer un nouveau jeton » et colle-le ici.' },
   { name: 'setlistfmKey', title: 'Setlist.fm · clé gratuite', test: 'setlistfm', site: 'setlist.fm/settings/api',
     use: "Dernier concert de l'artiste et place du morceau sur scène.",
-    help: 'Usage non commercial. La clé arrive en général tout de suite.' },
-  { name: 'ticketmasterKey', title: 'Ticketmaster · clé gratuite', test: 'ticketmaster', site: 'developer.ticketmaster.com › My Apps',
-    use: "Un court flash concert quand l'artiste qui passe a des dates prévues.",
-    help: 'Copie la « Consumer Key ».' }
+    help: 'Usage non commercial. La clé arrive en général tout de suite.' }
 ];
 
 const el = (tag, attrs, ...kids) => {

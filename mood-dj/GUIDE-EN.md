@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.42.0.
+Up to date with version 2.43.0.
 
 ---
 
@@ -389,7 +389,7 @@ With a free key (Settings › API keys › **Trivia sources** and **Concerts**; 
 - **Last.fm**: listener counts, listener tags, album, artist bio. With Mix from this track, Last.fm's close artists are added to YouTube Music's.
 - **Discogs**: original release (label, country, format), precise styles, detailed credits (producer, musicians, engineers).
 - **Setlist.fm**: the artist's last concert and the song's place on stage (played at almost every show, often as opener or encore… or never).
-- **Ticketmaster**: when the artist has dates in the next 9 months, the hosts slip in a short concert flash (date, city, venue or festival), at most once every 3 days per artist — "near you" if it's in your weather city. **Announced concerts** chooses the country (France by default, Belgium, Switzerland, Canada, Luxembourg or worldwide). Never prices or ticket links on air.
+- **Upcoming concerts** (Settings › API keys › Concerts, off by default): when the artist has dates announced in the next 9 months, the hosts slip in a short concert flash (date, city, venue or festival), at most once every 3 days per artist — "near you" if it's in your weather city. The dates come from a Google search run by Gemini with your Gemini key: no other key to create (Ticketmaster has been removed). Google may bill these searches at its own rates; Mood DJ runs at most twelve a day and keeps each answer for five days. The hosts present the dates as announced, and give the month rather than the day for a long run in the same venue. The Now playing tab shows where the dates of the last flash came from, with Google's search suggestions. **Announced concerts** chooses the country (France by default, Belgium, Switzerland, Canada, Luxembourg or worldwide). Never prices or ticket links on air.
 
 Fact sheets are kept for 60 days.
 
@@ -409,7 +409,7 @@ Settings › **API keys** › **Enter key…**, or the remote › **API keys**. 
 
 - **Claude** (Anthropic) or **Gemini** (Google) writes the texts: announcements, interludes, guests, recaps, selections described in words, added styles and the sorting of your tracks. Choose in **Who writes the texts?**. If the chosen engine has no key or fails (outage, limit reached, no credit), the other takes over if its key is saved.
 - **Gemini** also provides the hosts' voices.
-- **Last.fm, Discogs, Setlist.fm, Ticketmaster**: extra trivia and concert dates (see section 9).
+- **Last.fm, Discogs, Setlist.fm**: extra trivia (see section 9). Upcoming concert dates use the Gemini key.
 
 ### Gemini (free and paid)
 
@@ -431,7 +431,6 @@ Settings › **API keys** › **Enter key…**, or the remote › **API keys**. 
 - **Last.fm**: sign in at last.fm, go to last.fm/api/account/create, paste the "API key" (not the secret).
 - **Discogs**: on discogs.com, Settings › Developers › "Generate new token".
 - **Setlist.fm**: create an account, then setlist.fm/settings/api.
-- **Ticketmaster**: account on developer.ticketmaster.com, "My Apps", copy the "Consumer Key".
 
 ### AI power
 

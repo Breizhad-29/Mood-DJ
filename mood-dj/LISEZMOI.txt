@@ -1,5 +1,52 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.42.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.43.0
 ============================================
+
+2.43.0 : TICKETMASTER RETIRÉ, LES CONCERTS PAR LA RECHERCHE GOOGLE DE GEMINI
+- Ticketmaster est retiré de l'extension : il n'était plus possible
+  d'obtenir une clé sur son portail développeur. Sa clé n'est plus
+  demandée nulle part, la permission d'accès à son site est retirée, et
+  une clé déjà enregistrée est effacée du navigateur (un message le dit
+  une fois).
+- À la place : les prochaines dates d'un artiste viennent d'une recherche
+  Google faite par Gemini, avec la clé Gemini déjà enregistrée. Aucune
+  autre clé à créer.
+- Réglages › Clés API › Concerts › « Prochains concerts » : éteint
+  d'office, parce que Google peut facturer ces recherches. Le bouton
+  « Tester » lance une vraie recherche et dit si ta clé y a droit.
+- Mesuré sur 30 artistes, deux passages chacun : 5 secondes en moyenne ;
+  11 artistes avec des dates ; 24 réponses sur 30 identiques d'un passage
+  à l'autre. Sans l'outil de recherche, le modèle répond « aucune » aux 7
+  artistes essayés : il n'invente pas de mémoire. Deux dates recoupées sur
+  Wikipédia (Indochine, la série d'Orelsan à Paris en décembre).
+- Les limites vues pendant la mesure, et ce qui est fait pour chacune :
+  le jour exact a bougé d'un cran sur une longue série dans la même salle
+  (trois soirs ou plus dans la même ville le même mois se disent au mois :
+  « plusieurs soirs en décembre à Paris ») ; des concerts déjà passés
+  sont revenus une fois (toute date hors des neuf prochains mois est
+  écartée) ; une date n'est apparue qu'à un passage sur deux (les
+  animateurs disent « il est annoncé à… », jamais plus).
+- Le flash concert est maintenant demandé clairement aux animateurs quand
+  des dates existent : une phrase, deux dates au plus, « près de chez
+  vous » d'abord. Laissé à leur choix, il n'avait été dit dans aucun des
+  quatre essais.
+- Pour limiter le coût : douze artistes cherchés par jour au plus ; chaque
+  réponse gardée cinq jours ; un même artiste proposé une fois tous les
+  trois jours ; aucune recherche pour les fiches préparées d'avance ni
+  pour les jeux ; après une panne, pas de nouvel essai avant une
+  demi-heure. Le compte du jour s'affiche dans « Consommation du jour ».
+- La clé gratuite est essayée d'abord, la payante ensuite. Une clé qui ne
+  peut pas chercher est mise de côté pour ces recherches seulement : les
+  voix et les textes continuent de s'en servir.
+- Onglet En cours : après un flash concert, une carte dit d'où viennent
+  les dates et montre les « suggestions de recherche » de Google, que
+  Google demande d'afficher à côté d'un résultat de sa recherche.
+- Mentions légales et page des clés mises à jour (en français et en
+  anglais).
+- Non vérifié : le prix réellement facturé (la documentation de Google
+  annonce 5 000 recherches gratuites par mois puis 14 $ les 1 000 sur ses
+  modèles récents) et le comportement d'une clé gratuite. Rien n'a été
+  écouté dans Chrome sur YouTube Music.
+- 14 nouveaux tests (108 en tout).
 
 2.42.0 : L'INVITÉ EST REÇU PAR L'UN, PUIS PAR L'AUTRE
 - Avant : un invité prenait toujours la place du second animateur. Avec

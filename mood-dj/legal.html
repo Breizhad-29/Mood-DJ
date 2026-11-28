@@ -32,7 +32,7 @@
 
   <section class="card" id="marques">
     <h2>2. Indépendance et marques</h2>
-    <p>Mood DJ est un projet indépendant. Il n'est ni affilié, ni approuvé, ni soutenu par YouTube, Google, Anthropic, Last.fm, Discogs, Setlist.fm, Ticketmaster, Deezer, MusicBrainz, la Wikimedia Foundation ou Open-Meteo.</p>
+    <p>Mood DJ est un projet indépendant. Il n'est ni affilié, ni approuvé, ni soutenu par YouTube, Google, Anthropic, Last.fm, Discogs, Setlist.fm, Deezer, MusicBrainz, la Wikimedia Foundation ou Open-Meteo.</p>
     <p>YouTube et YouTube Music sont des marques de Google LLC. Claude est une marque d'Anthropic PBC. Les autres noms cités appartiennent à leurs propriétaires respectifs. Ils ne sont utilisés que pour désigner les services avec lesquels l'extension fonctionne.</p>
   </section>
 
@@ -60,12 +60,12 @@
       <tr><th>Service</th><th>Quand</th><th>Données envoyées</th></tr>
       <tr><td>YouTube Music (Google)</td><td>Toujours, c'est la page où tourne l'extension</td><td>Recherches de titres, lecture, « J'aime », playlists créées sur ton compte. Le lecteur intégré du fondu enchaîné charge aussi le titre en cours depuis youtube.com.</td></tr>
       <tr><td>Claude (Anthropic)</td><td>Avec une clé Claude</td><td>Ambiance choisie, titres joués et à venir, prénoms, personnalités, relation et souvenirs des animateurs, univers de la station, ton prénom si tu l'as indiqué, ville et météo, texte des dédicaces, anecdotes trouvées.</td></tr>
-      <tr><td>Gemini (Google)</td><td>Avec une clé Gemini</td><td>Le texte des annonces à lire, pour fabriquer la voix. Si Gemini écrit les textes (ton choix, ou en relais de Claude) : les mêmes données que pour Claude.</td></tr>
+      <tr><td>Gemini (Google)</td><td>Avec une clé Gemini</td><td>Le texte des annonces à lire, pour fabriquer la voix. Si Gemini écrit les textes (ton choix, ou en relais de Claude) : les mêmes données que pour Claude. Si « Prochains concerts » est allumé : le nom de l'artiste, le titre du morceau et le pays choisi, pour une recherche Google faite par Gemini.</td></tr>
       <tr><td>Open-Meteo</td><td>Si la météo est activée</td><td>Le nom de la ville choisie.</td></tr>
       <tr><td>Wikipédia, Wikidata, MusicBrainz, Deezer</td><td>Pour les anecdotes</td><td>Noms d'artistes et titres de morceaux.</td></tr>
-      <tr><td>Last.fm, Discogs, Setlist.fm, Ticketmaster</td><td>Avec la clé du service</td><td>Noms d'artistes et titres de morceaux (et, pour Ticketmaster, le pays choisi pour les concerts).</td></tr>
+      <tr><td>Last.fm, Discogs, Setlist.fm</td><td>Avec la clé du service</td><td>Noms d'artistes et titres de morceaux.</td></tr>
     </table></div>
-    <p>Chaque service traite ces données selon sa propre politique de confidentialité : <a href="https://policies.google.com/privacy" rel="noopener noreferrer" target="_blank">Google</a>, <a href="https://www.anthropic.com/legal/privacy" rel="noopener noreferrer" target="_blank">Anthropic</a>, <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" rel="noopener noreferrer" target="_blank">Wikimedia</a>, <a href="https://www.last.fm/legal/privacy" rel="noopener noreferrer" target="_blank">Last.fm</a>, <a href="https://www.discogs.com/privacy" rel="noopener noreferrer" target="_blank">Discogs</a>, <a href="https://www.ticketmaster.fr/fr/confidentialite" rel="noopener noreferrer" target="_blank">Ticketmaster</a>. Les clés API sont envoyées uniquement au service auquel elles appartiennent, en HTTPS.</p>
+    <p>Chaque service traite ces données selon sa propre politique de confidentialité : <a href="https://policies.google.com/privacy" rel="noopener noreferrer" target="_blank">Google</a>, <a href="https://www.anthropic.com/legal/privacy" rel="noopener noreferrer" target="_blank">Anthropic</a>, <a href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy" rel="noopener noreferrer" target="_blank">Wikimedia</a>, <a href="https://www.last.fm/legal/privacy" rel="noopener noreferrer" target="_blank">Last.fm</a>, <a href="https://www.discogs.com/privacy" rel="noopener noreferrer" target="_blank">Discogs</a>. Les clés API sont envoyées uniquement au service auquel elles appartiennent, en HTTPS.</p>
 
     <h3>Durée et suppression</h3>
     <p>Les données restent tant que l'extension est installée. Tu peux les effacer à tout moment : Réglages (historique, journal, J'aime, liste noire, clés), ou en désinstallant l'extension, ce qui supprime tout.</p>
@@ -95,7 +95,7 @@
       <li><strong>Last.fm</strong> : audience, tags et artistes proches, via l'API Last.fm (AudioScrobbler).</li>
       <li><strong>Discogs</strong> : éditions et crédits. Données fournies par Discogs.</li>
       <li><strong>Setlist.fm</strong> : historique des concerts, via l'API Setlist.fm (usage non commercial).</li>
-      <li><strong>Ticketmaster</strong> : dates de concerts, via l'API Discovery de Ticketmaster.</li>
+      <li><strong>Recherche Google</strong> : dates de concerts annoncées en ligne, trouvées par Gemini avec l'outil de recherche de Google. L'onglet En cours affiche les suggestions de recherche fournies par Google.</li>
       <li><strong>Deezer</strong> : informations sur les albums, via l'API Deezer.</li>
       <li><strong>Open-Meteo</strong> : données météo d'<a href="https://open-meteo.com" rel="noopener noreferrer" target="_blank">Open-Meteo.com</a>, sous licence <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" rel="noopener noreferrer" target="_blank">CC BY 4.0</a>.</li>
       <li><strong>Catalogue de titres</strong> : une liste d'artistes, de titres et d'années, faite pour l'extension. La musique elle-même est diffusée par YouTube Music, avec les droits gérés par YouTube.</li>

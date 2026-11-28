@@ -910,7 +910,12 @@ async function writeAnnouncement(p) {
   } else if (/^REPLI\n/.test(String(p.facts))) {
     lines.push("Rien de précis sur ce morceau ni sur ce groupe : raconte à la place une anecdote de culture musicale tirée de la fiche du style ci-dessous (ses origines, un pionnier, un lieu mythique, son lien avec le cinéma ou les séries…), ou un fait connu en lien avec le thème du morceau. Raconte-la avec tes mots, sans dire que tu n'as rien sur le morceau ni citer la source.\n" + String(p.facts).replace(/^REPLI\n/, '').slice(0, 6000));
   } else if (p.facts) {
-    lines.push("FICHES (sources fiables) : choisis-y UNE vraie histoire, de préférence l'origine du morceau (pourquoi ou pour qui il a été écrit, à quelle occasion, dans quelles circonstances, ce qu'il raconte vraiment) ou sa place dans la culture (un film, une série, un animé, un jeu vidéo, un événement marquant), sinon un succès inattendu, l'origine d'un nom ou une collaboration, plutôt qu'une date de naissance ou une liste de récompenses. Raconte-la avec tes mots, comme une histoire, sans citer la source. Les données MusicBrainz, Wikidata, Deezer et Discogs sont des faits courts et sûrs (membres, instruments, auteurs, reprises, récompenses, dates, labels, crédits) : idéales pour un détail précis ou un vrai ou faux, sans en faire une liste. Last.fm donne l'audience et les tags des auditeurs (une couleur, pas un fait à réciter) ; sa bio peut servir d'anecdote si elle ne touche pas à la vie privée. Setlist.fm dit ce que l'artiste joue sur scène (le titre qui ouvre ses concerts, celui qu'il ne joue jamais) : une belle anecdote de scène. Les concerts à venir (Ticketmaster) se disent comme un court flash concert, avec la date et la ville (et « près de chez vous » si c'est indiqué), sans prix ni lien, en une phrase.\n" + String(p.facts).slice(0, 8500));
+    lines.push("FICHES (sources fiables) : choisis-y UNE vraie histoire, de préférence l'origine du morceau (pourquoi ou pour qui il a été écrit, à quelle occasion, dans quelles circonstances, ce qu'il raconte vraiment) ou sa place dans la culture (un film, une série, un animé, un jeu vidéo, un événement marquant), sinon un succès inattendu, l'origine d'un nom ou une collaboration, plutôt qu'une date de naissance ou une liste de récompenses. Raconte-la avec tes mots, comme une histoire, sans citer la source. Les données MusicBrainz, Wikidata, Deezer et Discogs sont des faits courts et sûrs (membres, instruments, auteurs, reprises, récompenses, dates, labels, crédits) : idéales pour un détail précis ou un vrai ou faux, sans en faire une liste. Last.fm donne l'audience et les tags des auditeurs (une couleur, pas un fait à réciter) ; sa bio peut servir d'anecdote si elle ne touche pas à la vie privée. Setlist.fm dit ce que l'artiste joue sur scène (le titre qui ouvre ses concerts, celui qu'il ne joue jamais) : une belle anecdote de scène. Les concerts à venir viennent d'une recherche en ligne, pas d'une billetterie : ils se disent comme un court flash concert, en une phrase, avec la ville et la date telles qu'elles sont écrites (et « près de chez vous » si c'est indiqué), présentés comme annoncés (« il est annoncé à… », « d'après ce qui est annoncé »), sans prix ni lien, et sans rien ajouter (ni salle, ni autre date).\n" + String(p.facts).slice(0, 8500));
+    // Flash concert (2.43) : les dates viennent d'une recherche qui peut être facturée, et ne sont proposées qu'une
+    // fois tous les trois jours par artiste. Laissé au choix de l'IA, le flash n'était presque jamais dit.
+    if (/(^|\n)Concerts à venir de [^\n]+/.test(String(p.facts)) && !p.hook && !p.express && !p.hookAnswer) {
+      lines.push("FLASH CONCERT, à placer cette fois : les fiches donnent des concerts à venir de l'artiste. Dis-les en une phrase, après l'histoire et juste avant de lancer le titre, présentés comme annoncés ; deux dates au plus, celle « près de chez vous » en premier si elle existe.");
+    }
   }
   const A = p.duo ? 'A' : 'tu';
   const FALSE_RULE = "change un seul détail sans conséquence d'un fait réel de la fiche (une année, un lieu, un instrument, un chiffre ou une personne). Jamais sur un décès, une maladie, un accident, une affaire judiciaire ou la vie privée de quelqu'un, et aucune fausse citation";
@@ -1674,8 +1679,8 @@ async function discogsFacts(p) {
   });
 }
 
-// ------------------------------------------------- Setlist.fm, Ticketmaster
-// Les concerts : ce que l'artiste joue sur scène (Setlist.fm) et ses prochaines dates (Ticketmaster).
+// ------------------------------------------------- Setlist.fm, concerts à venir
+// Les concerts : ce que l'artiste joue sur scène (Setlist.fm) et ses prochaines dates (recherche Google de Gemini).
 const dateFr = (y, m, d) => (d === 1 ? '1er' : d) + ' ' + MONTHS_FR[m - 1] + ' ' + y;
 
 // Setlist.fm : 2 demandes par seconde au plus, à la file.
@@ -1748,41 +1753,122 @@ async function setlistFacts(p) {
   });
 }
 
-// Ticketmaster : prochaines dates de l'artiste (pays choisi dans les Réglages), en vérifiant que c'est bien lui.
+// Prochaines dates de l'artiste (2.43) : une recherche Google faite par Gemini, avec la clé Gemini déjà enregistrée.
+// Ticketmaster est retiré : il n'était plus possible d'obtenir une clé sur son portail développeur (novembre 2026).
+// Mesuré sur 30 artistes, deux passages chacun (28/11) : 5 s en moyenne ; sans l'outil de recherche le modèle répond
+// « AUCUNE » partout, donc il n'invente pas de mémoire ; la ville et le mois se répètent d'un passage à l'autre, le
+// jour exact peut bouger d'un cran sur une longue série dans la même salle ; il arrive qu'un concert passé revienne.
+// D'où : dates hors période écartées ici, et séries regroupées par mois côté panneau.
+const CONCERT_PLACES = { FR: 'en France', BE: 'en Belgique', CH: 'en Suisse', CA: 'au Canada', LU: 'au Luxembourg' };
+// Chaque recherche peut être facturée par Google : pas plus de douze artistes cherchés par jour.
+const CONCERT_DAY_MAX = 12;
+const CONCERT_DAYS_AHEAD = 270;
+// Clé qui ne peut pas lancer de recherche (offre sans recherche, limite atteinte, clé refusée) : mise de côté
+// quelques heures, pour ces recherches seulement. Les voix et les textes ne sont pas touchés.
+const noSearchKey = new Map();
+const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+function concertPrompt(artist, title, country, today, limit) {
+  const where = CONCERT_PLACES[country] || 'dans le monde entier';
+  return 'Nous sommes le ' + today + ". Cherche sur le web les concerts à venir de l'artiste « " + artist + ' »' + (title ? ' (qui interprète « ' + title + ' »)' : '') + ' ' + where +
+    ", entre aujourd'hui et le " + limit + " : seulement des concerts annoncés officiellement, par l'artiste, la salle ou une billetterie. N'invente rien, et ne donne aucun concert déjà passé." +
+    " Réponds par une ligne par date, au plus 8, les plus proches d'abord, sous la forme exacte « AAAA-MM-JJ | ville | salle | nom du festival ou vide »" +
+    (CONCERT_PLACES[country] ? '' : ' (la ville suivie du pays entre parenthèses)') + ", sans rien d'autre. Aucun concert trouvé dans cette période : réponds seulement « AUCUNE ».";
+}
+// Lignes « date | ville | salle | festival » → dates à venir, dans la période, sans doublon.
+function parseConcerts(text, today, limit) {
+  // Marques de citation que le modèle laisse parfois en fin de ligne (« [PerQueryResult(index=… », « [1] »).
+  const clean = (x) => String(x || '').replace(/\[[^\]]*\]|\[[^\]]*$|【[^】]*】?/g, ' ').replace(/[*_`«»"]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const out = [];
+  for (const line of String(text || '').split('\n')) {
+    // La date peut arriver entourée de gras ou précédée d'une puce.
+    const m = line.match(/(\d{4})-(\d{2})-(\d{2})[\s*_`]*\|([^|]*)(?:\|([^|]*))?(?:\|(.*))?$/);
+    if (!m) continue;
+    const date = m[1] + '-' + m[2] + '-' + m[3];
+    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    if (d.getUTCMonth() !== Number(m[2]) - 1 || d.getUTCDate() !== Number(m[3])) continue;
+    if (date < today || date > limit) continue;
+    const city = clean(m[4]);
+    if (!city) continue;
+    const fest = clean(m[6]);
+    out.push({ date, city, venue: clean(m[5]), country: '', festival: /^(vide|aucun|aucune|néant|none|n\/a|[-—–.]*)$/i.test(fest) ? '' : fest });
+  }
+  return out.filter((e, i, a) => a.findIndex((x) => x.date === e.date && normW(x.city) === normW(e.city)) === i)
+    .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
+}
+// Une demande à Gemini avec l'outil de recherche Google. suggest : le bloc « suggestions de recherche » que
+// Google demande d'afficher quand un résultat de sa recherche est montré.
+async function geminiSearch(key, prompt) {
+  const call = async (model, withThinking) => {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+      method: 'POST',
+      headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], tools: [{ google_search: {} }],
+        generationConfig: Object.assign({ maxOutputTokens: 2000 }, withThinking ? { thinkingConfig: { thinkingLevel: 'low' } } : {}) })
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* ignore */ }
+    if (!res.ok) geminiHttpError(res, data, 'texte');
+    return data;
+  };
+  const model = geminiTextFallback || GEMINI_TEXT_DEFAULT;
+  let data = null;
+  try { data = await call(model, true); } catch (e) {
+    if (e.thinkingRefused) data = await call(model, false);
+    else if (e.notFound) {
+      const alt = await findGeminiTextModel(key).catch(() => '');
+      if (!alt || alt === model) throw e;
+      geminiTextFallback = alt;
+      data = await call(alt, true);
+    } else throw e;
+  }
+  const cand = data && data.candidates && data.candidates[0];
+  if (!cand) throw new Error("Gemini n'a pas répondu à la recherche.");
+  const gm = cand.groundingMetadata || {};
+  const sep = gm.searchEntryPoint && typeof gm.searchEntryPoint.renderedContent === 'string' ? gm.searchEntryPoint.renderedContent : '';
+  return {
+    text: ((cand.content && cand.content.parts) || []).filter((x) => !x.thought).map((x) => x.text || '').join(''),
+    sources: [...new Set((gm.groundingChunks || []).map((c) => (c && c.web && c.web.title) || '').filter(Boolean))].slice(0, 6),
+    queries: (Array.isArray(gm.webSearchQueries) ? gm.webSearchQueries : []).map((q) => String(q).slice(0, 120)).slice(0, 5),
+    suggest: sep.length <= 16000 ? sep : ''
+  };
+}
+// Essaie la clé gratuite, puis la payante. Une clé qui échoue est mise de côté pour ces recherches.
+async function withSearchKey(fn) {
+  const { geminiKey, geminiKey2 } = await chrome.storage.local.get(['geminiKey', 'geminiKey2']);
+  const keys = [geminiKey ? { id: 'gratuite', key: geminiKey } : null, geminiKey2 ? { id: 'payante', key: geminiKey2 } : null].filter(Boolean);
+  if (!keys.length) throw new Error('pas de clé Gemini');
+  const now = Date.now();
+  const usable = keys.filter((k) => !(noSearchKey.get(k.key) > now));
+  if (!usable.length) throw new Error('la recherche Google ne répond pas avec ' + (keys.length > 1 ? 'tes clés Gemini' : 'ta clé Gemini') + ' pour le moment');
+  let last = null;
+  for (const k of usable) {
+    try {
+      const r = await fn(k.key);
+      r.cle = k.id;
+      bumpUsage((m) => { m.concerts = (m.concerts || 0) + 1; if (k.id === 'payante') m.geminiPaid++; else m.geminiFree++; });
+      return r;
+    } catch (e) {
+      last = e;
+      // Réseau coupé ou panne chez Google : la clé n'y est pour rien.
+      const rest = e.limit === 'minute' ? 2 * 60e3 : e.limit || e.refused || /\(code 4\d\d/.test(String(e.message)) ? 6 * 3600e3 : 0;
+      if (rest) noSearchKey.set(k.key, now + rest);
+    }
+  }
+  throw last;
+}
 async function concertsAhead(p) {
   const artist = firstArtistName(p.artist);
   if (!artist) return {};
-  const { ticketmasterKey } = await chrome.storage.local.get(['ticketmasterKey']);
-  if (!ticketmasterKey) throw new Error('pas de clé Ticketmaster');
   const country = /^[A-Z]{2}$/.test(p.country || '') ? p.country : '';
-  return memoized('tm:' + normW(artist) + '|' + country, async () => {
-    const base = 'https://app.ticketmaster.com/discovery/v2/';
-    const qa = new URLSearchParams({ apikey: ticketmasterKey, keyword: artist, classificationName: 'music', size: '5' });
-    const ar = await fetch(base + 'attractions.json?' + qa.toString());
-    if (ar.status === 401) throw new Error('clé Ticketmaster refusée');
-    const aj = await ar.json().catch(() => ({}));
-    const att = ((aj._embedded && aj._embedded.attractions) || []).find((a) => normW(a.name) === normW(artist));
-    if (!att) return {};
-    const qe = new URLSearchParams({ apikey: ticketmasterKey, attractionId: att.id, sort: 'date,asc', size: '20' });
-    if (country) qe.set('countryCode', country);
-    const er = await fetch(base + 'events.json?' + qe.toString());
-    const ej = await er.json().catch(() => ({}));
-    const today = new Date().toISOString().slice(0, 10);
-    const events = ((ej._embedded && ej._embedded.events) || [])
-      .map((e) => {
-        const v = e._embedded && e._embedded.venues && e._embedded.venues[0];
-        return {
-          date: (e.dates && e.dates.start && e.dates.start.localDate) || '',
-          city: (v && v.city && v.city.name) || '',
-          venue: (v && v.name) || '',
-          country: (v && v.country && v.country.countryCode) || '',
-          festival: /festival|fest\b/i.test(e.name || '') ? e.name : ''
-        };
-      })
-      .filter((e) => e.date && e.date >= today)
-      .filter((e, i, a) => a.findIndex((x) => x.date === e.date && x.city === e.city) === i)
-      .slice(0, 8);
-    return { events, artist: att.name };
+  return memoized('gsc:' + normW(artist) + '|' + country, async () => {
+    // Le compteur du jour est celui de la « Consommation du jour ».
+    await bumpUsage(() => {});
+    if (((usageMem && usageMem.concerts) || 0) >= CONCERT_DAY_MAX) return { capped: true };
+    const today = isoDay(Date.now());
+    const limit = isoDay(Date.now() + CONCERT_DAYS_AHEAD * 86400000);
+    const title = String(p.title || '').replace(/[«»"\n]/g, ' ').trim().slice(0, 80);
+    const r = await withSearchKey((key) => geminiSearch(key, concertPrompt(artist, title, country, today, limit)));
+    return { events: parseConcerts(r.text, today, limit), artist, cle: r.cle, sources: r.sources, queries: r.queries, suggest: r.suggest };
   });
 }
 
@@ -1792,12 +1878,12 @@ async function testSourceKey(p) {
     const d = await setlistGet('search/artists?artistName=Daft%20Punk&p=1');
     return { ok: !!(d && d.artist) };
   }
-  if (p.which === 'ticketmaster') {
-    const { ticketmasterKey } = await chrome.storage.local.get(['ticketmasterKey']);
-    if (!ticketmasterKey) throw new Error('pas de clé Ticketmaster');
-    const r = await fetch('https://app.ticketmaster.com/discovery/v2/attractions.json?size=1&keyword=Muse&apikey=' + encodeURIComponent(ticketmasterKey));
-    if (r.status === 401) throw new Error('clé Ticketmaster refusée');
-    return { ok: r.ok };
+  // La recherche de concerts : une vraie recherche, pour savoir si la clé Gemini y a droit (une recherche comptée).
+  if (p.which === 'concerts') {
+    const today = isoDay(Date.now());
+    const limit = isoDay(Date.now() + CONCERT_DAYS_AHEAD * 86400000);
+    const r = await withSearchKey((key) => geminiSearch(key, concertPrompt('Muse', '', 'FR', today, limit)));
+    return { ok: /\d{4}-\d{2}-\d{2}\s*\||AUCUNE/i.test(r.text), cle: r.cle, dates: parseConcerts(r.text, today, limit).length };
   }
   if (p.which === 'lastfm') {
     const d = await lastfmGet('artist.getInfo', { artist: 'Daft Punk' });

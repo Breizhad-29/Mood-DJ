@@ -325,6 +325,37 @@ function liveNote() {
   return parts.join(' · ');
 }
 
+// Le bloc « suggestions de recherche » de Google, montré tel qu'il est fourni (ses styles, ses liens) dans sa propre
+// bulle : Google demande de l'afficher à côté d'un résultat de sa recherche. Rien d'actif n'y entre : ni script, ni
+// cadre, ni gestionnaire d'événement, ni lien autre que https.
+function searchSuggestEl(html) {
+  try {
+    const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    for (const bad of doc.querySelectorAll('script, iframe, frame, object, embed, link, meta, base, form, input, button, textarea, select')) bad.remove();
+    for (const el of doc.querySelectorAll('*')) {
+      for (const a of [...el.attributes]) {
+        if (/^on/i.test(a.name) || a.name === 'srcdoc') el.removeAttribute(a.name);
+        else if (/^(href|src|xlink:href|action|formaction)$/i.test(a.name) && !/^https:\/\//i.test(a.value.trim())) el.removeAttribute(a.name);
+      }
+      if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
+    }
+    if (!doc.body || !doc.body.textContent.trim()) return null;
+    const host = document.createElement('div');
+    host.className = 'gsearch';
+    const sh = host.attachShadow({ mode: 'closed' });
+    for (const st of doc.querySelectorAll('style')) sh.appendChild(document.importNode(st, true));
+    for (const n of [...doc.body.childNodes]) if (n.nodeName !== 'STYLE') sh.appendChild(document.importNode(n, true));
+    return host;
+  } catch (e) { return null; }
+}
+// D'où viennent les dates du dernier flash concert proposé aux animateurs (affiché une demi-heure).
+function concertNoteCard() {
+  const n = concertNote;
+  if (!n || Date.now() - n.at > 30 * 60e3) return null;
+  return h('div', { class: 'card' },
+    h('div', { class: 'muted' }, 'Concerts de ' + n.artist + ' : dates trouvées par la recherche Google de Gemini' + (n.sources && n.sources.length ? ' (' + n.sources.slice(0, 3).join(', ') + ')' : '') + '. À vérifier auprès de la billetterie.'),
+    n.suggest ? searchSuggestEl(n.suggest) : null);
+}
 function tabEnCours() {
   const s = session;
   const body = h('div', { class: 'body' });
@@ -366,6 +397,9 @@ function tabEnCours() {
       h('div', { class: 'muted' }, 'Des changements d’ambiance attendent ta validation dans l’onglet Ambiance.'),
       h('div', { class: 'btns' }, h('button', { class: 'btn small', type: 'button', onclick: () => setTab('ambiance') }, 'Voir'))));
   }
+  // Flash concert : la source des dates, et les suggestions de recherche de Google.
+  const concertEl = concertNoteCard();
+  if (concertEl) colA.push(concertEl);
   const curveEl = curveCard(s.sel, s);
   let cycleEl = null;
   if (s.mode === 'continu' && (s.status === 'playing' || s.status === 'suspended')) {

@@ -12,7 +12,7 @@ const C = MDJ_CORE;
 const WHERE = 'dans ce navigateur';
 const CATALOG = C.parseCatalog(typeof MDJ_CATALOG_RAW === 'string' ? MDJ_CATALOG_RAW : '');
 const LOOKAHEAD = 5;
-const VERSION = '2.42.0';
+const VERSION = '2.43.0';
 // Catalogue intégré complet : CATALOG n'en garde que les styles présents (retirés ou non), plus les
 // titres des styles ajoutés par l'IA (applyStyleSet).
 const BASE_CATALOG = CATALOG.slice();
@@ -37,7 +37,7 @@ function withTimeout(promise, ms) {
 // ============================================================ état
 const DEFAULT_SETTINGS = {
   fade: 6, eq: { bass: 0, mid: 0, treble: 0 }, boost: false, autoSound: true, tempo: 100, skipSilence: true,
-  radio: true, radioFreq: 'third', announceAt: 'fondu', voiceURI: '', voiceGender: 'auto', claudeAnnounce: true, model: 'claude-sonnet-5-5', panelOpen: false, panelFull: false, hideYtBar: true, blockAutoplay: true, curveBrush: 'moyen', concertCountry: 'FR', guestFreq: 'rare', sfx: true, sing: false, schedule: [], showRecap: true, crossfade: true, soundKit: 'auto', emotion: 'auto', radioLang: 'fr', uiLang: 'auto', textEngine: 'claude', geminiTextModel: 'gemini-3.8-flash', rhythm: 'naturel',
+  radio: true, radioFreq: 'third', announceAt: 'fondu', voiceURI: '', voiceGender: 'auto', claudeAnnounce: true, model: 'claude-sonnet-5-5', panelOpen: false, panelFull: false, hideYtBar: true, blockAutoplay: true, curveBrush: 'moyen', concerts: false, concertCountry: 'FR', guestFreq: 'rare', sfx: true, sing: false, schedule: [], showRecap: true, crossfade: true, soundKit: 'auto', emotion: 'auto', radioLang: 'fr', uiLang: 'auto', textEngine: 'claude', geminiTextModel: 'gemini-3.8-flash', rhythm: 'naturel',
   hostName: 'Alex', hostStyle: 'chaleureux', listenerName: '', weatherCity: '', interludes: 'parfois', jingles: true, radioBed: true,
   voiceEngine: 'systeme',
   geminiVoice: '', geminiVoiceB: '', geminiModel: 'gemini-3.8-flash-tts', duo: true, priority: true, debugLog: true, similarDepth: 'proche', useLearned: true, cohostName: 'Sam', cohostStyle: 'decale', cohostGender: 'auto',
@@ -70,9 +70,10 @@ let hasGemini2 = false;
 // Sources à clé facultatives : Last.fm (tags, audience, artistes proches) et Discogs (éditions, crédits).
 let hasLastfm = false;
 let hasDiscogs = false;
-// Concerts : Setlist.fm (ce qui est joué sur scène) et Ticketmaster (prochaines dates).
+// Concerts : Setlist.fm (ce qui est joué sur scène). Les prochaines dates passent par la recherche Google de Gemini
+// (réglage « concerts », 2.43) ; hadTicketmaster : une clé Ticketmaster était enregistrée, elle vient d'être effacée.
 let hasSetlist = false;
-let hasTicketmaster = false;
+let hadTicketmaster = false;
 let likes = { at: 0, items: [] };
 let likedKeys = new Set();
 let likedIds = new Set();
@@ -234,7 +235,9 @@ async function loadAll() {
   const d = await chrome.storage.local.get(['settings', 'sel', 'learn', 'resolveCache', 'apiKey', 'likes', 'trackMeta', 'elevenKey', 'geminiKey', 'geminiKey2', 'debugLog', 'learnedCat', 'artistCache', 'wikiCache', 'dataVersion', 'toldCache', 'savedAmbiances', 'lastfmKey', 'discogsToken', 'setlistfmKey', 'ticketmasterKey', 'showHistory', 'customStyles', 'hostMemory', 'hostProfiles', 'loreProfiles', 'pickLog', 'airLog', 'aiUsage']);
   showHistory = Array.isArray(d.showHistory) ? d.showHistory.filter((x) => x && x.id && Array.isArray(x.tracks)) : [];
   hasSetlist = !!d.setlistfmKey;
-  hasTicketmaster = !!d.ticketmasterKey;
+  // 2.43 : Ticketmaster est retiré. Sa clé ne sert plus à rien : elle est effacée de ce navigateur.
+  hadTicketmaster = !!d.ticketmasterKey;
+  if (hadTicketmaster) { try { chrome.storage.local.remove('ticketmasterKey'); } catch (e) { /* ignore */ } }
   hasLastfm = !!d.lastfmKey;
   hasDiscogs = !!d.discogsToken;
   savedAmb = Array.isArray(d.savedAmbiances) ? d.savedAmbiances.filter((a) => a && a.name && a.sel) : [];
@@ -355,7 +358,6 @@ try {
     if (area === 'local' && changes.geminiKey) { const had = hasGemini; hasGemini1 = !!changes.geminiKey.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); if (!had && hasGemini) geminiVoicesByDefault(); render(); }
     if (area === 'local' && changes.lastfmKey) { hasLastfm = !!changes.lastfmKey.newValue; render(); }
     if (area === 'local' && changes.setlistfmKey) { hasSetlist = !!changes.setlistfmKey.newValue; render(); }
-    if (area === 'local' && changes.ticketmasterKey) { hasTicketmaster = !!changes.ticketmasterKey.newValue; render(); }
     if (area === 'local' && changes.discogsToken) { hasDiscogs = !!changes.discogsToken.newValue; render(); }
     if (area === 'local' && changes.geminiKey2) { const had = hasGemini; hasGemini2 = !!changes.geminiKey2.newValue; hasGemini = hasGemini1 || hasGemini2; syncTextKey(); if (!had && hasGemini) geminiVoicesByDefault(); render(); }
   });

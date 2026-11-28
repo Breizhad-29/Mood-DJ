@@ -304,7 +304,8 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
       subjects.push(styleSubject(prev || next));
     } else {
       const whoList = (plan.angle.facts === 'both' ? [prev, next] : [plan.angle.facts === 'prev' ? prev : next]).filter(Boolean);
-      const got = await Promise.all(whoList.map((t) => factsFor(t)));
+      // Pas de flash concert dans un jeu : ses dates ne font pas une affirmation à deviner.
+      const got = await Promise.all(whoList.map((t) => factsFor(t, { concerts: plan.angle.id !== 'jeu' && t === next })));
       facts = got.map((f) => f.text).filter(Boolean).join('\n');
       factSrc = got.map((f) => f.src).filter(Boolean).join(' / ');
       whoList.forEach((t, i) => { if (got[i].text) subjects.push('a:' + C.artistKey(t.artist), 's:' + C.keyOf(t.artist, t.title)); });
@@ -353,7 +354,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
     // Pas de question en suspens quand un invité est annoncé : sa réponse tomberait pendant sa visite.
     if (gameOn && !guest && upcoming && settings.radioFreq === 'every') {
       const t2 = upcoming[1];
-      const f = await factsFor(t2);
+      const f = await factsFor(t2, { concerts: false });
       if (f.text) {
         const type = Math.random() < 0.57 ? 'pari' : 'question';
         const truth = flip();

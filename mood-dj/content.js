@@ -10,6 +10,11 @@ async function init() {
   mountUi();
   // 2.35 : anciens textes du duo Jeff & Laeti remplacés par les nouveaux (une seule fois).
   try { migratePreset(); } catch (e) { dlog('session', 'mise à jour du duo : ' + e.message); }
+  // 2.43 : Ticketmaster est retiré. Qui avait sa clé l'apprend une fois, avec le nouveau réglage.
+  if (hadTicketmaster) {
+    dlog('session', 'Ticketmaster retiré de Mood DJ : clé effacée');
+    setTimeout(() => { try { toast('Ticketmaster est retiré de Mood DJ et sa clé a été effacée. Les prochains concerts passent par la recherche Google de Gemini : à allumer dans Réglages › Clés API › Concerts.', null, 16000); } catch (e) { /* ignore */ } }, 6000);
+  }
   // 2.36 : clé Gemini présente mais voix de l'ordinateur : la bascule est proposée une fois.
   setTimeout(() => { try { offerGeminiVoices(); } catch (e) { /* ignore */ } }, 4000);
   setTimeout(() => checkGridPending(), 1500);

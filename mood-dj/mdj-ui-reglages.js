@@ -90,7 +90,7 @@ function tabReglages() {
       help: "Une clé créée dans un projet Google Cloud lié à un compte de facturation (marquée « Paid » dans AI Studio). Pense à fixer une alerte de budget dans la console Google Cloud.",
       removed: () => { hasGemini2 = false; hasGemini = hasGemini1; syncTextKey(); toast('Clé Gemini payante supprimée.'); }
     }),
-    h('div', { class: 'muted' }, "Chaque clé reste dans ce navigateur et n'est envoyée qu'à son service (Anthropic, Google, Last.fm, Discogs, Setlist.fm ou Ticketmaster)." +
+    h('div', { class: 'muted' }, "Chaque clé reste dans ce navigateur et n'est envoyée qu'à son service (Anthropic, Google, Last.fm, Discogs ou Setlist.fm)." +
       ' Elles n\'apparaissent jamais dans le journal technique, ni dans la sauvegarde.')];
   // Sources d'anecdotes à clé : facultatives, elles complètent MusicBrainz, Wikidata, Deezer et Wikipédia.
   const testSource = (which, has, name) => h('button', {
@@ -123,18 +123,18 @@ function tabReglages() {
       removed: () => { hasSetlist = false; toast('Clé Setlist.fm supprimée.'); },
       extra: testSource('setlistfm', hasSetlist, 'Setlist.fm')
     }),
-    keyBlock({
-      id: 'mdj-ticketmaster', title: 'Ticketmaster · clé gratuite', storeKey: 'ticketmasterKey', has: hasTicketmaster, placeholder: 'Colle ta « Consumer Key » Ticketmaster ici',
-      use: "Pour les animateurs : un court flash concert quand l'artiste qui passe a des dates prévues (au plus une fois tous les 3 jours par artiste), et « près de chez toi » si c'est dans ta ville de la météo.",
-      help: 'Crée un compte sur developer.ticketmaster.com, puis dans « My Apps », copie la « Consumer Key ».',
-      removed: () => { hasTicketmaster = false; toast('Clé Ticketmaster supprimée.'); },
-      extra: testSource('ticketmaster', hasTicketmaster, 'Ticketmaster'),
-      after: h('div', { class: 'section', style: { gap: '6px' } },
-        h('label', { class: 'label', for: 'mdj-concertcountry' }, 'Concerts annoncés'),
-        h('select', { class: 'select', id: 'mdj-concertcountry', onchange: (e) => { settings.concertCountry = e.target.value; saveSettings(); } },
-          [['FR', 'En France'], ['BE', 'En Belgique'], ['CH', 'En Suisse'], ['CA', 'Au Canada'], ['LU', 'Au Luxembourg'], ['all', 'Partout dans le monde']]
-            .map((o) => h('option', { value: o[0], selected: (settings.concertCountry || 'FR') === o[0] }, o[1]))))
-    })
+    // 2.43 : les prochaines dates passent par la recherche Google de Gemini (Ticketmaster est retiré). Pas de clé
+    // à créer : celle de Gemini sert. Éteint d'office, car Google peut facturer ces recherches.
+    h('div', { class: 'section', style: { gap: '8px' } },
+      switchRow('Prochains concerts', "Un court flash concert quand l'artiste qui passe a des dates annoncées (au plus une fois tous les 3 jours par artiste), et « près de chez toi » si c'est dans ta ville de la météo.",
+        settings.concerts === true, (v) => { settings.concerts = v; saveSettings(); render(); }),
+      h('div', { class: 'muted' }, !hasGemini ? 'Il faut une clé Gemini : les dates viennent d’une recherche Google faite par Gemini.'
+        : 'Les dates viennent d’une recherche Google faite par Gemini, avec ta clé Gemini : aucune autre clé à créer. Google peut facturer ces recherches, à ses tarifs ; Mood DJ en lance douze par jour au plus et garde chaque réponse cinq jours. Les animateurs présentent ces dates comme annoncées, et donnent le mois plutôt que le jour pour une longue série dans la même salle.'),
+      h('div', { class: 'btns' }, testSource('concerts', hasGemini && settings.concerts === true, 'la recherche de concerts')),
+      h('label', { class: 'label', for: 'mdj-concertcountry' }, 'Concerts annoncés'),
+      h('select', { class: 'select', id: 'mdj-concertcountry', onchange: (e) => { settings.concertCountry = e.target.value; saveSettings(); } },
+        [['FR', 'En France'], ['BE', 'En Belgique'], ['CH', 'En Suisse'], ['CA', 'Au Canada'], ['LU', 'Au Luxembourg'], ['all', 'Partout dans le monde']]
+          .map((o) => h('option', { value: o[0], selected: (settings.concertCountry || 'FR') === o[0] }, o[1]))))
   ];
   // Qui écrit les textes (annonces, sélections décrites, classement des titres).
   const engineNow = settings.textEngine === 'gemini' ? 'gemini' : 'claude';
@@ -176,6 +176,7 @@ function tabReglages() {
       h('div', { class: 'label' }, 'Consommation du jour (estimation)'),
       h('div', { class: 'muted' }, 'Claude', ' : ≈ ' + (uiIsEnglish() ? usd : usd.replace('.', ',')) + ' $ · ' + (u.claudeCalls || 0) + ' ', (u.claudeCalls || 0) > 1 ? 'appels' : 'appel'),
       h('div', { class: 'muted' }, 'Gemini', ' : ' + (u.geminiFree || 0) + ' ', 'avec la clé gratuite', ' · ' + (u.geminiPaid || 0) + ' ', 'avec la clé payante'),
+      settings.concerts === true ? h('div', { class: 'muted' }, 'Recherches de concerts', ' : ' + (u.concerts || 0) + ' / 12') : null,
       h('div', { class: 'muted' }, 'D’après les tarifs publics de Claude. Les appels Gemini avec la clé payante sont facturés par Google, à ses tarifs.'));
   };
   const CAP_AUTO = { eco: 'Automatique : 40 textes et 60 voix par heure', normal: 'Automatique : 150 textes et 150 voix par heure', max: 'Automatique : 300 textes et 300 voix par heure' };

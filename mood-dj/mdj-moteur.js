@@ -475,7 +475,7 @@ async function startSession(snap, opts) {
     if (session !== s) return;
   }
   // Fiches des premiers titres cherchées tout de suite : l'intro et les premières annonces les trouvent prêtes.
-  if (settings.radio && settings.claudeAnnounce && hasKey) for (const t of s.queue.slice(0, 3)) factsFor(t).catch(() => null);
+  if (settings.radio && settings.claudeAnnounce && hasKey) for (const t of s.queue.slice(0, 3)) factsFor(t, { concerts: false }).catch(() => null);
   s.status = 'playing';
   s.note = '';
   await callSafe('setInterceptNext', true);
