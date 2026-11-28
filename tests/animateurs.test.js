@@ -146,28 +146,28 @@ test('coupure de parole : « >> » est noté sur la réplique et n’est jamais 
   for (const t of r.turns) assert.doesNotMatch(t.text, />/);
 });
 
-test('programme : une part des interventions devient une conversation, jamais deux de suite, et jamais sur « Jamais »', () => {
+test('programme : la part des interventions qui deviennent une conversation suit le niveau, et jamais sur « Jamais »', () => {
   const p = loadPanel();
   const share = (chat) => {
-    p.run("Object.assign(settings, { chat: '" + chat + "', radioFreq: 'third', programme: true, voiceEngine: 'systeme' }); var __s = { lastLines: [], played: [], queue: [] }; var __free = [];" +
-      "for (var i = 0; i < 300; i++) { var pl = planAnnouncement(__s, 'talkover', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 6e5, 'programme', 3, false); __free.push(pl.free ? pl.angle.id : ''); }");
+    p.run("Object.assign(settings, { chat: '" + chat + "', chatMix: 50, radioFreq: 'third', programme: true, voiceEngine: 'systeme' }); var __s = { lastLines: [], played: [], queue: [] }; var __free = [];" +
+      "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s, 'talkover', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 6e5, 'programme', 3, false); __free.push(pl.free ? pl.angle.id : ''); }");
     return [...p.run('__free')];
   };
   assert.ok(share('off').every((x) => !x), 'sur « Jamais », toujours le programme');
   const some = share('parfois');
   const n = some.filter(Boolean).length;
-  assert.ok(n > 60 && n < 140, 'environ une sur trois : ' + n + ' sur 300');
-  for (let i = 1; i < some.length; i++) assert.ok(!(some[i] && some[i - 1]), 'deux conversations de suite');
+  assert.ok(n > 160 && n < 240, 'environ une sur deux : ' + n + ' sur 400');
   assert.ok(some.includes('bavardage'), 'le bavardage sort');
   assert.ok(!some.includes('programme'));
   const often = share('souvent').filter(Boolean).length;
-  assert.equal(often, 150, 'une sur deux, en alternance');
+  assert.ok(often > 310 && often < 370, 'presque toutes : ' + often + ' sur 400');
+  assert.equal(share('max').filter(Boolean).length, 400, 'toutes');
   // Invité au micro, dédicace, réponse d'un jeu, choix d'un animateur : jamais de conversation libre.
-  p.run("settings.chat = 'souvent'; var __n = 0; for (var i = 0; i < 50; i++) if (planAnnouncement({ lastLines: [], played: [], queue: [] }, 'talkover', null, { title: 'C', artist: 'D', key: 'x' }, 1e12, 'programme', 3, true).free) __n++;");
+  p.run("settings.chat = 'max'; var __n = 0; for (var i = 0; i < 50; i++) if (planAnnouncement({ lastLines: [], played: [], queue: [] }, 'talkover', null, { title: 'C', artist: 'D', key: 'x' }, 1e12, 'programme', 3, true).free) __n++;");
   assert.equal(p.run('__n'), 0);
 });
 
-test('bavardage : 261 sujets sans doublon en six formats, rien « entre eux » pour un animateur seul, jamais deux bavardages rapprochés', () => {
+test('bavardage : 261 sujets sans doublon en six formats, rien « entre eux » pour un animateur seul, jamais deux fois le même format de suite', () => {
   const p = loadPanel();
   const duo = [...p.run('CHAT_DUO')];
   const solo = [...p.run('CHAT_SOLO')];
@@ -183,8 +183,8 @@ test('bavardage : 261 sujets sans doublon en six formats, rien « entre eux » p
   // Ni saison, ni météo, ni actualité, ni musique : le papotage reste hors de ces sujets.
   for (const x of duo) assert.doesNotMatch(x, /(^|[^a-zà-ÿ])(hiver|été|printemps|automne|météo|noël|actualité|chanson|concert)s?([^a-zà-ÿ]|$)/i, x);
   // Seul à l'antenne (voix de l'ordinateur), en parlant à chaque titre : ni mini-jeu ni sujet « entre eux ».
-  p.run("Object.assign(settings, { chat: 'souvent', radioFreq: 'every', programme: false, voiceEngine: 'systeme', loreLevel: 'discret' }); var __s = { lastLines: [], played: [], queue: [] }; var __t = []; var __f = []; var __at = [];" +
-    "for (var i = 0; i < 600; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.base); __f.push(pl.angle.format); __at.push(i * 4); } }");
+  p.run("Object.assign(settings, { chat: 'souvent', chatMix: 50, radioFreq: 'every', programme: false, voiceEngine: 'systeme', loreLevel: 'discret' }); var __s = { lastLines: [], played: [], queue: [] }; var __t = []; var __f = []; var __at = [];" +
+    "for (var i = 0; i < 150; i++) { var pl = planAnnouncement(__s, 'interlude', { title: 'A', artist: 'B' }, { title: 'C', artist: 'D', key: 'k' + i }, 1e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') { __t.push(pl.angle.base); __f.push(pl.angle.format); __at.push(i * 4); } }");
   const topics = [...p.run('__t')];
   const formats = [...p.run('__f')];
   const at = [...p.run('__at')];
@@ -195,22 +195,21 @@ test('bavardage : 261 sujets sans doublon en six formats, rien « entre eux » p
   assert.ok(new Set(formats).size >= 4, 'plusieurs formats sortent : ' + [...new Set(formats)].join(', '));
   assert.ok(!formats.includes('minijeu'));
   for (let i = 1; i < formats.length; i++) assert.notEqual(formats[i], formats[i - 1], 'le même format deux fois de suite');
-  // Sur « Souvent », au moins 20 minutes entre deux bavardages, même quand les animateurs parlent à chaque titre.
-  for (let i = 1; i < at.length; i++) assert.ok(at[i] - at[i - 1] >= 20, 'écart de ' + (at[i] - at[i - 1]) + ' min');
+  assert.ok(at.length > 30);
   // Univers de la station coupé : pas de « nouvelles de la station », qui s'appuient dessus.
   p.run("settings.loreLevel = 'off'; var __s2 = { lastLines: [], played: [], queue: [] }; var __f2 = [];" +
-    "for (var i = 0; i < 400; i++) { var pl = planAnnouncement(__s2, 'interlude', null, { title: 'C', artist: 'D', key: 'z' + i }, 2e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') __f2.push(pl.angle.format); }");
+    "for (var i = 0; i < 150; i++) { var pl = planAnnouncement(__s2, 'interlude', null, { title: 'C', artist: 'D', key: 'z' + i }, 2e12 + i * 4 * 6e4, null, 0, false); if (pl.angle.id === 'bavardage') __f2.push(pl.angle.format); }");
   assert.ok(![...p.run('__f2')].includes('nouvelles'));
 });
 
-test('discussions autour de la musique : quinze types, sujets sans doublon, tirés sans reprise', () => {
+test('discussions autour de la musique : quinze types et le jeu, sujets sans doublon, tirés sans reprise', () => {
   const p = loadPanel();
   const T = JSON.parse(JSON.stringify(p.run('ANGLE_TOPICS')));
   const ids = [...p.run("ANGLES_DUO.filter((a) => !/^anecdote/.test(a.id) && a.id !== 'bavardage').map((a) => a.id)")];
-  assert.deepEqual(ids.slice().sort(), ['auditeur', 'aveu', 'chambre', 'coulisses', 'debat', 'defi', 'devinette', 'lien', 'mode_emploi', 'question', 'rappel', 'reaction', 'teaser', 'vanne', 'verdict']);
+  assert.deepEqual(ids.slice().sort(), ['auditeur', 'aveu', 'chambre', 'coulisses', 'debat', 'defi', 'devinette', 'jeu', 'lien', 'mode_emploi', 'question', 'rappel', 'reaction', 'teaser', 'vanne', 'verdict']);
   let n = 0;
   for (const k of Object.keys(T)) {
-    assert.ok(ids.includes(k), k + ' a des sujets mais pas d’angle');
+    assert.ok(ids.includes(k) && k !== 'jeu', k + ' a des sujets mais pas d’angle');
     assert.equal(new Set(T[k]).size, T[k].length, 'doublon dans ' + k);
     n += T[k].length;
   }

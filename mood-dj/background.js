@@ -653,7 +653,7 @@ async function writeAnnouncement(p) {
   const PROG_LEN = { talkover: ' Pour ce programme, tu as droit à trois phrases, 55 mots au plus.', intro: ' Pour cet accueil et le programme, tu as droit à quatre phrases, 70 mots au plus.',
     interlude: ' Pour cette pause et le programme, tu as droit à quatre ou cinq phrases, 90 mots au plus.' };
   const isProg = Array.isArray(p.programme) && p.programme.length >= 2;
-  // Mode bavardage (2.37) : la conversation d'abord, puis le rappel des titres à venir (recall), ou du seul suivant.
+  // Conversation (chatMode) : elle passe d'abord, puis le rappel des titres à venir (recall), ou du seul suivant.
   const recall = !isProg && Array.isArray(p.upcoming) && p.upcoming.length >= 2;
   // Le rappel prend environ huit mots par titre (premier essai réel : faute de place, l'IA ne donnait plus que le
   // nom de l'artiste pour les derniers titres).
@@ -840,12 +840,17 @@ async function writeAnnouncement(p) {
       lines.push('DÉPART DE L\'INVITÉ : dernière intervention de ' + gn + ' (B), ' + gr + '. Un dernier mot d\'expert sur le titre suivant, A ' + (fem ? 'la' : 'le') + ' remercie chaleureusement, et c\'est ' + gn + ' qui lance le titre suivant, comme on rend l\'antenne. ' + away + ' reviendra à la prochaine intervention.' + sure);
     }
   }
-  if (p.chatMode) {
+  // « Tout le temps » : le ton de toute l'émission.
+  if (p.chatShow) {
     lines.push(p.duo
-      ? "MODE BAVARDAGE : dans cette émission, les animateurs passent leur temps à déconner entre eux, comme deux amis au micro que les auditeurs surprennent en pleine conversation. Cette intervention n'est pas une annonce : c'est un moment à eux, vivant et drôle, sans ton d'animateur. La musique ne revient qu'à la fin, quand l'un des deux lance le titre ; l'heure, la météo ou le nom de la station, s'ils sont demandés, se disent à ce moment-là, jamais au milieu de la conversation."
-      : "MODE BAVARDAGE : dans cette émission, tu bavardes avec les auditeurs comme avec des amis. Cette intervention n'est pas une annonce : c'est une confidence ou une bêtise glissée entre deux disques, sans ton d'animateur. La musique ne revient qu'à la fin, quand tu lances le titre ; l'heure, la météo ou le nom de la station, s'ils sont demandés, se disent à ce moment-là.");
+      ? "MODE BAVARDAGE : dans cette émission, les animateurs passent leur temps à déconner entre eux, comme deux amis au micro que les auditeurs surprennent en pleine conversation. Cette intervention n'est pas une annonce : c'est un moment à eux, vivant et drôle, sans ton d'animateur."
+      : "MODE BAVARDAGE : dans cette émission, tu bavardes avec les auditeurs comme avec des amis. Cette intervention n'est pas une annonce : c'est une confidence ou une bêtise glissée entre deux disques, sans ton d'animateur.");
   }
-  if (p.chatMode && p.pivot) lines.push('RETOUR À LA MUSIQUE, cette fois : ' + String(p.pivot).replace(/[«»"\n]/g, ' ').slice(0, 200).trim() + ". Pas de mot de liaison passe-partout pour y revenir (« Bref », « Allez », « Bon »).");
+  // Fin d'une conversation : la façon de revenir à la musique est tirée à chaque fois par Mood DJ.
+  if (p.chatMode && p.pivot) {
+    lines.push('RETOUR À LA MUSIQUE, cette fois : ' + String(p.pivot).replace(/[«»"\n]/g, ' ').slice(0, 200).trim() + ". Pas de mot de liaison passe-partout pour y revenir (« Bref », « Allez », « Bon »). " +
+      "La conversation passe d'abord, et la musique ne revient qu'à la fin ; l'heure, la météo ou le nom de la station, s'ils sont demandés, se disent à ce moment-là, jamais au milieu de la conversation.");
+  }
   if (p.angle) lines.push('ANGLE DE CETTE INTERVENTION : ' + p.angle);
   if (isProg) {
     const prog = p.programme.slice(0, 4).map((x, i) => (i + 1) + '. ' + String(x).slice(0, 160) + (i === 0 ? ' (il démarre tout de suite)' : '')).join(' ; ');
@@ -890,21 +895,21 @@ async function writeAnnouncement(p) {
   const truthRule = (t) => (t === 'faux' ? 'FAUSSE : ' + FALSE_RULE + '.' : 'VRAIE : énonce un fait précis de la fiche exactement tel quel.');
   if (p.rubrique) lines.push('RUBRIQUE : cette intervention est la rubrique « ' + String(p.rubrique).slice(0, 60) + " » de l'émission. Nomme-la au début, naturellement, sans toujours la présenter avec les mêmes mots.");
   if (p.hook && p.hook.type === 'pari') {
-    lines.push('VRAI OU FAUX EN DEUX TEMPS : après le programme, ' + A + ' pose un vrai ou faux sur « ' + String(p.hook.title || '').slice(0, 120) + ' », tiré de la fiche ci-dessous. Tirage au sort : l\'affirmation doit être ' + truthRule(p.hook.truth) +
+    lines.push('VRAI OU FAUX EN DEUX TEMPS : ' + (isProg ? 'après le programme, ' : recall ? "c'est la conversation de cette intervention, avant le rappel des titres : " : '') + A + ' pose un vrai ou faux sur « ' + String(p.hook.title || '').slice(0, 120) + ' », tiré de la fiche ci-dessous. Tirage au sort : l\'affirmation doit être ' + truthRule(p.hook.truth) +
       (p.duo ? ' B parie « ' + (p.hook.bet === 'faux' ? 'faux' : 'vrai') + ' » en une phrase, avec un argument.' : " Demande aux auditeurs ce qu'ils en pensent.") +
       ' Ne donne surtout pas la réponse : elle viendra juste avant ce titre. Tout à la fin, sur deux lignes à part qui ne seront pas lues : « QUESTION : » suivi de l\'affirmation posée, puis « RÉPONSE : » suivi du vrai fait, en une phrase.');
   } else if (p.hook && p.hook.type === 'question') {
-    lines.push('QUESTION EN SUSPENS : après le programme, ' + A + ' pose une question intrigante sur l\'histoire de « ' + String(p.hook.title || '').slice(0, 120) + " », tirée de la fiche ci-dessous (pourquoi il a failli ne jamais sortir, ce qui l'a inspiré, ce qui s'est passé en studio…), sans y répondre : la réponse viendra juste avant ce titre. Tout à la fin, sur deux lignes à part qui ne seront pas lues : « QUESTION : » suivi de la question, puis « RÉPONSE : » suivi de l'histoire en une ou deux phrases.");
+    lines.push('QUESTION EN SUSPENS : ' + (isProg ? 'après le programme, ' : recall ? "c'est la conversation de cette intervention, avant le rappel des titres : " : '') + A + ' pose une question intrigante sur l\'histoire de « ' + String(p.hook.title || '').slice(0, 120) + " », tirée de la fiche ci-dessous (pourquoi il a failli ne jamais sortir, ce qui l'a inspiré, ce qui s'est passé en studio…), sans y répondre : la réponse viendra juste avant ce titre. Tout à la fin, sur deux lignes à part qui ne seront pas lues : « QUESTION : » suivi de la question, puis « RÉPONSE : » suivi de l'histoire en une ou deux phrases.");
   }
   if (p.hook && p.hookFacts) lines.push('FICHE POUR LE JEU (sources fiables) :\n' + String(p.hookFacts).slice(0, 3000));
   const ha = p.hookAnswer;
   if (ha) {
     const about = ha.question ? 'affirmation posée : « ' + String(ha.question).slice(0, 300) + ' »' : 'voici ce qui avait été dit : « ' + String(ha.said || '').slice(0, 500) + ' »';
     if (ha.type === 'question') {
-      lines.push('RÉPONSE À LA QUESTION EN SUSPENS : pendant le programme, ' + A + ' a demandé ' + (ha.question ? '« ' + String(ha.question).slice(0, 300) + ' »' : 'ceci : « ' + String(ha.said || '').slice(0, 500) + ' »') +
+      lines.push("RÉPONSE À LA QUESTION EN SUSPENS : plus tôt dans l'émission, " + A + ' a demandé ' + (ha.question ? '« ' + String(ha.question).slice(0, 300) + ' »' : 'ceci : « ' + String(ha.said || '').slice(0, 500) + ' »') +
         ' à propos de « ' + String(ha.title || '').slice(0, 120) + ' ». Commence par y répondre en racontant l\'histoire' + (ha.answer ? ' (' + String(ha.answer).slice(0, 400) + ')' : ' à partir de la fiche') + ', puis continue.');
     } else {
-      lines.push('RÉPONSE AU VRAI OU FAUX : commence par la réponse au vrai ou faux posé pendant le programme sur « ' + String(ha.title || '').slice(0, 120) + ' » (' + about + "). C'était " + (ha.truth === 'faux' ? 'FAUX' : 'VRAI') + '.' +
+      lines.push('RÉPONSE AU VRAI OU FAUX : commence par la réponse au vrai ou faux posé plus tôt dans l\'émission sur « ' + String(ha.title || '').slice(0, 120) + ' » (' + about + "). C'était " + (ha.truth === 'faux' ? 'FAUX' : 'VRAI') + '.' +
         (ha.answer ? ' Le vrai fait : ' + String(ha.answer).slice(0, 400) + '.' : '') +
         (p.duo && ha.bet ? ' B avait parié « ' + ha.bet + ' » : il a ' + (ha.won ? 'gagné' : 'perdu') + '. Score de la soirée après ce jeu : A ' + (ha.score ? ha.score.A : 0) + ', B ' + (ha.score ? ha.score.B : 0) + ' (dis-le naturellement).' : '') +
         (ha.truth === 'faux' ? ' Rétablis clairement le vrai fait, pour que personne ne reste sur la fausse version.' : '') +

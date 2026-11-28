@@ -1,5 +1,46 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.37.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.38.0
 ============================================
+
+2.38.0 : DES CONVERSATIONS DANS TOUT LE PROGRAMME, UN CURSEUR MUSIQUE OU BAVARDAGE
+- Pourquoi. Avec le programme, les interventions suivaient un menu court :
+  le programme (toujours la même formule), la chronique et la culture
+  courte (toujours une anecdote), et le jeu. Les quinze types de
+  conversation et leurs 500 sujets formaient une liste à part, presque
+  jamais utilisée : en « À chaque titre », une intervention sur neuf.
+- Bavardage et discussions dit maintenant quelle part des interventions
+  est une conversation entre les animateurs, quel que soit le créneau
+  (programme, chronique, culture courte) : Jamais, Parfois (une sur deux),
+  Souvent (presque toutes), Tout le temps (toutes). Les autres gardent
+  leur forme habituelle.
+- Une conversation se joue toujours à deux quand l'émission a un duo,
+  même sur le fondu, en trois à cinq répliques. À l'ouverture d'un
+  programme, elle sert d'accroche, puis l'un des deux rappelle tous les
+  titres à venir avec leur artiste. La façon de revenir à la musique est
+  tirée à chaque fois parmi douze.
+- Nouveau curseur « Musique ou bavardage » (juste en dessous) : parmi ces
+  conversations, la part qui parle d'autre chose que de musique, de 0 à
+  100 %, au milieu par défaut. À gauche : chambrage, désaccord, devinette,
+  défi, aveu, note sur dix, anecdote. À droite : la vie du studio, un
+  débat absurde, un « tu préfères », un mini-jeu. Il remplace les anciens
+  dosages par niveau et l'écart minimal entre deux bavardages.
+- Le jeu n'a plus sa propre règle. Le vrai ou faux est un type de
+  conversation parmi les autres, tiré au rang d'un aveu ou d'une
+  question : quelques pour cent des interventions, au lieu de 44 % dans
+  le journal du 28/11. Jeux entre les animateurs : Jamais, Parfois, ou
+  Souvent (deux fois et demie plus). À l'ouverture d'un programme en
+  « À chaque titre », la question porte sur le deuxième titre et la
+  réponse tombe juste avant lui ; ailleurs, question, pari et réponse
+  d'un seul tenant. Sans fiche fiable sur le titre, pas de jeu : une
+  autre conversation prend sa place. Sur « Jamais » du bavardage, il n'y
+  a plus de jeu.
+- Anecdotes : ce réglage dit maintenant quelle part des conversations
+  autour de la musique raconte une histoire.
+- « Tout le temps » suit le curseur : il était à sept sur dix hors
+  musique en 2.37, il est au milieu par défaut. Pousse le curseur à droite
+  pour retrouver le réglage d'avant.
+- Vérifié sur de vrais textes : une émission sur « Souvent », et les
+  quatre formes du jeu (question, réponse, express, repli sans fiche).
+- 2 nouveaux tests, 8 réécrits (67 en tout).
 
 2.37.0 : LE BAVARDAGE À LA PLACE DES ANNONCES, ET MOINS DE RÉPÉTITIONS
 - Bavardage et discussions : un quatrième niveau, « Tout le temps »
