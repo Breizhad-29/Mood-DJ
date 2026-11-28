@@ -1,5 +1,51 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.38.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.39.0
 ============================================
+
+2.39.0 : DES ANECDOTES QUI S'APPUIENT SUR LES BONNES FICHES
+Mesuré sur 32 titres, avec de vraies recherches sur Wikipédia et
+MusicBrainz, avant et après :
+- Noms d'artistes. Tout nom était coupé à la première virgule ou au premier
+  « & » : « Earth, Wind & Fire » devenait « Earth », « Simon & Garfunkel »
+  devenait « Simon ». 79 artistes du catalogue, 158 titres. Sur 11 groupes
+  essayés, 2 recevaient l'article d'un autre sujet (un autre groupe, Earth,
+  pour Earth, Wind & Fire ; le prénom Brooks pour Brooks & Dunn),
+  5 n'en recevaient aucun, et MusicBrainz confondait Bigflo & Oli avec un
+  groupe coréen. Le nom entier est maintenant cherché d'abord ; seule une
+  vraie collaboration (« Lady Gaga & Bradley Cooper ») se rabat sur son
+  artiste principal. Les 11 groupes ont leur propre fiche. La même règle
+  sert pour Deezer, Last.fm, Discogs, Setlist.fm et la page YouTube Music.
+- Fiche du morceau. Pour « Born to Run » ou « Master of Puppets », c'était
+  l'article de l'album qui était raconté comme l'histoire de la chanson ;
+  pour « Sexy Boy » d'Air, une autre chanson du même nom. L'article de la
+  chanson est maintenant préféré, l'artiste doit y être nommé en toutes
+  lettres (plus seulement « contenir ses lettres » : « Yes » se trouvait
+  dans « yesterday »), et s'il n'existe que l'article de l'album, il est
+  donné comme tel aux animateurs.
+- Date de première sortie. MusicBrainz a des centaines d'enregistrements
+  pour un titre connu (concerts, pirates, compilations) et n'en rend que
+  100 : un concert passait pour l'original. « Thriller » sortait en 1987,
+  « Purple Rain » en 1992, « Africa » en 1988 : 7 dates justes sur 24.
+  Maintenant : sorties officielles seulement, vérification qu'il n'existe
+  pas plus ancien, et détails (producteur, studio, auteurs) lus sur
+  l'enregistrement le plus réédité. 32 dates justes sur 32.
+- Ordre des fiches. Les consignes en gardent 8 500 signes, et la fiche du
+  morceau venait en dernier : c'est elle qui était coupée. Elle passe juste
+  après les faits courts ; l'article de l'artiste ferme la marche.
+- Sans fiche, pas d'anecdote. L'IA recevait « raconte un fait de culture
+  générale » : elle inventait, ou décrivait le son d'un morceau qu'elle
+  n'entend pas (« cette ligne de basse toute ronde »). Une conversation qui
+  n'a pas besoin de fiche prend la place, et une règle le dit à chaque
+  annonce : ne jamais décrire un son, un instrument ou un passage que les
+  fiches ne mentionnent pas.
+- « Déjà racontée » : une anecdote l'était dès sa préparation. Préparée
+  puis jamais dite (titre zappé), elle était perdue pour 90 jours. Elle
+  n'est notée qu'au moment où elle passe à l'antenne.
+- Les fiches gardées en mémoire avant cette version sont refaites une fois
+  (elles pouvaient venir du mauvais article).
+- « Ne plus passer … » (En cours) affiche et bannit le même nom : le groupe
+  entier, ou l'artiste principal d'une collaboration.
+- Wikipédia : un nouvel essai quand le service demande de ralentir.
+- 9 nouveaux tests (76 en tout).
 
 2.38.0 : DES CONVERSATIONS DANS TOUT LE PROGRAMME, UN CURSEUR MUSIQUE OU BAVARDAGE
 - Pourquoi. Avec le programme, les interventions suivaient un menu court :

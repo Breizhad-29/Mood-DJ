@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.38.0.
+Up to date with version 2.39.0.
 
 ---
 
@@ -372,6 +372,15 @@ To keep the hosts from inventing things, Mood DJ gives them short fact sheets. W
 - **MusicBrainz**: band formation, members and instruments, first release of the song, writers, producer, studio, samples, number of covers.
 - **Wikidata**: awards, genres, labels, influences, country, release date, gold records.
 - **Deezer**: the track's popularity and release date.
+
+How the right sheet is found:
+
+- A band name is searched whole ("Earth, Wind & Fire", "Simon & Garfunkel", "Bob Marley & The Wailers"); only a real collaboration ("Lady Gaga & Bradley Cooper") falls back to its main artist.
+- For the song, the article about the song is preferred to the album of the same name; if only the album's article exists, it is given to the hosts as the album's story, not the song's. An article is kept only if it names the artist, as whole words.
+- For the first release, MusicBrainz's original recording is used, not a concert or a later version.
+- The song's sheet comes before the artist's article, so it is never the part that gets cut.
+- With no sheet at all for a track, the hosts don't tell a story: another conversation takes its place. They are also told that they cannot hear the music, so they never describe a sound, an instrument or a passage the sheets don't mention.
+- A story counts as "already told" (and is avoided for 90 days) only once it has actually been said on air.
 
 With a free key (Settings › API keys › **Trivia sources** and **Concerts**; each has a **Test** button):
 

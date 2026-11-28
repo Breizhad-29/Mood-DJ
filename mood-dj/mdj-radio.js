@@ -1087,11 +1087,30 @@ function notePlan(s, plan, atMs) {
   if (plan.momentOk) v.momentAt = now;
 }
 
+// Le nom à chercher pour un artiste (2.39) : le nom entier d'un groupe (« Earth, Wind & Fire », « Simon &
+// Garfunkel », « Bob Marley & The Wailers »), l'artiste principal d'une collaboration (« Lady Gaga & Bradley
+// Cooper »). Jusqu'à la 2.38, tout nom était coupé à la première virgule ou au premier « & » : 79 artistes du
+// catalogue (158 titres) étaient cherchés sous un autre nom, parfois celui d'un autre groupe (« Earth »).
+// La même règle est écrite dans background.js (firstArtistName) ; un test vérifie qu'elles donnent la même chose.
+function mainArtist(name) {
+  const full = String(name || '').replace(/\s+(?:feat\.?|ft\.?|featuring)\s.*$/i, '').replace(/\s+/g, ' ').trim();
+  const m = full.match(/^(.*?)(?:,| & | x | × )(.*)$/i);
+  if (!m) return full;
+  const first = m[1].trim();
+  // La première partie n'est un artiste à elle seule que si elle ressemble à un nom complet (deux mots au moins),
+  // et si la suite n'est pas son groupe d'accompagnement (« & The Wailers », « & His Comets »).
+  if (first.split(/\s+/).length < 2) return full;
+  return /^(the|his|her|les|los|las|sus|ses|sons|friends)\b/i.test(m[2].trim()) ? full : first;
+}
+// Fiches gardées en cache : celles d'avant la 2.39 sont refaites une fois (mauvais article possible : l'album à la
+// place de la chanson, un autre groupe à la place du bon).
+const WIKI_REV = 2;
+const wikiFresh = (c) => !!c && c.rev === WIKI_REV && Date.now() - c.at < WIKI_TTL;
 // Ce que la page YouTube Music de l'artiste dit de lui (pour des anecdotes vraies).
 async function artistFacts(name) {
   if (!name) return '';
   try {
-    const a = await withTimeout(artistByName(String(name).split(/,| & | feat\.? | x /i)[0]), 4000);
+    const a = await withTimeout(artistByName(mainArtist(name)), 4000);
     if (!a || !a.id) return '';
     const known = artistCache.pages[a.id];
     const page = await withTimeout(artistPageCached(a.id, (known && known.max) || 5), 5000);
@@ -1104,12 +1123,12 @@ const progKeysFor = (s, t) => (roleFor(s, t) === 'programme' ? programmeOf(s, t)
 // Article Wikipédia de l'artiste (formation, nom, membres, concerts, coulisses), gardé 60 jours.
 async function artistWiki(name) {
   if (!name) return null;
-  const k = 'artist:' + C.artistKey(String(name).split(/,| & | feat\.? | x /i)[0]);
+  const k = 'artist:' + C.artistKey(mainArtist(name));
   const c = wikiCache[k];
-  if (c && Date.now() - c.at < WIKI_TTL) return c.text ? c : null;
+  if (wikiFresh(c)) return c.text ? c : null;
   try {
     const r = await withTimeout(claude('wikiartist', { artist: name }), 8000);
-    wikiCache[k] = { at: Date.now(), text: (r && r.text) || '', lang: (r && r.lang) || '' };
+    wikiCache[k] = { at: Date.now(), rev: WIKI_REV, text: (r && r.text) || '', lang: (r && r.lang) || '' };
     saveWikiCache();
     return wikiCache[k].text ? wikiCache[k] : null;
   } catch (e) { return null; }
@@ -1118,15 +1137,15 @@ async function artistWiki(name) {
 // Une réponse arrivée après le délai est quand même gardée : elle servira à l'annonce suivante.
 function extCached(k, action, payload, ms) {
   const c = wikiCache[k];
-  if (c && Date.now() - c.at < WIKI_TTL) return Promise.resolve(c.data);
+  if (wikiFresh(c)) return Promise.resolve(c.data);
   const p = claude(action, payload).then((data) => {
-    wikiCache[k] = { at: Date.now(), data: data || {} };
+    wikiCache[k] = { at: Date.now(), rev: WIKI_REV, data: data || {} };
     saveWikiCache();
     return data || {};
   });
   return withTimeout(p, ms).catch(() => null);
 }
-const artistK = (name) => C.artistKey(String(name || '').split(/,| & | feat\.? | x /i)[0]);
+const artistK = (name) => C.artistKey(mainArtist(name));
 // Prochains concerts de l'artiste (Ticketmaster), dans le pays choisi, sur les 9 prochains mois.
 // Gardés 2 jours ; proposés aux animateurs au plus une fois tous les 3 jours pour un même artiste.
 const concertLines = new Map();
@@ -1173,8 +1192,9 @@ async function factsFor(t) {
   const ak = artistK(t.artist);
   const [about, wiki0, song0, mbA, mbR, dz, lfm, dg] = await Promise.all([
     artistFacts(t.artist), artistWiki(t.artist), songFacts(t),
-    extCached('mba:' + ak, 'mbartist', { artist: t.artist }, 6000),
-    extCached('mbr:' + t.key, 'mbrecording', { artist: t.artist, title: t.title }, 6000),
+    extCached('mba:' + ak, 'mbartist', { artist: t.artist }, 7000),
+    // Deux recherches au lieu d'une (version d'origine), à une demande par seconde : un peu plus de temps laissé.
+    extCached('mbr:' + t.key, 'mbrecording', { artist: t.artist, title: t.title }, 10000),
     extCached('dz:' + t.key, 'deezer', { artist: t.artist, title: t.title, duration: t.listedDur || t.duration || 0 }, 5000),
     hasLastfm ? extCached('lfm:' + t.key, 'lastfm', { artist: t.artist, title: t.title }, 5000) : null,
     hasDiscogs ? extCached('dg:' + t.key, 'discogs', { artist: t.artist, title: t.title }, 6000) : null
@@ -1202,7 +1222,14 @@ async function factsFor(t) {
   const mbDated = !!(mbR && /Première sortie/.test(mbR.text || ''));
   const dzLine = dz ? [!mbDated && dz.release ? 'sorti le ' + dz.release + (dz.album ? ' (album « ' + dz.album + ' »)' : '') : '',
     dz.rank >= 750000 ? 'très écouté sur Deezer' : ''].filter(Boolean).join(', ') : '';
-  // Les faits courts et structurés d'abord : ils ne sont jamais coupés par la limite de longueur.
+  // Ordre des fiches (2.39). Les consignes en gardent 8 500 signes : ce qui vient en dernier est coupé. La fiche du
+  // morceau, la meilleure matière pour une anecdote sur le titre, venait tout à la fin. Elle passe juste après
+  // les faits courts ; l'article de l'artiste et sa bio Last.fm, plus longs et moins précis, ferment la marche.
+  // Article de l'album du même nom, faute d'article sur la chanson : dit comme tel, pour que son histoire ne soit
+  // pas racontée comme celle de la chanson.
+  const songHead = song && song.kind === 'album'
+    ? "Article sur l'album du même nom « " + t.title + ' » (Wikipédia' + en(song) + " ; c'est l'album, pas la chanson : n'attribue pas à la chanson ce qui est dit de l'album) : "
+    : 'Fiche du morceau « ' + t.title + ' » (Wikipédia' + en(song) + ') : ';
   const text = [
     mbA && mbA.text ? "Données sur l'artiste " + t.artist + ' (MusicBrainz, noms d\'instruments en anglais : traduis) : ' + mbA.text : '',
     mbR && mbR.text ? 'Données sur le morceau « ' + t.title + ' » (MusicBrainz) : ' + mbR.text : '',
@@ -1213,12 +1240,12 @@ async function factsFor(t) {
     sl && sl.text ? 'Sur scène (Setlist.fm) : ' + sl.text : '',
     dg && dg.text ? 'Le morceau « ' + t.title + ' » (Discogs) : ' + dg.text : '',
     lfm && lfm.song ? 'Écoutes du morceau (Last.fm, tags en anglais : traduis) : ' + lfm.song : '',
-    lfm && lfm.artist ? "L'artiste " + t.artist + ' (Last.fm, en anglais si pas de version française : traduis) : ' + lfm.artist : '',
+    song ? songHead + song.text : '',
     about ? "Fiche de l'artiste " + t.artist + ' (YouTube Music) : ' + about : '',
     wiki ? "Article sur l'artiste " + t.artist + ' (Wikipédia' + en(wiki) + ') : ' + wiki.text : '',
-    song ? 'Fiche du morceau « ' + t.title + ' » (Wikipédia' + en(song) + ') : ' + song.text : ''
+    lfm && lfm.artist ? "L'artiste " + t.artist + ' (Last.fm, en anglais si pas de version française : traduis) : ' + lfm.artist : ''
   ].filter(Boolean).join('\n');
-  const src = [about ? 'artiste' : '', wiki ? (wiki === wiki0 ? 'article' : 'article-' + (wiki.lang || '?')) : '', song ? (song === song0 ? 'morceau' : 'morceau-' + (song.lang || '?')) : '',
+  const src = [about ? 'artiste' : '', wiki ? (wiki === wiki0 ? 'article' : 'article-' + (wiki.lang || '?')) : '', song ? (song.kind === 'album' ? 'album' : song === song0 ? 'morceau' : 'morceau-' + (song.lang || '?')) : '',
     mbA && mbA.text ? 'mb-artiste' : '', mbR && mbR.text ? 'mb-morceau' : '', wd && (wd.artist || wd.song) ? 'wikidata' : '', dzLine ? 'deezer' : '',
     dg && dg.text ? 'discogs' : '', lfm && (lfm.song || lfm.artist) ? 'lastfm' : '',
     sl && sl.text ? 'setlist' : '', concerts ? 'concerts' : ''].filter(Boolean).join('+');

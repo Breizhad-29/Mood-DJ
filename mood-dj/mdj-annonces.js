@@ -172,7 +172,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
   const speakers = duo ? (gTalks ? ['A'] : ['A', 'B']) : [soloB ? 'B' : 'A'];
   const live = !!(settings.claudeAnnounce && hasKey);
   const desc = (t) => spokenTitle(t.title) + ' de ' + t.artist + (t.year ? ' (' + t.year + ')' : '');
-  const inProg = programmeOn() && (role === 'chronique' || role === 'culture') && !plan.free;
+  let inProg = programmeOn() && (role === 'chronique' || role === 'culture') && !plan.free;
   const ch = changeFor(s, next);
   if (ch) {
     plan.angle = { id: 'changement', txt: duo
@@ -250,6 +250,20 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
         subjects.push(styleSubject(who));
       }
     }
+  }
+  // Anecdote sans aucune fiche (2.39) : ni le titre, ni l'artiste, ni le style. L'IA recevait alors « raconte un
+  // fait de culture générale vrai et connu » : elle inventait, ou décrivait le son d'un morceau qu'elle n'entend
+  // pas (« cette ligne de basse toute ronde »). Une conversation qui n'a pas besoin de fiche prend la place.
+  if (facts === 'AUCUNE FICHE' && plan.angle && /^anecdote/.test(plan.angle.id)) {
+    dlog('annonce', 'anecdote sans fiche : une autre conversation à la place', { angle: plan.angle.id, pour: next ? next.title : '' });
+    plan.angle = otherAngle(s, kind, duo, prev);
+    plan.long = false;
+    plan.free = true;
+    if (!plan.pivot) plan.pivot = drawPivot(s, !duo);
+    inProg = false;
+    facts = '';
+    factSrc = '';
+    subjects.length = 0;
   }
   // Feuilleton de la soirée : la culture du style racontée en épisodes, dans l'ordre de l'article.
   let episode = null;
@@ -402,7 +416,9 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
     au_repos: focus ? focus.rest.length : 0, entendus: said.join(' | '), dynamique: dyn ? dyn.id : '', bavardage: (plan.angle && plan.angle.format) || '', retour: plan.pivot || '', sujet: (plan.angle && plan.angle.topic) || '', variante: (plan.angle && plan.angle.twist) || '', coupure: turns.filter((t) => t.cut).length, libre: !!plan.free });
   if (plan.episodeRef) plan.episodeRef.last = plain.slice(0, 300);
   // Mémoire des anecdotes : pour un vrai ou faux, c'est le vrai fait qui est retenu, jamais la version modifiée.
-  if (fromClaude && subjects.length) rememberTold(subjects, express ? hidden.answer || '' : plain);
+  // Elle est notée « déjà racontée » quand l'annonce passe à l'antenne (sayIt), plus dès sa préparation (2.39) :
+  // une annonce préparée puis jamais dite faisait perdre son histoire pour 90 jours.
+  const toldNote = fromClaude && subjects.length ? { subjects: subjects.slice(), text: express ? hidden.answer || '' : plain } : null;
   if (plan.angle) dlog('annonce', 'angle : ' + plan.angle.id + (plan.role ? ' [' + plan.role + ']' : '') + (duo ? ' (duo, ' + plan.turns + ' répliques, ' + plan.opener + ' ouvre)' : ''),
     { heure: plan.sayTime, meteo: plan.sayWeather, station: plan.sayStation, moment: plan.momentOk, annee: plan.yearOk, fiche: factSrc || false, deja_raconte: told.length,
       rubrique: rub ? rub.name : '', jeu: hook ? hook.type + ' (' + hook.truth + ')' : express ? 'express (' + express.truth + ')' : hookAnswer ? 'réponse' : '', feuilleton: episode ? episode.n : 0,
@@ -446,7 +462,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
     hook, hookAnswered: hookAnswer ? hookAnswer.id : null, scoreAfter: (hookAnswer && hookAnswer.score) || (express && express.score) || null,
     express, rubrique: fromClaude && rub ? rub.name : '', sting: fromClaude && gTalks && gPhase === 'arrivee' ? 'invite' : fromClaude && rub ? rub.sting : '',
     guestPhase: fromClaude ? gPhase : '', guestName: guest ? guest.name : '', sfx, dedic,
-    memory: fromClaude ? memory : null, pickRefs: fromClaude && picks ? picks.refs : null, solo: duo ? '' : soloB ? 'B' : 'A' };
+    memory: fromClaude ? memory : null, told: toldNote, pickRefs: fromClaude && picks ? picks.refs : null, solo: duo ? '' : soloB ? 'B' : 'A' };
   // ann.voice() : fabrique la voix (une seule fois, même demandée de plusieurs endroits) et rend l'annonce complète.
   ann.voice = () => ann.voiceP || (ann.voiceP = synth().then((v) => { ann.audio = v.audio; ann.engine = v.engine; ann.info = infoOf(v.voiceInfo); ann.voiced = true; return ann; }));
   if (!opts || opts.voice !== 'later') await ann.voice();
@@ -489,6 +505,7 @@ async function sayIt(ann, opts) {
     s.dedicList = (s.dedicList || []).concat([{ to: ann.dedic.to, msg: ann.dedic.msg, request: ann.dedic.request }]);
     dlog('annonce', (ann.dedic.request ? 'demande' : 'dédicace') + ' lue', { pour: ann.dedic.to });
   }
+  if (s && !s.demo && ann.told) rememberTold(ann.told.subjects, ann.told.text);
   // Mémoire et choix des animateurs : retenus maintenant que l'annonce passe vraiment.
   if (s && !s.demo && ann.memory) {
     for (const m of ann.memory.souvenirs) rememberSelf(m.who, m.text);

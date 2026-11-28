@@ -77,10 +77,10 @@ async function songFacts(t) {
   if (!t || !t.title || !t.artist) return null;
   const k = C.keyOf(t.artist, t.title);
   const c = wikiCache[k];
-  if (c && Date.now() - c.at < WIKI_TTL) return c.text ? c : null;
+  if (wikiFresh(c)) return c.text ? c : null;
   try {
-    const r = await withTimeout(claude('wiki', { title: t.title, artist: t.artist }), 7000);
-    wikiCache[k] = { at: Date.now(), text: (r && r.text) || '', lang: (r && r.lang) || '' };
+    const r = await withTimeout(claude('wiki', { title: t.title, artist: t.artist }), 9000);
+    wikiCache[k] = { at: Date.now(), rev: WIKI_REV, text: (r && r.text) || '', lang: (r && r.lang) || '', kind: (r && r.kind) || '' };
     saveWikiCache();
     return wikiCache[k].text ? wikiCache[k] : null;
   } catch (e) { return null; }

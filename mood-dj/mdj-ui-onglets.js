@@ -405,8 +405,8 @@ function tabEnCours() {
       h('button', { class: 'btn grow', type: 'button', onclick: () => Promise.resolve(ctl.toggle()).then(() => setTimeout(render, 300)) }, ps.paused ? 'Lecture' : 'Pause'),
       h('button', { class: 'btn grow', type: 'button', onclick: () => endSession('stop', 0) }, 'Arrêter')));
     if (cur && cur.artist && !cur.guest) colA.push(h('div', { class: 'btns' }, h('button', {
-      class: 'btn small', type: 'button', title: 'Liste noire : plus aucun titre de cet artiste ne passera', onclick: () => banArtist(cur.artist)
-    }, 'Ne plus passer ' + cur.artist.split(/,| & | feat\.? /i)[0])));
+      class: 'btn small', type: 'button', title: 'Liste noire : plus aucun titre de cet artiste ne passera', onclick: () => banArtist(mainArtist(cur.artist))
+    }, 'Ne plus passer ' + mainArtist(cur.artist))));
   } else if (s.status === 'suspended') {
     colA.push(h('div', { class: 'btns' },
       h('button', { class: 'btn primary grow', type: 'button', onclick: resume }, 'Reprendre'),

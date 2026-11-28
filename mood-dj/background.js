@@ -628,6 +628,7 @@ async function writeAnnouncement(p) {
     "Quand tu racontes un fait, garde exactement qui a fait ou dit quoi, quand et où, comme dans la fiche : n'attribue jamais à un membre du groupe ce qu'un autre a fait, et ne change ni l'année ni le lieu. " +
       "N'ajoute aucun détail qui n'est pas dans la fiche (nationalité, origine, date, chiffre) : même pour une blague, une personne réelle garde sa vraie nationalité.",
     "Chaque intervention doit sonner neuve : change d'attaque, de construction et de vocabulaire par rapport aux précédentes, sans formule rituelle.",
+    "Tu n'entends pas la musique : ne décris jamais le son d'un morceau, un instrument, une voix ou un passage précis (une ligne de basse, un solo, une intro, un refrain) si les fiches ne le disent pas. Parle de son histoire quand tu l'as, sinon de l'envie qu'il donne ou de la façon de l'écouter.",
     "Ne dis jamais que tu n'as pas d'anecdote, pas d'information ou que tu ne connais pas un artiste ou un morceau : parle alors du style, du thème ou de l'ambiance. Ne présente jamais un titre ou un artiste comme nouveau, une découverte, inconnu des auditeurs, ni comme proche ou cousin d'un autre artiste.",
     "Ne parle jamais des goûts des auditeurs, de ce qu'ils aiment ou ont aimé, de leur historique d'écoute, ni de la façon dont un titre arrive à l'antenne (recommandation, titre similaire, algorithme, playlist, sélection personnalisée) : à l'antenne, c'est la programmation de la station, tout simplement.",
     'Réponds uniquement avec le texte à dire.'
@@ -884,7 +885,8 @@ async function writeAnnouncement(p) {
   if (p.next) lines.push('Titre suivant : ' + p.next);
   if (p.trend) lines.push("Énergie : elle " + p.trend + ' avec le titre suivant.');
   if (p.facts === 'AUCUNE FICHE') {
-    lines.push("Pas de fiche pour cette anecdote : raconte plutôt un fait de culture générale vrai et connu en lien avec le style joué, le thème ou le titre du morceau (un lieu, une époque, un instrument, un film, un événement…). Sans jamais dire que tu manques d'informations.");
+    // Ne devrait plus arriver (le panneau remplace l'anecdote par une conversation) : au cas où, rien à inventer.
+    lines.push("Pas de fiche sur ce titre : ne raconte pas d'anecdote et n'affirme aucun fait sur le morceau ou l'artiste. Fais une annonce simple et vivante, sans dire que tu manques d'informations.");
   } else if (/^REPLI\n/.test(String(p.facts))) {
     lines.push("Rien de précis sur ce morceau ni sur ce groupe : raconte à la place une anecdote de culture musicale tirée de la fiche du style ci-dessous (ses origines, un pionnier, un lieu mythique, son lien avec le cinéma ou les séries…), ou un fait connu en lien avec le thème du morceau. Raconte-la avec tes mots, sans dire que tu n'as rien sur le morceau ni citer la source.\n" + String(p.facts).replace(/^REPLI\n/, '').slice(0, 6000));
   } else if (p.facts) {
@@ -998,6 +1000,38 @@ function splitHidden(raw) {
 // Fiche du morceau (français, sinon anglais), pour des anecdotes vraies.
 const normW = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim();
+
+// Noms d'artistes (2.39). Jusqu'à la 2.38, tout nom était coupé à la première virgule ou au premier « & » :
+// « Earth, Wind & Fire » devenait « Earth » (un autre groupe, dont l'article était raconté à sa place), « Simon &
+// Garfunkel » devenait « Simon », « Kool & the Gang » devenait « Kool ». 79 artistes du catalogue, 158 titres.
+// On essaie maintenant le nom entier, puis sa première partie quand elle ressemble à un nom complet (deux mots au
+// moins) : c'est l'artiste principal d'une vraie collaboration (« Lady Gaga & Bradley Cooper »).
+const FEAT_RE = /\s+(?:feat\.?|ft\.?|featuring)\s.*$/i;
+// Suite d'un nom qui annonce un groupe d'accompagnement, pas un deuxième artiste : « & The Wailers », « & His Comets ».
+const BAND_TAIL = /^(the|his|her|les|los|las|sus|ses|sons|friends)\b/i;
+function artistNames(a) {
+  const full = String(a || '').replace(FEAT_RE, '').replace(/\s+/g, ' ').trim();
+  const m = full.match(/^(.*?)(?:,| & | x | × )(.*)$/i);
+  if (!m) return full ? [full] : [];
+  const first = m[1].trim();
+  return first.split(/\s+/).length >= 2 ? [full, first] : [full];
+}
+// Un seul nom, pour les recherches qui n'ont qu'un essai (Deezer, Last.fm, Discogs, Setlist.fm) : le nom entier
+// d'un groupe, l'artiste principal d'une collaboration.
+function firstArtistName(a) {
+  const n = artistNames(a);
+  if (n.length < 2) return n[0] || '';
+  const rest = n[0].slice(n[1].length).replace(/^\s*(,|&|x|×)\s*/i, '');
+  return BAND_TAIL.test(rest) ? n[0] : n[1];
+}
+// Pour comparer deux noms : « & », « and », « et » se valent, et le « The » de tête ne compte pas.
+const normArtist = (x) => normW(String(x || '').replace(/&/g, ' and ')).replace(/\b(and|et|und)\b/g, ' ').replace(/^the /, '').replace(/\s+/g, ' ').trim();
+// Le texte parle-t-il de l'artiste ? Par mots entiers : une simple recherche de lettres trouvait « Yes » dans
+// « yesterday », « Air » dans « fair », et « Earth » un peu partout.
+function hasArtist(text, names) {
+  const t = ' ' + normArtist(text) + ' ';
+  return names.some((n) => { const k = normArtist(n); return !!k && t.includes(' ' + k + ' '); });
+}
 function cleanSongTitle(t) {
   return String(t || '')
     .replace(/\s*[([][^)\]]*(remaster|version|live|edit|mix|feat|radio|mono|stereo|deluxe|bonus|acoustic|acoustique)[^)\]]*[)\]]/gi, '')
@@ -1029,7 +1063,12 @@ function storyOf(full, max) {
 }
 async function wikiQuery(lang, params) {
   const url = 'https://' + lang + '.wikipedia.org/w/api.php?' + new URLSearchParams(Object.assign({ format: 'json', origin: '*' }, params));
-  const res = await fetch(url);
+  let res = await fetch(url);
+  // Trop de demandes d'un coup (une fiche en lance plusieurs en parallèle) : un seul nouvel essai, après une pause.
+  if (res.status === 429) {
+    await new Promise((r) => setTimeout(r, 1500));
+    res = await fetch(url);
+  }
   if (!res.ok) throw new Error('Wikipédia : HTTP ' + res.status);
   return res.json();
 }
@@ -1057,22 +1096,64 @@ function styleParts(full) {
   }
   return { text: trimSentences(clean(parts[0]), 500), parts: out };
 }
+// Ce qu'est un article, d'après sa première phrase : « … est une chanson de … », « … est le troisième album
+// de … », « … est un film … ». Le premier des deux mots qui apparaît l'emporte (l'article d'une chanson cite
+// aussi son album, mais après).
+const SONG_WORD = /\b(chanson|single|morceau|ballade|comptine|hymne|instrumental|song|track|composition)\b/i;
+const OTHER_WORD = /\b(album|EP|compilation|bande originale|soundtrack|film|t[ée]l[ée]film|s[ée]rie|roman|novel|jeu vid[ée]o|video game|com[ée]die musicale)\b/i;
+function wikiKind(intro) {
+  const head = String(intro || '').slice(0, 320);
+  const a = head.search(SONG_WORD);
+  const b = head.search(OTHER_WORD);
+  if (a < 0 && b < 0) return '';
+  if (a >= 0 && (b < 0 || a < b)) return 'chanson';
+  return /^(album|EP|compilation)/i.test(head.slice(b)) ? 'album' : 'autre';
+}
+const isDisambig = (title, intro) => /homonymie|disambiguation/i.test(title) || /peut (faire r[ée]f[ée]rence|d[ée]signer)|may refer to|plusieurs (œuvres|sens|significations)/i.test(String(intro || '').slice(0, 400));
+// Débuts de plusieurs articles en une seule demande (les redirections sont suivies, les pages absentes ignorées).
+async function wikiIntros(lang, titles) {
+  const list = [...new Set(titles.filter(Boolean))].slice(0, 12);
+  if (!list.length) return [];
+  const e = await wikiQuery(lang, { action: 'query', prop: 'extracts', exintro: '1', explaintext: '1', exlimit: 'max', redirects: '1', titles: list.join('|') });
+  return Object.values((e.query && e.query.pages) || {}).filter((pg) => pg && !('missing' in pg) && pg.title && String(pg.extract || '').length > 40)
+    .map((pg) => ({ title: pg.title, intro: String(pg.extract) }));
+}
+async function wikiFull(lang, title) {
+  const e = await wikiQuery(lang, { action: 'query', prop: 'extracts', explaintext: '1', exsectionformat: 'wiki', redirects: '1', titles: title });
+  const pg = Object.values((e.query && e.query.pages) || {})[0];
+  return String((pg && pg.extract) || '');
+}
+// Fiche du morceau (2.39). Avant : le premier article dont le titre commençait comme celui du morceau et dont le
+// texte contenait les lettres du nom de l'artiste. Pour « Born to Run », « Thriller » ou « Back in Black »,
+// c'était souvent l'article de l'album, raconté comme l'histoire de la chanson. Maintenant : l'article de la
+// chanson d'abord (titres exacts « … (chanson) » sondés en plus de la recherche), l'artiste vérifié par mots
+// entiers, et l'article de l'album seulement s'il n'y a rien d'autre, étiqueté comme tel.
 async function songFacts(p) {
   const title = cleanSongTitle(p.title);
-  const artist = String(p.artist || '').split(/,| & | feat\.? | x /i)[0].trim();
+  const names = artistNames(p.artist);
   const nt = normW(title);
-  const na = normW(artist);
-  if (!nt || !na) return { text: '' };
+  if (!nt || !names.length) return { text: '' };
+  // Nom très court (« Yes », « Air », « War ») : il doit apparaître dès le début de l'article.
+  const zone = normArtist(names[0]).length <= 5 ? 700 : 3000;
+  const albums = [];
   for (const lang of ['fr', 'en']) {
-    const found = await wikiQuery(lang, { action: 'query', list: 'search', srsearch: title + ' ' + artist + (lang === 'fr' ? ' chanson' : ' song'), srlimit: '4' });
-    const hits = ((found.query && found.query.search) || []).map((x) => x.title).filter((x) => normW(x).startsWith(nt));
-    for (const page of hits.slice(0, 2)) {
-      const e = await wikiQuery(lang, { action: 'query', prop: 'extracts', explaintext: '1', exsectionformat: 'wiki', redirects: '1', titles: page });
-      const pg = Object.values((e.query && e.query.pages) || {})[0];
-      const full = String((pg && pg.extract) || '');
-      // Le bon morceau : la fiche doit parler de l'artiste (évite les homonymes).
-      if (full.length > 80 && normW(full.slice(0, 3000)).includes(na)) return { text: storyOf(full), lang, page };
+    const found = await wikiQuery(lang, { action: 'query', list: 'search', srsearch: title + ' ' + names[0] + (lang === 'fr' ? ' chanson' : ' song'), srlimit: '6' });
+    const hits = ((found.query && found.query.search) || []).map((x) => x.title).filter((x) => normW(x) === nt);
+    const probes = lang === 'fr' ? [title + ' (chanson)', title + ' (chanson de ' + names[0] + ')'] : [title + ' (song)', title + ' (' + names[0] + ' song)'];
+    const pages = (await wikiIntros(lang, hits.concat(probes))).filter((x) => normW(x.title) === nt && !isDisambig(x.title, x.intro))
+      .map((x) => Object.assign(x, { kind: wikiKind(x.intro), named: hasArtist(x.intro.slice(0, zone), names) }));
+    // La chanson dont le début cite l'artiste, puis une chanson à vérifier dans le texte, puis un article sans genre clair.
+    const rank = (x) => (x.kind === 'chanson' ? (x.named ? 0 : 1) : x.kind === '' ? (x.named ? 2 : 3) : 9);
+    for (const x of pages.filter((y) => rank(y) < 9).sort((a, b) => rank(a) - rank(b)).slice(0, 3)) {
+      const full = await wikiFull(lang, x.title);
+      if (full.length > 80 && (x.named || hasArtist(full.slice(0, zone), names))) return { text: storyOf(full), lang, page: x.title, kind: 'chanson' };
     }
+    for (const x of pages) if (x.kind === 'album' && x.named) albums.push({ lang, title: x.title });
+  }
+  // Rien sur la chanson : l'article de l'album du même nom, dit comme tel.
+  if (albums.length) {
+    const full = await wikiFull(albums[0].lang, albums[0].title);
+    if (full.length > 80) return { text: storyOf(full), lang: albums[0].lang, page: albums[0].title, kind: 'album' };
   }
   return { text: '' };
 }
@@ -1107,19 +1188,23 @@ function artistStory(full, max) {
   return out;
 }
 async function wikiArtist(p) {
-  const artist = String(p.artist || '').split(/,| & | feat\.? | x /i)[0].trim();
-  const na = normW(artist);
-  if (!na) return { text: '' };
-  for (const lang of ['fr', 'en']) {
-    const found = await wikiQuery(lang, { action: 'query', list: 'search', srsearch: artist + (lang === 'fr' ? ' musique groupe chanteur' : ' band musician'), srlimit: '5' });
-    const hits = ((found.query && found.query.search) || []).map((x) => x.title).filter((x) => normW(x) === na && !/homonymie|disambiguation/i.test(x));
-    for (const page of hits.slice(0, 2)) {
-      const e = await wikiQuery(lang, { action: 'query', prop: 'extracts', explaintext: '1', exsectionformat: 'wiki', redirects: '1', titles: page });
-      const pg = Object.values((e.query && e.query.pages) || {})[0];
-      const full = String((pg && pg.extract) || '');
-      // Le bon artiste : un article de musique (évite les homonymes).
-      if (/peut (faire r[ée]f[ée]rence|d[ée]signer)|may refer to/i.test(full.slice(0, 400))) continue;
-      if (full.length > 200 && MUSIC_WORDS.test(full.slice(0, 1500))) return { text: artistStory(full), lang, page };
+  for (const artist of artistNames(p.artist)) {
+    const na = normArtist(artist);
+    if (!na) continue;
+    for (const lang of ['fr', 'en']) {
+      // Le titre exact d'abord (les redirections mènent « Daryl Hall & John Oates » à « Hall and Oates »), puis la recherche.
+      const exact = [artist, artist.replace(/ & /g, ' and '), lang === 'fr' ? artist.replace(/ & /g, ' et ') : ''];
+      let pages = (await wikiIntros(lang, exact)).filter((x) => !isDisambig(x.title, x.intro) && MUSIC_WORDS.test(x.intro.slice(0, 1500)) && !wikiKind(x.intro.slice(0, 160)));
+      if (!pages.length) {
+        const found = await wikiQuery(lang, { action: 'query', list: 'search', srsearch: artist + (lang === 'fr' ? ' musique groupe chanteur' : ' band musician'), srlimit: '5' });
+        const hits = ((found.query && found.query.search) || []).map((x) => x.title).filter((x) => normArtist(x) === na && !/homonymie|disambiguation/i.test(x));
+        pages = (await wikiIntros(lang, hits.slice(0, 3))).filter((x) => !isDisambig(x.title, x.intro) && MUSIC_WORDS.test(x.intro.slice(0, 1500)));
+      }
+      for (const x of pages.slice(0, 2)) {
+        const full = await wikiFull(lang, x.title);
+        // Le bon artiste : un article de musique (évite les homonymes).
+        if (full.length > 200 && MUSIC_WORDS.test(full.slice(0, 1500))) return { text: artistStory(full), lang, page: x.title };
+      }
     }
   }
   return { text: '' };
@@ -1186,7 +1271,6 @@ function mbGet(path) {
   return p;
 }
 const mbQuote = (x) => '"' + String(x || '').replace(/["\\]/g, ' ').trim() + '"';
-const firstArtistName = (a) => String(a || '').split(/,| & | feat\.? | x /i)[0].trim();
 const yearOf = (d) => (String(d || '').match(/^(\d{4})/) || [])[1] || '';
 const qidOf = (rels) => {
   const u = (rels || []).find((r) => r.type === 'wikidata' && r.url && r.url.resource);
@@ -1197,12 +1281,16 @@ const instr = (attrs) => (attrs || []).filter((x) => !MB_SKIP_ATTR.test(x)).slic
 
 // Artiste : type, formation (année, lieu), membres et leurs instruments, groupes d'un artiste solo.
 async function mbArtist(p) {
-  const name = firstArtistName(p.artist);
-  const na = normW(name);
-  if (!na) return { text: '' };
-  return memoized('mba:' + na, async () => {
-    const found = await mbGet('artist?limit=5&query=' + encodeURIComponent('artist:' + mbQuote(name)));
-    const hit = ((found && found.artists) || []).find((a) => a.score >= 90 && (normW(a.name) === na || (a.aliases || []).some((x) => normW(x.name) === na)));
+  const names = artistNames(p.artist);
+  if (!names.length || !normArtist(names[0])) return { text: '' };
+  return memoized('mba:' + normArtist(names[0]), async () => {
+    let hit = null;
+    for (const name of names) {
+      const na = normArtist(name);
+      const found = await mbGet('artist?limit=5&query=' + encodeURIComponent('artist:' + mbQuote(name)));
+      hit = ((found && found.artists) || []).find((a) => a.score >= 90 && (normArtist(a.name) === na || (a.aliases || []).some((x) => normArtist(x.name) === na)));
+      if (hit) break;
+    }
     if (!hit) return { text: '' };
     const a = await mbGet('artist/' + hit.id + '?inc=artist-rels+url-rels');
     const ls = a['life-span'] || {};
@@ -1238,22 +1326,55 @@ async function mbArtist(p) {
 // Morceau : première sortie, auteurs, producteur, studio, samples et nombre de reprises connues.
 async function mbRecording(p) {
   const title = cleanSongTitle(p.title);
-  const artist = firstArtistName(p.artist);
+  const names = artistNames(p.artist);
   const nt = normW(title);
-  const na = normW(artist);
-  if (!nt || !na) return { text: '' };
-  return memoized('mbr:' + na + '|' + nt, async () => {
-    const q = 'recording:' + mbQuote(title) + ' AND artist:' + mbQuote(artist);
-    const found = await mbGet('recording?limit=15&query=' + encodeURIComponent(q));
-    const cands = ((found && found.recordings) || []).filter((r) => r.score >= 85 && !r.video && normW(r.title) === nt &&
-      (r['artist-credit'] || []).some((c) => normW(c.name || (c.artist && c.artist.name)) === na));
+  if (!nt || !names.length || !normArtist(names[0])) return { text: '' };
+  return memoized('mbr:' + normArtist(names[0]) + '|' + nt, async () => {
+    const wanted = names.map(normArtist);
+    // Le titre exact : « Sexy Boy (demo) » ou « … [remix] » sont d'autres enregistrements, sauf si le titre cherché a
+    // lui-même des parenthèses.
+    const paren = /[([]/;
+    const exact = (found) => ((found && found.recordings) || []).filter((r) => r.score >= 85 && !r.video && normW(r.title) === nt && (paren.test(title) || !paren.test(r.title || '')) &&
+      ((r['artist-credit'] || []).some((c) => wanted.includes(normArtist(c.name || (c.artist && c.artist.name)))) ||
+        normArtist((r['artist-credit'] || []).map((c) => (c.name || (c.artist && c.artist.name) || '') + (c.joinphrase || '')).join('')) === wanted[0]));
+    const ask = async (artist, extra) => exact(await mbGet('recording?limit=100&query=' + encodeURIComponent('recording:' + mbQuote(title) + ' AND artist:' + mbQuote(artist) + extra)));
+    const search = async (extra) => {
+      for (const artist of names) {
+        const list = await ask(artist, extra);
+        if (list.length) return { list, artist };
+      }
+      return { list: [], artist: names[0] };
+    };
+    // La version d'origine (2.39). Un titre connu a des centaines d'enregistrements (concerts, pirates,
+    // compilations) et la recherche n'en rend que 100 : on prenait le plus ancien des 15 premiers, souvent un
+    // concert (Thriller « sorti » en 1987, Purple Rain en 1992 : 7 dates justes sur 24 au banc d'essai). Maintenant :
+    // 1. seulement les enregistrements parus sur une sortie officielle (les pirates, souvent mal datés, sont écartés) ;
+    // 2. on vérifie s'il en existe de plus anciens que ceux reçus (l'original de Born to Run n'était pas dans les 100) ;
+    // 3. les détails (producteur, studio, auteurs) sont lus sur l'enregistrement le plus réédité : c'est l'original.
+    const OFFICIAL = ' AND status:official';
+    let got = await search(OFFICIAL);
+    const official = got.list.length > 0;
+    if (!official) got = await search('');
+    let cands = got.list;
     if (!cands.length) return { text: '' };
-    // La version d'origine : la plus ancienne sortie.
-    cands.sort((x, y) => (x['first-release-date'] || '9999').localeCompare(y['first-release-date'] || '9999'));
+    const byDate = (x, y) => (x['first-release-date'] || '9999').localeCompare(y['first-release-date'] || '9999');
+    const earliest = (list) => list.slice().sort(byDate)[0]['first-release-date'] || '';
+    for (let step = 0; official && step < 2; step++) {
+      const y = Number(yearOf(earliest(cands)));
+      if (!y) break;
+      const older = (await ask(got.artist, OFFICIAL + ' AND firstreleasedate:[1900 TO ' + (y - 1) + ']')).filter((r) => !cands.some((x) => x.id === r.id));
+      if (!older.length) break;
+      cands = cands.concat(older);
+    }
+    const firstOut = earliest(cands);
+    const count = (r) => (Array.isArray(r.releases) ? r.releases.length : 0);
+    cands = cands.slice().sort((x, y) => count(y) - count(x) || byDate(x, y));
     const rec = await mbGet('recording/' + cands[0].id + '?inc=artist-rels+place-rels+recording-rels+work-rels');
     const rels = rec.relations || [];
     const lines = [];
-    const first = rec['first-release-date'] || cands[0]['first-release-date'] || '';
+    // Le jour exact n'est donné que si c'est celui de l'enregistrement dont on lit les détails ; sinon l'année seule.
+    const own = rec['first-release-date'] || cands[0]['first-release-date'] || '';
+    const first = !firstOut || yearOf(own) === yearOf(firstOut) ? own : yearOf(firstOut);
     if (yearOf(first)) lines.push('Première sortie : ' + first + '.');
     const by = (type) => rels.filter((r) => r.type === type && r.artist).map((r) => r.artist.name).filter((x, i, l) => l.indexOf(x) === i).slice(0, 4);
     if (by('producer').length) lines.push('Produit par ' + by('producer').join(', ') + '.');
