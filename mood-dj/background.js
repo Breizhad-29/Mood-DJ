@@ -412,16 +412,20 @@ const HOST_STYLES = {
 
 // Exemples de dialogue en rotation (2.35) : un seul exemple, toujours le même, servait de moule (« Bref ! La
 // suite, c'est… »). Écrits en français parlé ; les deux derniers montrent une coupure de parole (« >> »).
+// Exemples du ton recherché (2.40). Jusqu'à la 2.39, ils étaient en ping-pong (« Mmh. », « Non. », « Bon. Raconte. »)
+// et l'IA les imitait : un tiers des phrases écrites faisaient un à trois mots. Dite par la synthèse vocale, chaque
+// phrase isolée est une respiration, et chaque réplique d'un mot un changement de voix : un dialogue haché.
+// Ici, chaque réplique dit quelque chose et enchaîne ; la petite réaction ouvre la réplique au lieu d'en tenir lieu.
 const DUO_EXAMPLES = [
-  "A: Bon, je préviens, celle-là, je la chante dans ma voiture.\nB: Ah, c'est toi, le bruit sur le périph.\nA: Ça s'appelle de la passion.\nB: Mmh.\nA: Allez, on l'écoute.",
-  "B: Attends, t'as vu l'heure ?\nA: J'ai vu. J'ai décidé de pas regarder.\nB: Sage décision. Bon, on met quoi ?\nA: Un truc qui réveille. Tiens, ça.",
-  "A: Y a des jours où j'ai rien à dire.\nB: Et pourtant tu parles.\nA: C'est mon métier, ça.\nB: Ouais, enfin… le métier, c'est surtout de lancer le disque.",
-  "A: Franchement ? Elle me fait toujours quelque chose, celle-là.\nB: Pareil. Je dis rien, je monte le son.",
-  "B: J'ai une théorie sur ce groupe.\nA: Non.\nB: Tu sais même pas laquelle !\nA: J'ai pas besoin. Vas-y quand même."
+  "A: Bon, je préviens tout de suite, celle-là, je la chante dans ma voiture, vitres fermées, et je rate toutes les notes.\nB: Ah, c'est donc toi, le bruit qu'on entend sur le périph le matin ! Moi qui croyais à une alarme.\nA: Ça s'appelle de la passion, et ça se respecte. Allez, on l'écoute.",
+  "B: Attends, t'as vu l'heure qu'il est ? Parce que moi j'ai regardé, et franchement j'aurais pas dû.\nA: J'ai vu aussi, et j'ai décidé de faire comme si de rien n'était, ça marche très bien.\nB: Sage décision. Bon, du coup on met quoi, un truc qui réveille ou un truc qui berce ?\nA: Qui réveille, vu ta tête. Tiens, celui-là.",
+  "A: Y a des jours où j'ai vraiment rien à dire, tu sais, je regarde le micro et il se passe rien du tout.\nB: Et pourtant ça fait vingt minutes que tu parles, je te signale, c'est même à ça qu'on te reconnaît.\nA: Oui, enfin, c'est mon métier. Le tien, c'est surtout de lancer le disque, alors lance.",
+  "A: Franchement, elle me fait toujours quelque chose, celle-là, j'ai beau la connaître par cœur, à chaque fois ça marche.\nB: Pareil, et tu vois, là, je dis plus rien, je monte le son et je te laisse avec.",
+  "B: J'ai une théorie sur ce groupe, et cette fois elle tient debout, je te promets.\nA: Non, parce que la dernière tenait pas debout non plus, et on y a quand même passé un quart d'heure.\nB: Tu sais même pas laquelle c'est ! Bon, je te la garde pour après, écoute d'abord."
 ];
 const DUO_EXAMPLES_CUT = [
-  "B: Moi, ce que j'aime dans ce morceau, c'est quand la basse…\nA: >> … arrive enfin, oui, au bout de deux minutes.\nB: Laisse-moi finir, pour une fois !\nA: Vas-y, vas-y.\nB: Non, c'est bon, t'as tout gâché. On l'écoute.",
-  "A: Alors, pour la petite histoire, ce titre a failli…\nB: >> … ne jamais sortir, tu l'as déjà racontée.\nA: Pas à tout le monde.\nB: Bon. Raconte."
+  "B: Moi, ce que j'adore avec celle-là, c'est qu'à chaque fois qu'on la passe, j'ai l'impression que…\nA: >> Que c'est la première fois, oui, on sait, tu le dis à chaque fois qu'on la passe.\nB: Laisse-moi finir, pour une fois ! Bon, tant pis, t'as tout gâché, on l'écoute.",
+  "A: Alors, pour la petite histoire, figure-toi que ce titre a bien failli…\nB: >> Ne jamais sortir, je sais, tu me l'as racontée dans la voiture.\nA: À toi, oui, mais pas à tout le monde, alors tu permets ?\nB: Vas-y, raconte, je fais semblant de découvrir."
 ];
 const SHORT_REACTIONS = ['« Non ! »', '« Attends… »', '« Mmh. »', '« Sérieux ? »', '« Ah ouais. »', '« Pardon ? »', '« Bah voyons. »', '« Oh. »', '« Et alors ? »', "« N'importe quoi. »", '« Joli. »', '« Carrément. »'];
 
@@ -483,7 +487,8 @@ const RADIO_LANGS = {
 };
 // 2.35 : on parle à tous les auditeurs (« vous »), et le texte est écrit pour l'oreille. À l'écoute, c'est
 // le texte « parlé » qui rend la voix naturelle : un texte écrit est lu avec une voix de lecture.
-const ORAL_RULE = "ÉCRIS POUR L'OREILLE, comme on parle et non comme on écrit : phrases courtes, élisions de l'oral (« y a », « c'est pas », « t'as vu »), petits mots de la conversation (« bon », « enfin », « tiens », un « euh » de temps en temps), une reprise ou un faux départ à l'occasion. " +
+const ORAL_RULE = "ÉCRIS POUR L'OREILLE, comme on parle et non comme on écrit : des phrases simples qui s'enchaînent, reliées par les petits mots de la conversation (« bon », « enfin », « tiens », « du coup », « parce que », « et puis », un « euh » de temps en temps), des élisions de l'oral (« y a », « c'est pas », « t'as vu »), une reprise ou un faux départ à l'occasion. " +
+  "Pas de style télégraphique : une suite de phrases de deux ou trois mots (« Carrément. », « Pas mal. », « Stop. ») sonne faux et hache la voix. La plupart des phrases font entre huit et vingt mots ; une phrase très courte reste l'exception, pour un effet. " +
   "Aucune tournure écrite : pas de « dont », « lequel », « celui-ci », pas d'inversion du sujet, pas de longue phrase à tiroirs. " +
   "La ponctuation règle le débit de la voix : des virgules pour que ça coule, un point pour une vraie respiration, des points de suspension seulement quand le silence a un sens (une phrase coupée, un suspense), jamais pour décorer.";
 function radioLangRule(lang) {
@@ -699,8 +704,8 @@ async function writeAnnouncement(p) {
       'Écris ' + n + ' répliques, ' + words + ' mots au plus au total. ' + (p.opener === 'B' ? "Cette fois, c'est B qui ouvre. " : '') +
       'Une réplique par ligne, chaque ligne commence par « A: » ou « B: ».' + (p.kind === 'outro' ? ' Ils se disent au revoir tous les deux.' : ' Le titre suivant et son artiste doivent être clairement annoncés.'));
     const some = (list, k) => list.slice().sort(() => Math.random() - 0.5).slice(0, k);
-    lines.push("NATUREL DU DIALOGUE : les répliques n'ont pas toutes la même longueur. En plus des " + n + ' répliques, tu peux glisser une ou deux réactions très courtes, de trois mots au plus, sur leur propre ligne (' + some(SHORT_REACTIONS, 4).join(', ') + ', un rire…), jamais deux fois la même. ' +
-      (p.cuts === 1 ? "Cette fois, l'un coupe la parole à l'autre, une seule fois : la phrase coupée s'arrête net sur des points de suspension, et la réplique qui coupe commence par « >> » juste après « A: » ou « B: » (ce signe n'est jamais lu). "
+    lines.push("NATUREL DU DIALOGUE : chaque réplique dit quelque chose, en une ou deux vraies phrases qui s'enchaînent, et elles n'ont pas toutes la même longueur. Les petites réactions (" + some(SHORT_REACTIONS, 4).join(', ') + ", un rire…) sont les bienvenues : elles ouvrent la réplique de celui qui réagit, qui enchaîne aussitôt sur ce qu'il a à dire (« Non ! Attends, tu veux dire que… »). Une seule fois au plus dans l'intervention, une réaction peut tenir seule sur sa ligne ; jamais d'échange en ping-pong de deux ou trois mots. " +
+      (p.cuts === 1 ? "Cette fois, l'un coupe la parole à l'autre, une seule fois : la phrase coupée s'arrête net sur des points de suspension, et la réplique qui coupe commence par « >> » juste après « A: » ou « B: » (ce signe n'est jamais lu), puis enchaîne directement, sans points de suspension. "
         : p.cuts === 0 ? 'Cette fois, personne ne se coupe la parole. '
           : "Une phrase peut être coupée par l'autre (« Moi je trouve que… », « Non mais laisse-moi finir ! »). ") +
       "Bannis les formules creuses d'animateur : « Absolument ! », « Tout à fait ! », « Exactement ! », « Tu as raison », « Excellente question », « Quelle transition », les compliments de l'un à l'autre, et le prénom de l'autre en tête de chaque réplique. Une vanne ne s'explique jamais.\n" +

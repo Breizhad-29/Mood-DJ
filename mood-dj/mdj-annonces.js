@@ -446,7 +446,7 @@ async function prepareAnnouncement(s, kind, prev, next, atMs, opts) {
       const line = (e) => (!e ? '' : lvl === 'intime' ? '. Delivery for this line, softly and intimately: ' + e : lvl === 'dechaine' ? '. Delivery for this line, played BIG and exaggerated, far more intense than a normal radio host: ' + e : '. Delivery for this line: ' + e);
       const cutIn = '. This line interrupts the other speaker: jump in immediately, no pause before it';
       const cutOff = '. This line gets cut off by the other speaker: stop abruptly on the last word, no falling intonation, no trailing pause';
-      const styled = turns.map((t, i) => Object.assign({}, t, { style: base(t.speaker === 'B' ? styleB : soloB ? gv.styleB : gv.styleA) + line(t.emotion) + (t.cut ? cutIn : '') + (turns[i + 1] && turns[i + 1].cut ? cutOff : '') }));
+      const styled = turns.map((t, i) => Object.assign({}, t, { text: voiceCutText(turns, i), style: base(t.speaker === 'B' ? styleB : soloB ? gv.styleB : gv.styleA) + line(t.emotion) + (t.cut ? cutIn : '') + (turns[i + 1] && turns[i + 1].cut ? cutOff : '') }));
       const r = await withTimeout(claude('gemini-tts', { turns: styled, voiceA: soloB ? gv.b : gv.a, voiceB: gVoice ? guest.voice : gv.b, style: soloB ? gv.styleB : gv.styleA }), duo || kind === 'interlude' ? 40000 : 25000);
       audio = b64ToBuffer(r.b64);
       voiceInfo = 'Gemini' + (duo ? ' en duo' : '') + ' (' + secs(Date.now() - t1) + (r.cle && hasGemini2 ? ', clé ' + r.cle : '') + ')';

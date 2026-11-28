@@ -4,7 +4,7 @@ A Chrome extension that turns YouTube Music into your own radio station: moods, 
 
 Full changelog, in French: [LISEZMOI.txt](LISEZMOI.txt) · Legal notice, privacy, sources and credits: [legal.en.html](legal.en.html)
 
-Up to date with version 2.39.0.
+Up to date with version 2.40.0.
 
 ---
 
@@ -155,7 +155,7 @@ Radio mode adds a host (or two) who talk between tracks. Most of it is in Settin
 ### Hosts and voices
 
 - For each host: **First name**, **Voice gender**, **Style** and **Voice** (with **Test**). Optional: **Your first name** (only used to sign your dedications: the hosts speak to all listeners, never to one person) and **City for the weather** (weather from Open-Meteo, free).
-- **Host duo**: two hosts who answer each other, tease and don't always agree, with short reactions ("No!", "Wait…") between the lines. Needs the Gemini voices. **Test the duo** plays both.
+- **Host duo**: two hosts who answer each other, tease and don't always agree, in full sentences that flow into one another; short reactions ("No!", "Wait…") open a line instead of standing alone, so the voices are not chopped into one-word exchanges. Needs the Gemini voices. **Test the duo** plays both.
 - **Host styles**: Warm, Quirky, Late-night voice, Pro FM, General-interest radio, Sports commentator, TV presenter, Rock'n'roll, Learned music buff, Hyped morning show, Nostalgic storyteller, Deadpan, Zen. The style changes how the AI writes and, with Gemini, the voice's tone and default voice. With the computer voice, only the text changes.
 - **What makes the hosts talk?**:
   - **Computer**: voices installed on your computer — free and instant, but more robotic, no duo. To add voices: Windows, Settings › Time & language › Speech; Mac, System Settings › Accessibility › Spoken Content › System voice.

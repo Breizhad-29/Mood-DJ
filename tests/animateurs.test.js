@@ -140,10 +140,57 @@ test('fiche que Mood DJ ne sait pas découper : rien n’est interdit, la fiche 
 test('coupure de parole : « >> » est noté sur la réplique et n’est jamais lu', () => {
   const p = loadPanel();
   const r = JSON.parse(JSON.stringify(p.run("takeMarks(parseTurns('A: >> Bonsoir à tous.\\nB: Moi, ce que j’aime, c’est quand la basse…\\nA: >> {amused} … arrive enfin.\\nB: Laisse-moi >> finir !\\nB: >> Bon.', true))")));
-  assert.deepEqual(r.turns.map((t) => !!t.cut), [false, false, true, false, false]);
+  // Les deux dernières répliques sont du même animateur : une seule pour la voix (2.40).
+  assert.deepEqual(r.turns.map((t) => !!t.cut), [false, false, true, false]);
   assert.equal(r.turns[2].emotion, 'amused');
   assert.equal(r.turns[2].text, '… arrive enfin.');
+  assert.equal(r.turns[3].text, 'Laisse-moi finir ! Bon.');
   for (const t of r.turns) assert.doesNotMatch(t.text, />/);
+});
+
+test('dialogue moins haché : répliques du même animateur réunies, et pas de double silence autour d’une coupure', () => {
+  const p = loadPanel();
+  const turns = JSON.parse(JSON.stringify(p.run("takeMarks(parseTurns('A: Aïe.\\nA: {mock outrage} T’as un point, et tu le fais briller depuis ce matin.\\nB: Ça couine à chaque…\\nA: >> … respiration, oui.\\nA: On avait compris.\\nB: Bon.', true)).turns")));
+  assert.deepEqual(turns.map((t) => t.speaker), ['A', 'B', 'A', 'B']);
+  assert.equal(turns[0].text, 'Aïe. T’as un point, et tu le fais briller depuis ce matin.');
+  assert.equal(turns[0].emotion, 'mock outrage');
+  // La réplique qui coupe n'est jamais collée à la précédente du même animateur, mais la suivante la rejoint.
+  assert.equal(turns[2].cut, true);
+  assert.equal(turns[2].text, '… respiration, oui. On avait compris.');
+  // Pour la voix : la phrase coupée finit sur un tiret, celle qui coupe ne commence pas par des points de suspension.
+  p.run("var __t = " + JSON.stringify(turns) + ";");
+  assert.equal(p.run('voiceCutText(__t, 1)'), 'Ça couine à chaque —');
+  assert.equal(p.run('voiceCutText(__t, 2)'), 'respiration, oui. On avait compris.');
+  assert.equal(p.run('voiceCutText(__t, 0)'), turns[0].text, 'les autres répliques ne changent pas');
+  // Des points de suspension qui ne sont pas une coupure restent : le silence a un sens.
+  p.run("var __u = [{ speaker: 'A', text: 'Écoutez, écoutez…' }, { speaker: 'B', text: 'J’entends rien.' }];");
+  assert.equal(p.run('voiceCutText(__u, 0)'), 'Écoutez, écoutez…');
+});
+
+test('consignes du dialogue : des répliques qui s’enchaînent, plus de ping-pong de deux ou trois mots', async () => {
+  const bg = loadBackground();
+  const words = (t) => t.split(/\s+/).filter(Boolean).length;
+  // Les exemples donnés à l'IA : aucune réplique de moins de six mots, et dix à vingt-quatre mots par réplique en moyenne.
+  for (const name of ['DUO_EXAMPLES', 'DUO_EXAMPLES_CUT']) {
+    for (const ex of [...bg.run(name)]) {
+      const lines = ex.split('\n').map((l) => l.replace(/^[AB]: (>> )?/, ''));
+      assert.ok(lines.every((l) => words(l) >= 6), name + ' : ' + lines.filter((l) => words(l) < 6).join(' | '));
+      const mean = lines.reduce((n, l) => n + words(l), 0) / lines.length;
+      assert.ok(mean >= 10 && mean <= 24, name + ' : ' + mean.toFixed(1) + ' mots par réplique');
+      // Aucune description du son d'un morceau dans les exemples (l'IA n'entend pas la musique).
+      assert.doesNotMatch(ex, /basse|guitare|solo|batterie|refrain/i);
+    }
+  }
+  for (const ex of [...bg.run('DUO_EXAMPLES_CUT')]) assert.doesNotMatch(ex, />> …/, 'la réplique qui coupe enchaîne sans points de suspension');
+  await bg.run("writeAnnouncement({ kind: 'interlude', host: 'Laeti', cohost: 'Jeff', duo: true, turns: 4, cuts: 1, next: 'X de Y' })");
+  const b = bg.__calls[0].body;
+  const all = b.system.map((x) => x.text).join('\n') + '\n' + b.messages[0].content;
+  assert.match(all, /Pas de style télégraphique/);
+  assert.match(all, /La plupart des phrases font entre huit et vingt mots/);
+  assert.match(all, /elles ouvrent la réplique de celui qui réagit/);
+  assert.match(all, /jamais d'échange en ping-pong de deux ou trois mots/);
+  assert.match(all, /puis enchaîne directement, sans points de suspension/);
+  assert.doesNotMatch(all, /sur leur propre ligne/);
 });
 
 test('programme : la part des interventions qui deviennent une conversation suit le niveau, et jamais sur « Jamais »', () => {

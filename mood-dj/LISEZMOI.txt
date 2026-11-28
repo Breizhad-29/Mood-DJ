@@ -1,5 +1,36 @@
-MOOD DJ POUR YOUTUBE MUSIC — version 2.39.0
+MOOD DJ POUR YOUTUBE MUSIC — version 2.40.0
 ============================================
+
+2.40.0 : DES DIALOGUES MOINS HACHÉS
+- Le constat. Dans les dialogues écrits par l'IA, un tiers des phrases
+  faisaient un à trois mots (« Stop. », « Carrément. », « Pas mal. »), et
+  une réplique sur sept n'était qu'un mot de réaction. Dite par la voix,
+  chaque phrase isolée est une respiration et chaque réplique d'un mot un
+  changement de voix : un dialogue haché. La cause était dans les
+  consignes : elles demandaient des « phrases courtes » et des réactions
+  « sur leur propre ligne », et les exemples donnés à l'IA étaient
+  eux-mêmes en ping-pong (« Mmh. », « Non. », « Bon. Raconte. »).
+- Les petites réactions restent, mais elles ouvrent la réplique de celui
+  qui réagit (« Non ! Attends, tu veux dire que… ») au lieu d'en tenir
+  lieu. Une seule peut tenir seule sur sa ligne, au plus.
+- Des phrases qui s'enchaînent : la plupart font huit à vingt mots, reliées
+  par les petits mots de la conversation. Les cinq exemples de ton et les
+  deux exemples de coupure ont été réécrits dans cet esprit.
+- Deux répliques de suite du même animateur n'en font plus qu'une pour la
+  voix : elles étaient dites comme deux prises séparées, avec un blanc.
+- Coupure de parole : la phrase coupée finissait par des points de
+  suspension et celle qui coupe commençait par d'autres. La voix lisait
+  deux silences, à l'endroit même où ça devait fuser. La phrase coupée
+  s'arrête maintenant sur un tiret, et l'autre enchaîne.
+- Mesuré sur de vrais textes (une émission de huit interventions avant,
+  une après) : répliques d'un à trois mots, de 15 % à 2 % ; 15 mots par
+  réplique au lieu de 12 ; phrases très courtes, d'un tiers à un quart.
+- Mesuré sur de vraies voix, même sujet et même longueur de texte : 4
+  prises de voix au lieu de 7 ; blancs de plus d'un tiers de seconde, 14
+  (8,1 s) avant, 7 (3,1 s) après ; 32,7 s avant, 25 s après.
+- Un exemple donné à l'IA décrivait « la basse » d'un morceau : remplacé
+  (l'IA n'entend pas la musique).
+- 2 nouveaux tests (78 en tout).
 
 2.39.0 : DES ANECDOTES QUI S'APPUIENT SUR LES BONNES FICHES
 Mesuré sur 32 titres, avec de vraies recherches sur Wikipédia et

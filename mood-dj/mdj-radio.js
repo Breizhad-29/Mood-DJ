@@ -138,7 +138,30 @@ function takeMarks(turns) {
     pos += t.text.length + 1;
   }
   const total = Math.max(1, pos);
-  return { turns: turns.filter((t) => t.text), sfx: sfx.slice(0, 3).map((x) => ({ name: x.name, at: Math.min(1, x.pos / total) })) };
+  return { turns: mergeTurns(turns.filter((t) => t.text)), sfx: sfx.slice(0, 3).map((x) => ({ name: x.name, at: Math.min(1, x.pos / total) })) };
+}
+// Deux répliques de suite du même animateur n'en font qu'une pour la voix (2.40). Écrites sur deux lignes
+// (« A: Aïe. » puis « A: T'as un point… »), elles étaient dites comme deux prises séparées, avec un blanc entre
+// les deux et une nouvelle intonation : une des causes du dialogue haché.
+function mergeTurns(turns) {
+  const out = [];
+  for (const t of turns) {
+    const last = out[out.length - 1];
+    if (last && last.speaker === t.speaker && !t.cut) {
+      last.text = (last.text + ' ' + t.text).trim();
+      if (!last.emotion && t.emotion) last.emotion = t.emotion;
+    } else out.push(t);
+  }
+  return out;
+}
+// Texte donné à la voix autour d'une coupure de parole : la phrase coupée s'arrête sur un tiret, pas sur des
+// points de suspension (que la voix lit comme un silence), et celle qui coupe ne commence pas par « … ».
+// Écrits « à chaque… » puis « … respiration », les deux silences se suivaient, à l'endroit même où ça devait fuser.
+function voiceCutText(turns, i) {
+  let text = String(turns[i].text || '');
+  if (turns[i].cut) text = text.replace(/^\s*(?:…|\.{3})\s*/, '');
+  if (turns[i + 1] && turns[i + 1].cut) text = text.replace(/\s*(?:…|\.{3})\s*$/, ' —');
+  return text;
 }
 
 // Découpe un dialogue « A: … / B: … » en répliques.
